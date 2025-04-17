@@ -78,6 +78,18 @@ def send_prompt(prompt, platform="cursor", new_chat=False):
         print("OPENAI_API_KEY is not set in the environment.")
         return
 
+    # Split prompt into lines and build keystrokes with Shift+Enter for newlines
+    lines = prompt.splitlines()
+    keystrokes = []
+    for i, line in enumerate(lines):
+        # Escape quotes for AppleScript
+        safe_line = line.replace('"', '\"')
+        keystrokes.append(f'keystroke "{safe_line}"')
+        if i != len(lines) - 1:
+            # Add Shift+Enter for new line (key code 36 is Enter)
+            keystrokes.append('key code 36 using {shift down}')
+    keystrokes_str = '\n            '.join(keystrokes)
+
     if platform == "cursor":
         script = f'''
         tell application "System Events"
@@ -90,7 +102,7 @@ def send_prompt(prompt, platform="cursor", new_chat=False):
             delay 0.3
             key code 36
             delay 0.5
-            keystroke "{prompt}"
+            {keystrokes_str}
             delay 0.3
             key code 36
         end tell
@@ -107,7 +119,7 @@ def send_prompt(prompt, platform="cursor", new_chat=False):
             delay 0.3
             key code 36
             delay 0.5
-            keystroke "{prompt}"
+            {keystrokes_str}
             delay 0.3
             key code 36
         end tell
