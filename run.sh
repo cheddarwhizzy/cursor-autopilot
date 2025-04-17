@@ -22,7 +22,15 @@ if ! command -v tesseract >/dev/null 2>&1; then
 fi
 
 # === CONFIGURATION ===
-PROJECT_PATH="$HOME/cheddar/mushattention/mushattention"
+# Extract PROJECT_PATH from config.json
+export CONFIG_FILE="$(dirname "$0")/config.json"
+if [ -f "$CONFIG_FILE" ]; then
+  PROJECT_PATH=$(python3 -c 'import json,os; c=json.load(open(os.environ["CONFIG_FILE"])); print(os.path.expanduser(c["project_path"]))' CONFIG_FILE="$CONFIG_FILE")
+else
+  echo "Error: config.json not found. Set CONFIG_FILE environment variable to the path of your config.json file."
+  exit 1
+fi
+
 # The initial prompt is now stored in initial_prompt.txt
 
 # Parse flags for auto mode
