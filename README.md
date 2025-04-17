@@ -85,14 +85,12 @@ All major settings are controlled via `config.json` in the project root. Example
 ```json
 {
   "project_path": "~/cheddar/mushattention/mushattention",
-  "screenshot_region": "500,650,850,400",
   "task_readme_path": "@src/notifications/README.md",
   "platform": "cursor" // or "windsurf"
 }
 ```
 
 - `project_path`: Path to the project directory to watch.
-- `screenshot_region`: Region for screenshots (if used).
 - `task_readme_path`: The README file to track for marking feature completion.
 - `platform`: Editor automation target. Use `cursor` (default) or `windsurf`.
 

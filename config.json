@@ -1,7 +1,6 @@
 {
   "project_path": "/Users/cheddarwhizzy/cheddar/payload-website",
-  "screenshot_region": "500,650,850,400",
-  "task_readme_path": "@src/notifications/README.md",
+  "task_readme_path": "src/notifications/README.md",
   "important_llm_docs_path": "docs/structure/*.md",
   "initial_delay": 10,
   "send_message": false

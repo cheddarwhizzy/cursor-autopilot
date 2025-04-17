@@ -6,26 +6,36 @@ import subprocess
 
 def ensure_chat_window_open():
     print("[ensure_chat_window] Waiting for Cursor to launch...")
+    print("[ensure_chat_window] Note: The chat window should be closed when Cursor initially opens.")
+    print("[ensure_chat_window] Waiting 3 seconds for Cursor to fully launch...")
     time.sleep(3)  # Wait for Cursor to fully launch
 
     print("[ensure_chat_window] Taking screenshot of Cursor window...")
     screenshot_path = take_cursor_screenshot()
     if not screenshot_path:
         print("[ensure_chat_window] Could not take screenshot. Sending single Command+L as fallback.")
+        print("[ensure_chat_window] Note: This can happen if the window bounds cannot be detected.")
         l_count = 1
+        l_keystrokes = "keystroke \"l\" using {command down}"
     else:
         print("[ensure_chat_window] Sending screenshot to OpenAI Vision...")
-        state = is_chat_window_open(screenshot_path)
-        print(f"[ensure_chat_window] OpenAI Vision detected chat window state: {state}")
-        if state == "open":
-            l_count = 2  # toggle closed then open
-        elif state == "closed":
-            l_count = 1  # open once
+        is_open = is_chat_window_open(screenshot_path)
+        print(f"[ensure_chat_window] OpenAI Vision detected chat window state: {is_open}")
+        if is_open:
+            print("[ensure_chat_window] Chat window is open, sending Command+L twice to toggle closed then open...")
+            print("[ensure_chat_window] Will wait 1 second between keystrokes for UI to react...")
+            l_count = 2
+            # Add a longer delay between the two Command+L presses
+            l_keystrokes = '''
+            keystroke "l" using {command down}
+            delay 1
+            keystroke "l" using {command down}
+            '''
         else:
-            print("[ensure_chat_window] Could not determine chat window state. Defaulting to one Command+L.")
+            print("[ensure_chat_window] Chat window is closed, sending Command+L once to open...")
             l_count = 1
+            l_keystrokes = "keystroke \"l\" using {command down}"
 
-    l_keystrokes = '\n'.join(["keystroke \"l\" using {command down}\n delay 0.3" for _ in range(l_count)])
     script = f'''
     tell application "System Events"
         tell application "Cursor" to activate

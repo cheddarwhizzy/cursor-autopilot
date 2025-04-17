@@ -1,30 +1,54 @@
 import os
 import openai
+import base64
 
-def is_chat_window_open(image_path, api_key=None):
+def is_chat_window_open(screenshot_path):
     """
-    Uses OpenAI Vision API to determine if the Cursor chat window is open in the screenshot.
-    Returns: 'open', 'closed', or None if uncertain.
+    Uses OpenAI GPT-4.1-mini to check if the screenshot shows a chat window.
+    Returns True if a chat window is detected, False otherwise.
     """
-    api_key = api_key or os.environ.get("OPENAI_API_KEY")
+    api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
-        raise ValueError("OpenAI API key not found. Set OPENAI_API_KEY env variable or pass as argument.")
-    openai.api_key = api_key
-    with open(image_path, "rb") as img:
+        print("OPENAI_API_KEY not found in environment. Skipping vision check.")
+        print("Note: The chat window should be closed when Cursor initially opens.")
+        print("Will wait for the configured delay before proceeding.")
+        return False
+        
+    try:
+        # Read and encode image
+        with open(screenshot_path, "rb") as image_file:
+            image_data = base64.b64encode(image_file.read()).decode('utf-8')
+        
+        openai.api_key = api_key
+        
         response = openai.chat.completions.create(
-            model="gpt-4-vision-preview",
+            model="gpt-4.1-mini",
             messages=[
-                {"role": "user", "content": [
-                    {"type": "text", "text": "Is the Cursor chat window open in this screenshot? Reply only with 'open' or 'closed'."},
-                    {"type": "image_url", "image_url": "attachment://cursor_window.png"}
-                ]}
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": "Does this screenshot show a Cursor chat window on the right side of the window? Answer with just 'yes' or 'no'."
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/png;base64,{image_data}"
+                            }
+                        }
+                    ]
+                }
             ],
-            files=[img]
+            max_tokens=10
         )
-    result = response.choices[0].message.content.strip().lower()
-    if "open" in result:
-        return "open"
-    elif "closed" in result:
-        return "closed"
-    else:
-        return None
+        
+        answer = response.choices[0].message.content.lower().strip()
+        print(f"Vision API response: {answer}")
+        return answer == "yes"
+        
+    except Exception as e:
+        print(f"Error checking chat window: {e}")
+        print("Note: The chat window should be closed when Cursor initially opens.")
+        print("Will wait for the configured delay before proceeding.")
+        return False
