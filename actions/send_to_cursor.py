@@ -149,6 +149,12 @@ def send_prompt(prompt, platform="cursor", new_chat=False, initial_delay=0, send
                     delay 0.1
                 end repeat
 
+                -- Additional backspace keystrokes to clear any remaining text
+                repeat 5 times
+                    key code 51
+                    delay 0.1
+                end repeat
+
                 -- Small pause before typing new text
                 delay 0.5
 
