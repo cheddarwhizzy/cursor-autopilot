@@ -76,17 +76,22 @@ def get_cursor_window_id(max_retries=5, delay=1):
 
 def activate_cursor():
     """Activate the Cursor application window."""
+    print("[activate_cursor] Activating Cursor...")
     script = '''
     tell application "Cursor" to activate
-    delay 0.5
+    delay 1
     tell application "System Events"
         tell process "Cursor"
             set frontmost to true
         end tell
     end tell
-    delay 0.5
+    delay 1
     '''
     subprocess.run(["osascript", "-e", script])
+    # Add extra delay after activation to ensure app is fully ready
+    print("[activate_cursor] Waiting 3 seconds for Cursor to fully initialize...")
+    time.sleep(3)
+    print("[activate_cursor] Done.")
 
 def take_cursor_screenshot(filename="cursor_window.png"):
     """
@@ -204,6 +209,50 @@ def take_cursor_screenshot(filename="cursor_window.png"):
     
     return None
 
+def send_keys(key_sequence):
+    """
+    Send a sequence of keystrokes to Cursor.
+    key_sequence should be a list of strings, e.g. ["command down", "l", "command up"]
+    """
+    print(f"[send_keys] Sending key sequence: {key_sequence}")
+    
+    # First make sure Cursor is properly activated
+    activate_script = '''
+    tell application "Cursor" to activate
+    delay 1
+    tell application "System Events"
+        tell process "Cursor"
+            set frontmost to true
+        end tell
+    end tell
+    delay 1
+    '''
+    
+    print("[send_keys] Ensuring Cursor is active...")
+    activate_result = subprocess.run(["osascript", "-e", activate_script], capture_output=True, text=True)
+    if activate_result.returncode != 0:
+        print(f"[send_keys] Warning: Error activating Cursor: {activate_result.stderr}")
+    
+    # Add a delay to ensure Cursor is ready
+    print("[send_keys] Waiting 2 seconds for Cursor to be ready...")
+    time.sleep(2)
+    
+    # Now send the keystroke
+    script = '''
+    tell application "System Events"
+        tell process "Cursor"
+            keystroke "l" using {command down}
+        end tell
+    end tell
+    '''
+    
+    print("[send_keys] Executing keystroke...")
+    result = subprocess.run(["osascript", "-e", script], capture_output=True, text=True)
+    if result.returncode == 0:
+        print("[send_keys] Keys sent successfully")
+    else:
+        print(f"[send_keys] Error sending keys: {result.stderr}")
+
 def send_prompt(prompt, platform="cursor", new_chat=False, initial_delay=0, send_message=True):
     """
     Send a prompt to the specified platform.
@@ -299,3 +348,48 @@ def send_prompt(prompt, platform="cursor", new_chat=False, initial_delay=0, send
         subprocess.run(["osascript", "-e", base_script])
     else:
         raise ValueError(f"Unknown platform: {platform}")
+
+def kill_cursor():
+    """Kill the Cursor application if it's running."""
+    print("[kill_cursor] Checking if Cursor is running...")
+    
+    # Check if Cursor is running
+    check_script = '''
+    tell application "System Events"
+        count (every process whose name is "Cursor")
+    end tell
+    '''
+    
+    result = subprocess.run(["osascript", "-e", check_script], capture_output=True, text=True)
+    if result.returncode == 0 and result.stdout.strip() != "0":
+        print("[kill_cursor] Cursor is running, killing it...")
+        subprocess.run(["pkill", "-x", "Cursor"])
+        print("[kill_cursor] Waiting 2 seconds for process to fully terminate...")
+        time.sleep(2)  # Wait longer for process to fully terminate
+        print("[kill_cursor] Done.")
+    else:
+        print("[kill_cursor] Cursor is not running.")
+
+def launch_cursor():
+    """Launch Cursor and wait for it to be ready."""
+    print("[launch_cursor] Starting Cursor...")
+    subprocess.run(["open", "-a", "Cursor"])
+    
+    # Wait for process to appear
+    print("[launch_cursor] Waiting for Cursor process...")
+    for _ in range(10):  # Try for 10 seconds
+        check_script = '''
+        tell application "System Events"
+            count (every process whose name is "Cursor")
+        end tell
+        '''
+        result = subprocess.run(["osascript", "-e", check_script], capture_output=True, text=True)
+        if result.returncode == 0 and result.stdout.strip() != "0":
+            print("[launch_cursor] Cursor process detected.")
+            break
+        time.sleep(1)
+    
+    # Give it extra time to fully initialize
+    print("[launch_cursor] Waiting 5 seconds for Cursor to fully initialize...")
+    time.sleep(5)
+    print("[launch_cursor] Done.")
