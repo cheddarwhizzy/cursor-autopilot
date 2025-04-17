@@ -55,9 +55,9 @@ python3 generate_initial_prompt.py
 # Ensure chat window is open using OpenAI Vision
 python3 ensure_chat_window.py
 
-# Send the initial prompt immediately after opening the chat window
+# Send the initial prompt immediately after opening the chat window, starting a new chat
 if [ -f "initial_prompt.txt" ]; then
-  python3 -c 'from actions.send_to_cursor import send_prompt; send_prompt(open("initial_prompt.txt").read().strip())'
+  python3 -c 'from actions.send_to_cursor import send_prompt; send_prompt(open("initial_prompt.txt").read().strip(), new_chat=True)'
 fi
 
 # Start Slack bot and watcher together with combined logs

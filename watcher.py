@@ -49,11 +49,11 @@ def run_watcher():
                 TASK_COMPLETED = True
             LAST_README_MTIME = new_readme_mtime
         if new_hash == LAST_HASH:
-            inactivity_timer += 1
+            inactivity_timer += 5
         else:
             inactivity_timer = 0
         LAST_HASH = new_hash
-        if inactivity_timer >= 6 and get_mode() == "auto":
+        if inactivity_timer >= 30 and get_mode() == "auto":
             print("No activity detected. Resending initial prompt to Cursor.")
             try:
                 with open("initial_prompt.txt", "r") as f:
