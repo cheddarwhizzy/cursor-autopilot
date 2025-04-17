@@ -1,3 +1,4 @@
+#!/usr/bin/env python3.13
 from flask import Flask, request
 from state import set_mode, get_mode
 from actions.send_to_cursor import send_prompt

@@ -1,3 +1,4 @@
+#!/usr/bin/env python3.13
 import time
 import os
 import hashlib
@@ -63,10 +64,13 @@ def run_watcher():
                 initial_prompt = "continue"
             # Use platform and task completion flag
             if TASK_COMPLETED:
-                send_prompt(initial_prompt, platform=PLATFORM, new_chat=True)
+                send_prompt(initial_prompt, platform=PLATFORM, new_chat=True, 
+                          initial_delay=config.get("initial_delay", 10),
+                          send_message=config.get("send_message", True))
                 TASK_COMPLETED = False
             else:
-                send_prompt(initial_prompt, platform=PLATFORM, new_chat=False)
+                send_prompt(initial_prompt, platform=PLATFORM, new_chat=False,
+                          send_message=config.get("send_message", True))
             inactivity_timer = 0
 
 if __name__ == "__main__":

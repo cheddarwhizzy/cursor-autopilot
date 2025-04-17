@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  cursor-autopilot:
+    build: .
+    volumes:
+      - .:/app
+      - /tmp/.X11-unix:/tmp/.X11-unix  # For X11 forwarding
+    environment:
+      - DISPLAY=${DISPLAY}
+      - WATCH_PATH=${WATCH_PATH:-/app}
+    network_mode: host  # Required for Slack webhook to work
+    restart: unless-stopped 

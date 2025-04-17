@@ -14,6 +14,37 @@ This project provides automation for interacting with the Cursor editor and a Sl
 - [Cursor](https://www.cursor.so/) editor installed
 - Slack workspace (for bot integration)
 
+### Python Version Management with Pyenv
+To ensure consistent Python version across different machines, we recommend using Pyenv:
+
+1. Install Pyenv:
+```bash
+brew install pyenv
+```
+
+2. Add Pyenv to your shell configuration:
+```bash
+echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.zshrc
+echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.zshrc
+echo 'eval "$(pyenv init -)"' >> ~/.zshrc
+```
+
+3. Install Python 3.13.2:
+```bash
+pyenv install 3.13.2
+```
+
+4. Set the local Python version:
+```bash
+pyenv local 3.13.2
+```
+
+5. Create and activate a virtual environment:
+```bash
+python -m venv venv
+source venv/bin/activate
+```
+
 ## Getting Started
 
 ### 1. Clone the Repository

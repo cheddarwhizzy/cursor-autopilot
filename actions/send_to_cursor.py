@@ -67,11 +67,13 @@ def take_cursor_screenshot(filename="cursor_window.png"):
         print("Failed to take screenshot of Cursor window.")
         return None
 
-def send_prompt(prompt, platform="cursor", new_chat=False):
+def send_prompt(prompt, platform="cursor", new_chat=False, initial_delay=0, send_message=True):
     """
     Sends a prompt to Cursor or Windsurf.
     If new_chat is True, starts a new chat (Cmd+N or Cmd+Shift+L).
     platform: 'cursor' (default) or 'windsurf'
+    initial_delay: seconds to wait before sending final Enter key
+    send_message: if False, will only type the message without sending it
     """
     # Check if OPENAI_API_KEY is set
     if 'OPENAI_API_KEY' not in os.environ:
@@ -91,39 +93,118 @@ def send_prompt(prompt, platform="cursor", new_chat=False):
     keystrokes_str = '\n            '.join(keystrokes)
 
     if platform == "cursor":
+        # First activate Cursor and wait for it to be ready
+        activate_script = '''
+        tell application "Cursor" to activate
+        delay 2
+        '''
+        print("Activating Cursor...")
+        subprocess.run(["osascript", "-e", activate_script])
+
+        # Try to take a screenshot and check chat window
+        screenshot = take_cursor_screenshot()
+        if not screenshot or not is_chat_window_open(screenshot):
+            print("Opening chat window...")
+            subprocess.run(["osascript", "-e", '''
+                tell application "System Events"
+                    tell process "Cursor"
+                        keystroke "k" using {command down}
+                        delay 1.5
+                    end tell
+                end tell
+            '''])
+
+        if new_chat:
+            print("Starting new chat...")
+            subprocess.run(["osascript", "-e", '''
+                tell application "System Events"
+                    tell process "Cursor"
+                        keystroke "n" using {command down}
+                        delay 1.5
+                    end tell
+                end tell
+            '''])
+
+        # Now send the actual prompt
         script = f'''
         tell application "System Events"
-            tell application "Cursor" to activate
-            delay 0.8
-            {'keystroke "n" using {command down}\n delay 0.3' if new_chat else ''}
-            keystroke "k" using {{command down}}
-            delay 0.5
-            key code 125
-            delay 0.3
-            key code 36
-            delay 0.5
-            {keystrokes_str}
-            delay 0.3
-            key code 36
+            tell process "Cursor"
+                -- Move to chat input and ensure we're in the right spot
+                key code 125
+                delay 0.5
+                key code 36
+                delay 1
+
+                -- Clear any existing text (try multiple times to ensure it works)
+                repeat 2 times
+                    keystroke "a" using {{command down}}
+                    delay 0.3
+                    key code 51
+                    delay 0.3
+                end repeat
+
+                -- Extra safety check - press delete a few times
+                repeat 3 times
+                    key code 51
+                    delay 0.1
+                end repeat
+
+                -- Small pause before typing new text
+                delay 0.5
+
+                -- Type the prompt
+                {keystrokes_str}
+                delay 0.5
+            end tell
         end tell
         '''
+        
+        if send_message:
+            script += f'''
+        tell application "System Events"
+            tell process "Cursor"
+                -- Wait before sending
+                delay {initial_delay}
+                
+                -- Send the prompt (only if explicitly requested)
+                key code 36
+            end tell
+        end tell
+            '''
+            print(f"Entering prompt text... Will wait {initial_delay} seconds before sending.")
+        else:
+            print("Entering prompt text only (not sending)...")
+            
+        subprocess.run(["osascript", "-e", script])
+        print("Done!" if not send_message else "Prompt sent!")
+
     elif platform == "windsurf":
-        script = f'''
+        # Similar changes for Windsurf...
+        base_script = f'''
         tell application "System Events"
             tell application "Windsurf" to activate
-            delay 0.8
-            {'keystroke "l" using {command down, shift down}\n delay 0.3' if new_chat else ''}
-            keystroke "k" using {{command down}} -- or adjust as needed for Windsurf
-            delay 0.5
+            delay 2
+            {('keystroke "l" using {command down, shift down}' + '\n delay 1') if new_chat else ''}
+            keystroke "k" using {{command down}}
+            delay 1
             key code 125
-            delay 0.3
-            key code 36
             delay 0.5
-            {keystrokes_str}
-            delay 0.3
             key code 36
+            delay 1
+            {keystrokes_str}
+            delay 0.5
+        '''
+        
+        if send_message:
+            base_script += f'''
+            delay {initial_delay}
+            key code 36
+            '''
+            
+        base_script += '''
         end tell
         '''
+        
+        subprocess.run(["osascript", "-e", base_script])
     else:
         raise ValueError(f"Unknown platform: {platform}")
-    subprocess.run(["osascript", "-e", script])
