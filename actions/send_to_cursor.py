@@ -67,10 +67,10 @@ def take_cursor_screenshot(filename="cursor_window.png"):
         print("Failed to take screenshot of Cursor window.")
         return None
 
-def send_prompt(prompt, platform="cursor"):
+def send_prompt(prompt, platform="cursor", new_chat=False):
     """
-    Ensures Cursor or Windsurf chat window is open using OpenAI Vision, then sends the prompt.
-    Requires OPENAI_API_KEY to be set in the environment.
+    Sends a prompt to Cursor or Windsurf.
+    If new_chat is True, starts a new chat (Cmd+N or Cmd+Shift+L).
     platform: 'cursor' (default) or 'windsurf'
     """
     # Check if OPENAI_API_KEY is set
@@ -78,35 +78,12 @@ def send_prompt(prompt, platform="cursor"):
         print("OPENAI_API_KEY is not set in the environment.")
         return
 
-    # Take screenshot of Cursor/Windsurf window
-    screenshot_path = take_cursor_screenshot()
-    if not screenshot_path:
-        print("Could not take screenshot. Proceeding with single Command+L.")
-        l_count = 1
-    else:
-        # Use OpenAI Vision to check chat window state
-        state = is_chat_window_open(screenshot_path)
-        if state == "open":
-            l_count = 2  # toggle closed then open
-        elif state == "closed":
-            l_count = 1  # open once
-        else:
-            print("Could not determine chat window state. Defaulting to one Command+L.")
-            l_count = 1
-
-    # Build AppleScript for platform
     if platform == "cursor":
-        l_keystrokes = '\n'.join(["keystroke \"l\" using {command down}\n delay 0.3" for _ in range(l_count)])
-        # Add Command+N for new chat
-        new_chat_keystroke = 'keystroke "n" using {command down}\n delay 0.3'
         script = f'''
         tell application "System Events"
             tell application "Cursor" to activate
             delay 0.8
-            {l_keystrokes}
-            delay 0.5
-            {new_chat_keystroke}
-            delay 0.3
+            {'keystroke "n" using {command down}\n delay 0.3' if new_chat else ''}
             keystroke "k" using {{command down}}
             delay 0.5
             key code 125
@@ -119,18 +96,11 @@ def send_prompt(prompt, platform="cursor"):
         end tell
         '''
     elif platform == "windsurf":
-        # Windsurf uses Command+Shift+L for chat and new chat
-        l_keystrokes = '\n'.join(["keystroke \"l\" using {command down, shift down}\n delay 0.3" for _ in range(l_count)])
-        # Add Command+Shift+L again for new chat
-        new_chat_keystroke = 'keystroke "l" using {command down, shift down}\n delay 0.3'
         script = f'''
         tell application "System Events"
             tell application "Windsurf" to activate
             delay 0.8
-            {l_keystrokes}
-            delay 0.5
-            {new_chat_keystroke}
-            delay 0.3
+            {'keystroke "l" using {command down, shift down}\n delay 0.3' if new_chat else ''}
             keystroke "k" using {{command down}} -- or adjust as needed for Windsurf
             delay 0.5
             key code 125

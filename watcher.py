@@ -63,10 +63,10 @@ def run_watcher():
                 initial_prompt = "continue"
             # Use platform and task completion flag
             if TASK_COMPLETED:
-                send_prompt(initial_prompt, platform=PLATFORM)
+                send_prompt(initial_prompt, platform=PLATFORM, new_chat=True)
                 TASK_COMPLETED = False
             else:
-                send_prompt(initial_prompt, platform=PLATFORM)
+                send_prompt(initial_prompt, platform=PLATFORM, new_chat=False)
             inactivity_timer = 0
 
 if __name__ == "__main__":
