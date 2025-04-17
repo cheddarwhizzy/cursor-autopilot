@@ -124,6 +124,10 @@ def send_prompt(prompt, platform="cursor", new_chat=False, initial_delay=0, send
                     end tell
                 end tell
             '''])
+            
+            print("Waiting 5 seconds for new chat to fully initialize...")
+            time.sleep(5)
+            print("Proceeding with prompt text entry...")
 
         # Now send the actual prompt
         script = f'''
@@ -142,21 +146,41 @@ def send_prompt(prompt, platform="cursor", new_chat=False, initial_delay=0, send
                     key code 51
                     delay 0.3
                 end repeat
+            end tell
+        end tell
+        '''
+        print("Clearing any existing text with Command+A and Delete...")
+        subprocess.run(["osascript", "-e", script])
 
+        # Additional backspace script with logging
+        backspace_script = '''
+        tell application "System Events"
+            tell process "Cursor"
                 -- Extra safety check - press delete a few times
                 repeat 3 times
                     key code 51
-                    delay 0.1
+                    delay 0.3
                 end repeat
 
                 -- Additional backspace keystrokes to clear any remaining text
                 repeat 5 times
                     key code 51
-                    delay 0.1
+                    delay 0.3
                 end repeat
+            end tell
+        end tell
+        '''
+        print("Pressing backspace multiple times to ensure text is cleared...")
+        subprocess.run(["osascript", "-e", backspace_script])
+        print("Finished backspace operations.")
 
+        # Now send the actual prompt with a delay
+        print("Starting to type prompt text...")
+        prompt_script = f'''
+        tell application "System Events"
+            tell process "Cursor"
                 -- Small pause before typing new text
-                delay 0.5
+                delay 1
 
                 -- Type the prompt
                 {keystrokes_str}
@@ -164,9 +188,11 @@ def send_prompt(prompt, platform="cursor", new_chat=False, initial_delay=0, send
             end tell
         end tell
         '''
-        
+        subprocess.run(["osascript", "-e", prompt_script])
+        print("Finished typing prompt text.")
+
         if send_message:
-            script += f'''
+            script = f'''
         tell application "System Events"
             tell process "Cursor"
                 -- Wait before sending
@@ -177,12 +203,11 @@ def send_prompt(prompt, platform="cursor", new_chat=False, initial_delay=0, send
             end tell
         end tell
             '''
-            print(f"Entering prompt text... Will wait {initial_delay} seconds before sending.")
+            print(f"Waiting {initial_delay} seconds before sending...")
+            subprocess.run(["osascript", "-e", script])
+            print("Prompt sent!")
         else:
-            print("Entering prompt text only (not sending)...")
-            
-        subprocess.run(["osascript", "-e", script])
-        print("Done!" if not send_message else "Prompt sent!")
+            print("Prompt typed but not sent.")
 
     elif platform == "windsurf":
         # Similar changes for Windsurf...
