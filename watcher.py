@@ -22,7 +22,7 @@ else:
 
 # Get paths from config
 WATCH_PATH = os.path.expanduser(config.get("project_path", "~/cheddar/mushattention/mushattention"))
-TASK_FILE_PATH = config.get("task_file_path", "@src/notifications/README.md")
+TASK_FILE_PATH = config.get("task_file_path", "TASKS_TO_COMPLETE.md")
 LAST_README_MTIME = None
 TASK_COMPLETED = False
 PLATFORM = config.get("platform", "cursor")
@@ -168,7 +168,7 @@ def run_watcher():
                 else:
                     # Use the continuation prompt for subsequent prompts
                     prompt = CONTINUATION_PROMPT.format(
-                        task_file_path=config.get("task_file_path", "@src/notifications/README.md"),
+                        task_file_path=config.get("task_file_path", "TASKS_TO_COMPLETE.md"),
                         important_llm_docs_path=config.get("important_llm_docs_path", "docs/structure/*.md")
                     )
                     print("Sending continuation prompt (no task completion)")
