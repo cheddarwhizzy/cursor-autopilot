@@ -322,7 +322,7 @@ def send_prompt(prompt, platform="cursor", new_chat=False, initial_delay=0, send
                 ''' if i < len(lines) - 1 else ''}
                 {'''
                 key code 36 using {shift down}  # Shift+Enter for newline
-                delay 0.1
+                delay 0.8  # Increased delay to prevent triggering Alfred popup
                 ''' if i < len(lines) - 1 else '''
                 delay 0.1
                 key code 36  # Just Enter for the last line
@@ -331,33 +331,80 @@ def send_prompt(prompt, platform="cursor", new_chat=False, initial_delay=0, send
             '''
             subprocess.run(["osascript", "-e", script])
     elif platform == "windsurf":
-        # Similar changes for Windsurf...
-        base_script = f'''
-        tell application "System Events"
-            tell application "Windsurf" to activate
-            delay 2
-            {('keystroke "l" using {command down, shift down}' + '\n delay 1') if new_chat else ''}
-            keystroke "k" using {{command down}}
-            delay 1
-            key code 125
-            delay 0.5
-            key code 36
-            delay 1
-            keystroke "{prompt.replace('"', '\\"')}"
-            delay 0.5
-        '''
+        print("Activating Windsurf...")
+        activate_cursor(platform="windsurf")
         
-        if send_message:
-            base_script += f'''
-            delay {initial_delay}
-            key code 36
+        if new_chat:
+            print("Creating new chat window in Windsurf...")
+            # Send Command+Shift+L to create a new chat in Windsurf
+            script = '''
+            tell application "System Events"
+                tell process "Windsurf"
+                    keystroke "l" using {command down, shift down}
+                    delay 1
+                end tell
+            end tell
             '''
-            
-        base_script += '''
+            subprocess.run(["osascript", "-e", script])
+            time.sleep(1)  # Wait for new chat to open
+        
+        # Open the chat window with Command+K
+        print("Opening chat input in Windsurf...")
+        script = '''
+        tell application "System Events"
+            tell process "Windsurf"
+                keystroke "k" using {command down}
+                delay 1
+                key code 125  # Down arrow
+                delay 0.5
+                key code 36  # Enter
+                delay 1
+            end tell
         end tell
         '''
+        subprocess.run(["osascript", "-e", script])
         
-        subprocess.run(["osascript", "-e", base_script])
+        # Clear any existing text with Command+A then backspace
+        print("Clearing any existing text...")
+        script = '''
+        tell application "System Events"
+            tell process "Windsurf"
+                -- Select all text
+                keystroke "a" using {command down}
+                delay 0.1
+                
+                -- Press delete key multiple times to ensure text is cleared
+                repeat 10 times
+                    key code 51  # Delete/Backspace key
+                    delay 0.05
+                end repeat
+            end tell
+        end tell
+        '''
+        subprocess.run(["osascript", "-e", script])
+        
+        # Split prompt into lines and send with Shift+Enter between them
+        lines = prompt.splitlines()
+        for i, line in enumerate(lines):
+            # Send the line
+            script = f'''
+            tell application "System Events"
+                tell process "Windsurf"
+                    keystroke "{line.replace('"', '\\"')}"
+                    {'''
+                    delay 0.1
+                    ''' if i < len(lines) - 1 else ''}
+                    {'''
+                    key code 36 using {shift down}  # Shift+Enter for newline
+                    delay 0.8  # Increased delay to prevent triggering Alfred popup
+                    ''' if i < len(lines) - 1 else '''
+                    delay 0.1
+                    key code 36  # Just Enter for the last line
+                    ''' if send_message else ''}
+                end tell
+            end tell
+            '''
+            subprocess.run(["osascript", "-e", script])
     else:
         raise ValueError(f"Unknown platform: {platform}")
 
