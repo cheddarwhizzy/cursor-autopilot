@@ -1,6 +1,6 @@
 # Slack Bot Usage
 
-The Slack bot listens for commands and enables remote control of Cursor Autopilot via your Slack workspace.
+The Slack bot listens for commands and enables remote control of Cursor Autopilot via your Slack workspace. Slack bot is NOT IMPLEMENTED YET. API is available
 
 ## Supported Commands
 

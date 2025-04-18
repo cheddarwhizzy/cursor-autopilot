@@ -1,7 +1,7 @@
 {
   "project_path": "/Users/cheddarwhizzy/cheddar/payload-website",
-  "task_readme_path": "src/notifications/README.md",
-  "important_llm_docs_path": "docs/structure/*.md",
+  "task_file_path": "TASKS_TO_COMPLETE.md",
+  "important_llm_docs_path": "file_structure_analysis/*.md",
   "initial_delay": 10,
   "send_message": true,
   "platform": "cursor",

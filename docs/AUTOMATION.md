@@ -12,7 +12,7 @@ The project uses AppleScript (osascript) to control Cursor, ensuring the chat wi
 - `run.sh` — Main entry script
 - `run_both.py` — Runs Slack bot and watcher concurrently with unified logs
 - `slack_bot.py` — Flask app for Slack bot
-- `watcher.py` — Watches for inactivity in the project directory
+- `watcher.py` — Watches for inactivity in the project directory and updates based on `task_file_path`.
 - `actions/send_to_cursor.py` — Handles AppleScript automation for Cursor
 
 ## Usage Notes

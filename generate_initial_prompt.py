@@ -15,16 +15,16 @@ Before implementing any feature:
 It contains documentation on existing components, API routes, utility files, and their responsibilities. 
 Do not create a file if it already exists — search  first.
 
-Use the {task_readme_path} as your task list. Implement each feature one by one, and after each one:
-- Update {task_readme_path} to reflect any new files or components.
+Use the {task_file_path} as your task list. Implement each feature one by one, and after each one:
+- Update {task_file_path} to reflect any new files or components.
 - Write tests for the feature.
 - Test it end-to-end.
-- Mark the feature as completed inside {task_readme_path}.
+- Mark the feature as completed inside {task_file_path}.
 
 If a file doesn't exist, document it before creating it.
 '''
 
-CONTINUATION_PROMPT = '''Continue working on the tasks in {task_readme_path}. Remember to reference the documentation in {important_llm_docs_path} as needed. Maintain the same development practices of updating documentation, writing tests, and marking completed features.'''
+CONTINUATION_PROMPT = '''Continue working on the tasks in {task_file_path}. Remember to reference the documentation in {important_llm_docs_path} as needed. Maintain the same development practices of updating documentation, writing tests, and marking completed features.'''
 
 def main():
     if not os.path.exists(CONFIG_PATH):
@@ -34,12 +34,12 @@ def main():
     with open(CONFIG_PATH, "r") as f:
         config = json.load(f)
 
-    task_readme_path = config.get("task_readme_path", "@src/notifications/README.md")
+    task_file_path = config.get("task_file_path", "@src/notifications/README.md")
     important_llm_docs_path = config.get("important_llm_docs_path", "docs/structure/*.md")
     is_new_chat = config.get("is_new_chat", True)
 
     prompt_template = INITIAL_PROMPT if is_new_chat else CONTINUATION_PROMPT
-    prompt = prompt_template.format(task_readme_path=task_readme_path, important_llm_docs_path=important_llm_docs_path)
+    prompt = prompt_template.format(task_file_path=task_file_path, important_llm_docs_path=important_llm_docs_path)
 
     with open(INITIAL_PROMPT_PATH, "w") as f:
         f.write(prompt)

@@ -3,7 +3,7 @@
 ## TL;DR
 
 1. **Edit your configuration:**
-   - Open `config.json` and adjust it for your project.
+   - Open `config.json` and adjust it for your project (be sure to use `task_file_path` for your task/feature file).
 2. **Run the main script:**
    - Execute `./run.sh` to start everything.
 
