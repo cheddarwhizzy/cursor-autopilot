@@ -2,9 +2,19 @@
 
 # Check if pyenv is installed
 if ! command -v pyenv >/dev/null 2>&1; then
-    echo "pyenv is required but not found. Please install it using:"
-    echo "brew install pyenv"
-    exit 1
+    echo "pyenv is required but not found."
+    echo "Would you like to install it now with 'brew install pyenv'?"
+    read -p "Press [Enter] to install or Ctrl+C to cancel..."
+    if command -v brew >/dev/null 2>&1; then
+        brew install pyenv
+        if ! command -v pyenv >/dev/null 2>&1; then
+            echo "pyenv installation failed. Please install it manually and re-run this script."
+            exit 1
+        fi
+    else
+        echo "Homebrew is not installed. Please install Homebrew first: https://brew.sh/"
+        exit 1
+    fi
 fi
 
 # Set Python version using pyenv
