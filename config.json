@@ -3,5 +3,7 @@
   "task_readme_path": "src/notifications/README.md",
   "important_llm_docs_path": "docs/structure/*.md",
   "initial_delay": 10,
-  "send_message": false
+  "send_message": true,
+  "platform": "cursor",
+  "use_vision_api": false
 }

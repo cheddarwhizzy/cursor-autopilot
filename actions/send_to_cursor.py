@@ -74,14 +74,15 @@ def get_cursor_window_id(max_retries=5, delay=1):
     print("[get_cursor_window_id] Could not find Cursor window ID after retries.")
     return None
 
-def activate_cursor():
-    """Activate the Cursor application window."""
-    print("[activate_cursor] Activating Cursor...")
-    script = '''
-    tell application "Cursor" to activate
+def activate_cursor(platform="cursor"):
+    """Activate the Cursor or Windsurf application window."""
+    app_name = "Windsurf" if platform == "windsurf" else "Cursor"
+    print(f"[activate_cursor] Activating {app_name}...")
+    script = f'''
+    tell application "{app_name}" to activate
     delay 1
     tell application "System Events"
-        tell process "Cursor"
+        tell process "{app_name}"
             set frontmost to true
         end tell
     end tell
@@ -89,7 +90,7 @@ def activate_cursor():
     '''
     subprocess.run(["osascript", "-e", script])
     # Add extra delay after activation to ensure app is fully ready
-    print("[activate_cursor] Waiting 3 seconds for Cursor to fully initialize...")
+    print(f"[activate_cursor] Waiting 3 seconds for {app_name} to fully initialize...")
     time.sleep(3)
     print("[activate_cursor] Done.")
 
@@ -266,20 +267,31 @@ def send_prompt(prompt, platform="cursor", new_chat=False, initial_delay=0, send
         activate_cursor()
         
         if new_chat:
-            print("Opening chat window...")
-            # No need to send Command+L, ensure_chat_window already handled it
-            time.sleep(3)  # Wait for chat window to fully open
-            
-            # Clear any auto-entered text without pressing Enter
+            print("Creating new chat window...")
+            # Send Command+N to create a new chat
             script = '''
             tell application "System Events"
-                keystroke "a" using {command down}
-                delay 0.1
-                key code 51  # Delete key
+                tell process "Cursor"
+                    keystroke "n" using {command down}
+                    delay 1
+                end tell
             end tell
             '''
             subprocess.run(["osascript", "-e", script])
-            time.sleep(0.5)
+            time.sleep(1)  # Wait for new chat to open
+            
+            # Open the chat window with Command+L
+            print("Opening chat window...")
+            script = '''
+            tell application "System Events"
+                tell process "Cursor"
+                    keystroke "l" using {command down}
+                    delay 1
+                end tell
+            end tell
+            '''
+            subprocess.run(["osascript", "-e", script])
+            time.sleep(1)  # Wait for chat window to fully open
         
         # Clear any existing text with Command+A then backspace
         print("Clearing any existing text...")
@@ -349,47 +361,49 @@ def send_prompt(prompt, platform="cursor", new_chat=False, initial_delay=0, send
     else:
         raise ValueError(f"Unknown platform: {platform}")
 
-def kill_cursor():
-    """Kill the Cursor application if it's running."""
-    print("[kill_cursor] Checking if Cursor is running...")
+def kill_cursor(platform="cursor"):
+    """Kill the Cursor or Windsurf application if it's running."""
+    app_name = "Windsurf" if platform == "windsurf" else "Cursor"
+    print(f"[kill_cursor] Checking if {app_name} is running...")
     
-    # Check if Cursor is running
-    check_script = '''
+    # Check if app is running
+    check_script = f'''
     tell application "System Events"
-        count (every process whose name is "Cursor")
+        count (every process whose name is "{app_name}")
     end tell
     '''
     
     result = subprocess.run(["osascript", "-e", check_script], capture_output=True, text=True)
     if result.returncode == 0 and result.stdout.strip() != "0":
-        print("[kill_cursor] Cursor is running, killing it...")
-        subprocess.run(["pkill", "-x", "Cursor"])
-        print("[kill_cursor] Waiting 2 seconds for process to fully terminate...")
+        print(f"[kill_cursor] {app_name} is running, killing it...")
+        subprocess.run(["pkill", "-x", app_name])
+        print(f"[kill_cursor] Waiting 2 seconds for process to fully terminate...")
         time.sleep(2)  # Wait longer for process to fully terminate
         print("[kill_cursor] Done.")
     else:
-        print("[kill_cursor] Cursor is not running.")
+        print(f"[kill_cursor] {app_name} is not running.")
 
-def launch_cursor():
-    """Launch Cursor and wait for it to be ready."""
-    print("[launch_cursor] Starting Cursor...")
-    subprocess.run(["open", "-a", "Cursor"])
+def launch_cursor(platform="cursor"):
+    """Launch Cursor or Windsurf and wait for it to be ready."""
+    app_name = "Windsurf" if platform == "windsurf" else "Cursor"
+    print(f"[launch_cursor] Starting {app_name}...")
+    subprocess.run(["open", "-a", app_name])
     
     # Wait for process to appear
-    print("[launch_cursor] Waiting for Cursor process...")
+    print(f"[launch_cursor] Waiting for {app_name} process...")
     for _ in range(10):  # Try for 10 seconds
-        check_script = '''
+        check_script = f'''
         tell application "System Events"
-            count (every process whose name is "Cursor")
+            count (every process whose name is "{app_name}")
         end tell
         '''
         result = subprocess.run(["osascript", "-e", check_script], capture_output=True, text=True)
         if result.returncode == 0 and result.stdout.strip() != "0":
-            print("[launch_cursor] Cursor process detected.")
+            print(f"[launch_cursor] {app_name} process detected.")
             break
         time.sleep(1)
     
     # Give it extra time to fully initialize
-    print("[launch_cursor] Waiting 5 seconds for Cursor to fully initialize...")
+    print(f"[launch_cursor] Waiting 5 seconds for {app_name} to fully initialize...")
     time.sleep(5)
     print("[launch_cursor] Done.")
