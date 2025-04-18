@@ -90,9 +90,36 @@ All major settings are controlled via `config.json` in the project root. Example
 }
 ```
 
-- `project_path`: Path to the project directory to watch.
-- `task_readme_path`: The README file to track for marking feature completion.
+- `project_path`: Path to the project directory to watch and open with the editor
+- `task_readme_path`: The README file that contains your detailed list of features to develop and track for marking feature completion.
 - `platform`: Editor automation target. Use `cursor` (default) or `windsurf`.
+
+## Configuration Options (`config.json`)
+
+All major settings are controlled via `config.json` in the project root. Here are the available options:
+
+| Option                  | Type    | Description                                                                                 |
+|-------------------------|---------|---------------------------------------------------------------------------------------------|
+| `project_path`          | string  | Path to the project directory to watch and open with the editor.                            |
+| `task_readme_path`      | string  | Path to the README file that contains your feature/task list for tracking completion.        |
+| `important_llm_docs_path` | string | Glob path to important documentation files to provide to the LLM for additional context.     |
+| `initial_delay`         | number  | Initial delay (in seconds) before starting automation (default: 10).                        |
+| `send_message`          | boolean | Whether to send the initial prompt automatically after launching (default: true).            |
+| `platform`              | string  | Editor automation target. Use `cursor` (default) or `windsurf`.                             |
+| `use_vision_api`        | boolean | Whether to use the Vision API for chat window detection (default: false).                   |
+
+**Example `config.json`:**
+```json
+{
+  "project_path": "~/cheddar/mushattention/mushattention",
+  "task_readme_path": "src/notifications/README.md",
+  "important_llm_docs_path": "docs/structure/*.md",
+  "initial_delay": 10,
+  "send_message": true,
+  "platform": "cursor",
+  "use_vision_api": false
+}
+```
 
 ## How to Run
 
@@ -100,10 +127,7 @@ All major settings are controlled via `config.json` in the project root. Example
     ```bash
     git clone <your-repo-url>
     cd cursor-autopilot
-    python3 -m venv venv
-    source venv/bin/activate
-    pip install flask openai pytesseract
-    # (Optional) brew install tesseract
+    ./run.sh --auto
     ```
 
 2. **Configure**
@@ -125,7 +149,7 @@ All major settings are controlled via `config.json` in the project root. Example
     You can pass additional flags to `./run.sh` if needed (see comments in the script for details).
 
 4. **Slack Bot**
-    - The Slack bot listens for commands (see below for usage).
+    - The Slack bot listens for commands (see below for usage). NOT IMPLEMENTED YET.
 
 5. **Watcher**
     - Monitors your project directory and the configured task README. When a feature is marked complete in the README, the next prompt will start a new chat.
