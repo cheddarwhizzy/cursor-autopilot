@@ -22,7 +22,7 @@ else:
 
 # Get paths from config
 WATCH_PATH = os.path.expanduser(config.get("project_path", "~/cheddar/mushattention/mushattention"))
-TASK_README_PATH = config.get("task_readme_path", "@src/notifications/README.md")
+TASK_FILE_PATH = config.get("task_file_path", "@src/notifications/README.md")
 LAST_README_MTIME = None
 TASK_COMPLETED = False
 PLATFORM = config.get("platform", "cursor")
@@ -30,7 +30,7 @@ PLATFORM = config.get("platform", "cursor")
 # Add debug info about paths
 print(f"\nWatcher Configuration:")
 print(f"Project Path: {WATCH_PATH}")
-print(f"Task README: {TASK_README_PATH}")
+print(f"Task README: {TASK_FILE_PATH}")
 print(f"Platform: {PLATFORM}")
 print(f"Excluded Dirs: {EXCLUDE_DIRS}")
 
@@ -97,9 +97,9 @@ def run_watcher():
     last_check_time = time.time()
     
     # Initialize README mtime
-    if os.path.exists(TASK_README_PATH):
-        LAST_README_MTIME = os.path.getmtime(TASK_README_PATH)
-        print(f"Initialized watching task README at: {TASK_README_PATH}")
+    if os.path.exists(TASK_FILE_PATH):
+        LAST_README_MTIME = os.path.getmtime(TASK_FILE_PATH)
+        print(f"Initialized watching task README at: {TASK_FILE_PATH}")
     
     print(f"\nStarting file watcher for directory: {WATCH_PATH}")
     print(f"Excluded directories: {EXCLUDE_DIRS}")
@@ -122,10 +122,10 @@ def run_watcher():
             
             # Check if README was updated
             readme_updated = False
-            if os.path.exists(TASK_README_PATH):
-                new_readme_mtime = os.path.getmtime(TASK_README_PATH)
+            if os.path.exists(TASK_FILE_PATH):
+                new_readme_mtime = os.path.getmtime(TASK_FILE_PATH)
                 if LAST_README_MTIME is not None and new_readme_mtime > LAST_README_MTIME:
-                    print(f"\n🎯 Task README {TASK_README_PATH} was updated!")
+                    print(f"\n🎯 Task README {TASK_FILE_PATH} was updated!")
                     print("Marking task as completed - next prompt will start a new chat")
                     TASK_COMPLETED = True
                     readme_updated = True
@@ -168,7 +168,7 @@ def run_watcher():
                 else:
                     # Use the continuation prompt for subsequent prompts
                     prompt = CONTINUATION_PROMPT.format(
-                        task_readme_path=config.get("task_readme_path", "@src/notifications/README.md"),
+                        task_file_path=config.get("task_file_path", "@src/notifications/README.md"),
                         important_llm_docs_path=config.get("important_llm_docs_path", "docs/structure/*.md")
                     )
                     print("Sending continuation prompt (no task completion)")
