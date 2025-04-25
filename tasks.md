@@ -1,0 +1,1 @@
+# Ask ChatGPT to help you build out a list of tasks to achieve what you want to achieve in a new or existing codebase. Use the 'repomix' tool and provide ChatGPT with this file for better recommendations.

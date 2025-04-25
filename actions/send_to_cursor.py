@@ -3,6 +3,15 @@ import os
 import time
 from actions.openai_vision import is_chat_window_open
 import json
+import logging
+from utils.colored_logging import setup_colored_logging
+
+# Configure logging
+setup_colored_logging(debug=os.environ.get("CURSOR_AUTOPILOT_DEBUG") == "true")
+logger = logging.getLogger('send_to_cursor')
+
+# Add debug info about logging level
+logger.debug("Debug logging enabled") if os.environ.get("CURSOR_AUTOPILOT_DEBUG") == "true" else logger.info("Info logging enabled")
 
 def get_project_name():
     """Get the project name from the config file."""
@@ -13,26 +22,28 @@ def get_project_name():
             # Get the last part of the project path
             return os.path.basename(config["project_path"])
     except Exception as e:
-        print(f"Warning: Could not get project name from config: {e}")
+        logger.warning(f"Could not get project name from config: {e}")
         return None
 
-def get_cursor_window_id(max_retries=5, delay=1):
+def get_cursor_window_id(max_retries=5, delay=1, platform="cursor"):
     """
-    Gets the window ID of the Cursor app using AppleScript.
+    Gets the window ID of the Cursor/Windsurf app using AppleScript.
     Retries several times if not found, with debug info.
     Returns the window ID as a string, or None if not found.
     """
     project_name = get_project_name()
     if not project_name:
-        print("[get_cursor_window_id] No project name found in config, will try to find any Cursor window")
+        logger.info("No project name found in config, will try to find any window")
     
-    # List all Cursor windows and their properties
-    windows_script = '''
+    app_name = "Windsurf" if platform == "windsurf" else "Cursor"
+    
+    # List all windows and their properties
+    windows_script = f'''
     tell application "System Events"
-        tell process "Cursor"
-            set windowList to {}
+        tell process "{app_name}"
+            set windowList to {{}}
             repeat with w in every window
-                copy {title:name of w, id:id of w, position:position of w, size:size of w} to end of windowList
+                copy {{title:name of w, id:id of w, position:position of w, size:size of w}} to end of windowList
             end repeat
             return windowList
         end tell
@@ -40,17 +51,17 @@ def get_cursor_window_id(max_retries=5, delay=1):
     '''
     
     for attempt in range(max_retries):
-        print(f"[get_cursor_window_id] Attempt {attempt+1} to find Cursor window...")
+        logger.info(f"Attempt {attempt+1} to find {app_name} window...")
         result = subprocess.run(["osascript", "-e", windows_script], capture_output=True, text=True)
         
         if result.returncode == 0 and result.stdout.strip():
-            print(f"[get_cursor_window_id] Found windows: {result.stdout.strip()}")
+            logger.info(f"Found windows: {result.stdout.strip()}")
             
             # Try to find the project window
             window_check = 'true' if not project_name else f'name of w contains "— {project_name}" or name of w contains "- {project_name}"'
             find_window_script = f'''
             tell application "System Events"
-                tell process "Cursor"
+                tell process "{app_name}"
                     repeat with w in every window
                         if {window_check} then
                             return id of w
@@ -63,21 +74,21 @@ def get_cursor_window_id(max_retries=5, delay=1):
             window_result = subprocess.run(["osascript", "-e", find_window_script], capture_output=True, text=True)
             if window_result.returncode == 0 and window_result.stdout.strip():
                 window_id = window_result.stdout.strip()
-                print(f"[get_cursor_window_id] Found main window ID: {window_id}")
+                logger.info(f"Found main window ID: {window_id}")
                 return window_id
         
-        print(f"[get_cursor_window_id] Attempt {attempt+1} failed.")
+        logger.info(f"Attempt {attempt+1} failed.")
         if result.stderr:
-            print(f"[get_cursor_window_id] Error output: {result.stderr.strip()}")
+            logger.warning(f"Error output: {result.stderr.strip()}")
         time.sleep(delay)
     
-    print("[get_cursor_window_id] Could not find Cursor window ID after retries.")
+    logger.warning("Could not find window ID after retries.")
     return None
 
-def activate_cursor(platform="cursor"):
+def activate_platform(platform="cursor"):
     """Activate the Cursor or Windsurf application window."""
     app_name = "Windsurf" if platform == "windsurf" else "Cursor"
-    print(f"[activate_cursor] Activating {app_name}...")
+    logger.info(f"Activating {app_name}...")
     script = f'''
     tell application "{app_name}" to activate
     delay 1
@@ -90,21 +101,22 @@ def activate_cursor(platform="cursor"):
     '''
     subprocess.run(["osascript", "-e", script])
     # Add extra delay after activation to ensure app is fully ready
-    print(f"[activate_cursor] Waiting 3 seconds for {app_name} to fully initialize...")
+    logger.info(f"Waiting 3 seconds for {app_name} to fully initialize...")
     time.sleep(3)
-    print("[activate_cursor] Done.")
+    logger.info("Done.")
 
-def take_cursor_screenshot(filename="cursor_window.png"):
+def take_cursor_screenshot(filename="cursor_window.png", platform="cursor"):
     """
-    Takes a screenshot of the Cursor window and saves it as filename.
+    Takes a screenshot of the Cursor/Windsurf window and saves it as filename.
     Returns the path to the screenshot, or None if failed.
     """
     project_name = get_project_name()
     if not project_name:
-        print("Warning: No project name found in config, will try to find any Cursor window")
+        logger.warning("No project name found in config, will try to find any window")
     
+    app_name = "Windsurf" if platform == "windsurf" else "Cursor"
     abs_path = os.path.abspath(filename)
-    print(f"Attempting to take screenshot, will save to: {abs_path}")
+    logger.info(f"Attempting to take screenshot, will save to: {abs_path}")
     
     # First list all processes to debug
     process_script = '''
@@ -116,12 +128,12 @@ def take_cursor_screenshot(filename="cursor_window.png"):
     
     process_result = subprocess.run(["osascript", "-e", process_script], capture_output=True, text=True)
     if process_result.returncode == 0:
-        print(f"All processes: {process_result.stdout.strip()}")
+        logger.debug(f"All processes: {process_result.stdout.strip()}")
     
     # First list all windows to debug
-    debug_script = '''
+    debug_script = f'''
     tell application "System Events"
-        tell process "Cursor"
+        tell process "{app_name}"
             set windowInfo to ""
             repeat with w in every window
                 set windowInfo to windowInfo & "Window: " & name of w & ", "
@@ -133,17 +145,17 @@ def take_cursor_screenshot(filename="cursor_window.png"):
     
     debug_result = subprocess.run(["osascript", "-e", debug_script], capture_output=True, text=True)
     if debug_result.returncode == 0:
-        print(f"Found Cursor windows: {debug_result.stdout.strip()}")
+        logger.debug(f"Found {app_name} windows: {debug_result.stdout.strip()}")
     else:
-        print("Could not list Cursor windows")
+        logger.warning("Could not list windows")
         if debug_result.stderr:
-            print(f"Debug error: {debug_result.stderr}")
+            logger.warning(f"Debug error: {debug_result.stderr}")
     
-    # Get Cursor window bounds using AppleScript
+    # Get window bounds using AppleScript
     window_check = 'true' if not project_name else f'winName contains "— {project_name}" or winName contains "- {project_name}"'
     bounds_script = f'''
     tell application "System Events"
-        tell process "Cursor"
+        tell process "{app_name}"
             try
                 set allWindows to every window
                 if length of allWindows is 0 then
@@ -172,7 +184,7 @@ def take_cursor_screenshot(filename="cursor_window.png"):
         try:
             # Parse the bounds - format is "x, y, width, height"
             bounds = bounds_result.stdout.strip()
-            print(f"Window bounds: {bounds}")
+            logger.debug(f"Window bounds: {bounds}")
             
             # Split by comma and clean up the values
             parts = [int(p.strip().strip('{}')) for p in bounds.split(',')]
@@ -185,186 +197,200 @@ def take_cursor_screenshot(filename="cursor_window.png"):
             
             # Capture the specific region
             capture_cmd = ["screencapture", "-R", f"{x},{y},{width},{height}", filename]
-            print(f"Running capture command: {' '.join(capture_cmd)}")
+            logger.debug(f"Running capture command: {' '.join(capture_cmd)}")
             
             result = subprocess.run(capture_cmd, capture_output=True, text=True)
             if result.returncode == 0:
                 if os.path.exists(filename):
-                    print(f"Screenshot saved successfully: {filename}")
-                    print(f"File size: {os.path.getsize(filename)} bytes")
+                    logger.info(f"Screenshot saved successfully: {filename}")
+                    logger.debug(f"File size: {os.path.getsize(filename)} bytes")
                     return filename
                 else:
-                    print(f"Warning: screencapture returned success but file not found at {abs_path}")
+                    logger.warning(f"Warning: screencapture returned success but file not found at {abs_path}")
             else:
-                print(f"Failed to capture screenshot. Return code: {result.returncode}")
+                logger.error(f"Failed to capture screenshot. Return code: {result.returncode}")
                 if result.stderr:
-                    print(f"Error output: {result.stderr}")
+                    logger.error(f"Error output: {result.stderr}")
         except Exception as e:
-            print(f"Error parsing window bounds: {e}")
-            print(f"Raw bounds output: {bounds}")
+            logger.error(f"Error parsing window bounds: {e}")
+            logger.error(f"Raw bounds output: {bounds}")
     else:
         error_msg = bounds_result.stdout.strip()[7:] if bounds_result.stdout.strip().startswith("error:") else "unknown error"
-        print(f"Could not get Cursor window bounds: {error_msg}")
+        logger.error(f"Could not get window bounds: {error_msg}")
         if bounds_result.stderr:
-            print(f"Error output: {bounds_result.stderr}")
+            logger.error(f"Error output: {bounds_result.stderr}")
     
     return None
 
-def send_keys(key_sequence):
+def send_keys(key_sequence, platform="cursor"):
     """
-    Send a sequence of keystrokes to Cursor.
+    Send a sequence of keystrokes to Cursor/Windsurf.
     key_sequence should be a list of strings, e.g. ["command down", "l", "command up"]
     """
-    print(f"[send_keys] Sending key sequence: {key_sequence}")
+    logger.info(f"Sending key sequence: {key_sequence}")
     
-    # First make sure Cursor is properly activated
-    activate_script = '''
-    tell application "Cursor" to activate
+    # First make sure Cursor/Windsurf is properly activated
+    activate_script = f'''
+    tell application "{'Windsurf' if platform == 'windsurf' else 'Cursor'}" to activate
     delay 1
     tell application "System Events"
-        tell process "Cursor"
+        tell process "{'Windsurf' if platform == 'windsurf' else 'Cursor'}"
             set frontmost to true
         end tell
     end tell
     delay 1
     '''
     
-    print("[send_keys] Ensuring Cursor is active...")
+    logger.info("Ensuring app is active...")
     activate_result = subprocess.run(["osascript", "-e", activate_script], capture_output=True, text=True)
     if activate_result.returncode != 0:
-        print(f"[send_keys] Warning: Error activating Cursor: {activate_result.stderr}")
+        logger.warning(f"Error activating app: {activate_result.stderr}")
     
-    # Add a delay to ensure Cursor is ready
-    print("[send_keys] Waiting 2 seconds for Cursor to be ready...")
+    # Add a delay to ensure app is ready
+    logger.info("Waiting 2 seconds for app to be ready...")
     time.sleep(2)
     
     # Now send the keystroke
-    script = '''
+    script = f'''
     tell application "System Events"
-        tell process "Cursor"
-            keystroke "l" using {command down}
+        tell process "{'Windsurf' if platform == 'windsurf' else 'Cursor'}"
+            keystroke "l" using {{command down}}
         end tell
     end tell
     '''
     
-    print("[send_keys] Executing keystroke...")
+    logger.info("Executing keystroke...")
     result = subprocess.run(["osascript", "-e", script], capture_output=True, text=True)
     if result.returncode == 0:
-        print("[send_keys] Keys sent successfully")
+        logger.info("Keys sent successfully")
     else:
-        print(f"[send_keys] Error sending keys: {result.stderr}")
+        logger.error(f"Error sending keys: {result.stderr}")
 
 def send_prompt(prompt, platform="cursor", new_chat=False, initial_delay=0, send_message=True):
     """
-    Send a prompt to the specified platform.
+    Send a prompt to the specified platform with verbose logging and delays.
     """
     if initial_delay > 0:
-        print(f"Waiting {initial_delay} seconds before sending prompt...")
+        logger.info(f"Waiting {initial_delay} seconds before sending prompt...")
         time.sleep(initial_delay)
     
-    if platform == "cursor":
-        print("Activating Cursor...")
-        activate_cursor()
-        
-        if new_chat:
-            print("Creating new chat window...")
+    app_name = "Windsurf" if platform == "windsurf" else "Cursor"
+    logger.info(f"Starting to send prompt to {app_name}...")
+    
+    # Activate the application
+    logger.info(f"Activating {app_name}...")
+    activate_platform(platform)
+    
+    if new_chat:
+        logger.info(f"Creating new chat window in {app_name}...")
+        if platform == "cursor":
             # Send Command+N to create a new chat
-            script = '''
+            script = f'''
             tell application "System Events"
-                tell process "Cursor"
-                    keystroke "n" using {command down}
-                    delay 1
+                tell process "{app_name}"
+                    keystroke "n" using {{command down}}
                 end tell
             end tell
             '''
+            logger.info("Sending Command+N to create new chat...")
             subprocess.run(["osascript", "-e", script])
-            time.sleep(1)  # Wait for new chat to open
+            logger.info("Waiting 2 seconds for new chat to open...")
+            time.sleep(2)
             
             # Open the chat window with Command+L
-            print("Opening chat window...")
-            script = '''
+            logger.info("Sending Command+L to open chat window...")
+            script = f'''
             tell application "System Events"
-                tell process "Cursor"
-                    keystroke "l" using {command down}
-                    delay 1
+                tell process "{app_name}"
+                    keystroke "l" using {{command down}}
                 end tell
             end tell
             '''
             subprocess.run(["osascript", "-e", script])
-            time.sleep(1)  # Wait for chat window to fully open
-        
-        # Clear any existing text with Command+A then backspace
-        print("Clearing any existing text...")
-        script = '''
-        tell application "System Events"
+            logger.info("Waiting 2 seconds for chat window to fully open...")
+            time.sleep(2)
+        else:  # windsurf
+            # Send Command+Shift+L to create a new chat
+            logger.info("Sending Command+Shift+L to create new chat...")
+            script = f'''
+            tell application "System Events"
+                tell process "{app_name}"
+                    keystroke "l" using {{command down, shift down}}
+                end tell
+            end tell
+            '''
+            subprocess.run(["osascript", "-e", script])
+            logger.info("Waiting 2 seconds for new chat to open...")
+            time.sleep(2)
+    
+    # Clear any existing text with Command+A then backspace
+    logger.info("Clearing any existing text...")
+    script = f'''
+    tell application "System Events"
+        tell process "{app_name}"
             -- Select all text
-            keystroke "a" using {command down}
+            keystroke "a" using {{command down}}
             delay 0.1
             
             -- Press delete key multiple times to ensure text is cleared
             repeat 10 times
-                key code 51  # Delete/Backspace key
+                key code 51  -- Delete/Backspace key
                 delay 0.05
             end repeat
+        end tell
+    end tell
+    '''
+    subprocess.run(["osascript", "-e", script])
+    logger.info("Waiting 1 second after clearing text...")
+    time.sleep(1)
+    
+    # Split prompt into lines and send with Shift+Enter between them
+    lines = prompt.splitlines()
+    logger.info(f"Sending {len(lines)} lines of text...")
+    
+    for i, line in enumerate(lines):
+        # Send the line
+        logger.info(f"Sending line {i+1}/{len(lines)}: {line[:50]}{'...' if len(line) > 50 else ''}")
+        script = f'''
+        tell application "System Events"
+            tell process "{app_name}"
+                keystroke "{line.replace('"', '\\"')}"
+            end tell
         end tell
         '''
         subprocess.run(["osascript", "-e", script])
         
-        # Split prompt into lines and send with Shift+Enter between them
-        lines = prompt.splitlines()
-        for i, line in enumerate(lines):
-            # Send the line
+        if i < len(lines) - 1:
+            logger.info("Sending Shift+Enter for newline...")
             script = f'''
             tell application "System Events"
-                keystroke "{line.replace('"', '\\"')}"
-                {'''
-                delay 0.1
-                ''' if i < len(lines) - 1 else ''}
-                {'''
-                key code 36 using {shift down}  # Shift+Enter for newline
-                delay 0.1
-                ''' if i < len(lines) - 1 else '''
-                delay 0.1
-                key code 36  # Just Enter for the last line
-                ''' if send_message else ''}
+                tell process "{app_name}"
+                    key code 36 using {{shift down}}  -- Shift+Enter
+                end tell
             end tell
             '''
             subprocess.run(["osascript", "-e", script])
-    elif platform == "windsurf":
-        # Similar changes for Windsurf...
-        base_script = f'''
-        tell application "System Events"
-            tell application "Windsurf" to activate
-            delay 2
-            {('keystroke "l" using {command down, shift down}' + '\n delay 1') if new_chat else ''}
-            keystroke "k" using {{command down}}
-            delay 1
-            key code 125
-            delay 0.5
-            key code 36
-            delay 1
-            keystroke "{prompt.replace('"', '\\"')}"
-            delay 0.5
-        '''
-        
-        if send_message:
-            base_script += f'''
-            delay {initial_delay}
-            key code 36
+            logger.info("Waiting 0.8 seconds after newline...")
+            time.sleep(0.8)
+        elif send_message:
+            logger.info("Sending Enter to send message...")
+            script = f'''
+            tell application "System Events"
+                tell process "{app_name}"
+                    key code 36  -- Enter
+                end tell
+            end tell
             '''
-            
-        base_script += '''
-        end tell
-        '''
-        
-        subprocess.run(["osascript", "-e", base_script])
-    else:
-        raise ValueError(f"Unknown platform: {platform}")
+            subprocess.run(["osascript", "-e", script])
+            logger.info("Waiting 1 second after sending message...")
+            time.sleep(1)
+    
+    logger.info("Prompt sent successfully!")
 
 def kill_cursor(platform="cursor"):
     """Kill the Cursor or Windsurf application if it's running."""
     app_name = "Windsurf" if platform == "windsurf" else "Cursor"
-    print(f"[kill_cursor] Checking if {app_name} is running...")
+    logger.info(f"Checking if {app_name} is running...")
     
     # Check if app is running
     check_script = f'''
@@ -375,22 +401,22 @@ def kill_cursor(platform="cursor"):
     
     result = subprocess.run(["osascript", "-e", check_script], capture_output=True, text=True)
     if result.returncode == 0 and result.stdout.strip() != "0":
-        print(f"[kill_cursor] {app_name} is running, killing it...")
+        logger.info(f"{app_name} is running, killing it...")
         subprocess.run(["pkill", "-x", app_name])
-        print(f"[kill_cursor] Waiting 2 seconds for process to fully terminate...")
+        logger.info(f"Waiting 2 seconds for process to fully terminate...")
         time.sleep(2)  # Wait longer for process to fully terminate
-        print("[kill_cursor] Done.")
+        logger.info("Done.")
     else:
-        print(f"[kill_cursor] {app_name} is not running.")
+        logger.info(f"{app_name} is not running.")
 
-def launch_cursor(platform="cursor"):
+def launch_platform(platform="cursor"):
     """Launch Cursor or Windsurf and wait for it to be ready."""
     app_name = "Windsurf" if platform == "windsurf" else "Cursor"
-    print(f"[launch_cursor] Starting {app_name}...")
+    logger.info(f"Starting {app_name}...")
     subprocess.run(["open", "-a", app_name])
     
     # Wait for process to appear
-    print(f"[launch_cursor] Waiting for {app_name} process...")
+    logger.info(f"Waiting for {app_name} process...")
     for _ in range(10):  # Try for 10 seconds
         check_script = f'''
         tell application "System Events"
@@ -399,11 +425,26 @@ def launch_cursor(platform="cursor"):
         '''
         result = subprocess.run(["osascript", "-e", check_script], capture_output=True, text=True)
         if result.returncode == 0 and result.stdout.strip() != "0":
-            print(f"[launch_cursor] {app_name} process detected.")
+            logger.info(f"{app_name} process detected.")
             break
         time.sleep(1)
     
+    # For Windsurf, press Enter to clear any dialog boxes
+    if platform == "windsurf":
+        logger.info("Pressing Enter to clear any dialog boxes in Windsurf...")
+        script = '''
+        tell application "System Events"
+            tell process "Windsurf"
+                key code 36  -- Enter key
+            end tell
+        end tell
+        '''
+        subprocess.run(["osascript", "-e", script])
+        logger.info("Waiting 1 second after pressing Enter...")
+        time.sleep(1)
+    
     # Give it extra time to fully initialize
-    print(f"[launch_cursor] Waiting 5 seconds for {app_name} to fully initialize...")
+    logger.info(f"Waiting 5 seconds for {app_name} to fully initialize...")
     time.sleep(5)
-    print("[launch_cursor] Done.")
+    
+    logger.info("Done.")

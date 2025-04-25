@@ -49,10 +49,12 @@ if ! command -v tesseract >/dev/null 2>&1; then
 fi
 
 # === CONFIGURATION ===
-# Extract PROJECT_PATH from config.json
+# Extract PROJECT_PATH and PLATFORM from config.json
 export CONFIG_FILE="$(dirname "$0")/config.json"
 if [ -f "$CONFIG_FILE" ]; then
-  PROJECT_PATH=$(python3 -c 'import json,os; c=json.load(open(os.environ["CONFIG_FILE"])); print(os.path.expanduser(c["project_path"]))' CONFIG_FILE="$CONFIG_FILE")
+  CONFIG_VALUES=$(python3 -c 'import json,os; c=json.load(open(os.environ["CONFIG_FILE"])); print(os.path.expanduser(c["project_path"]) + "\t" + c["platform"])' CONFIG_FILE="$CONFIG_FILE")
+  PROJECT_PATH=$(echo "$CONFIG_VALUES" | cut -f1)
+  PLATFORM=$(echo "$CONFIG_VALUES" | cut -f2)
 else
   echo "Error: config.json not found. Set CONFIG_FILE environment variable to the path of your config.json file."
   exit 1
@@ -63,6 +65,7 @@ fi
 # Parse flags for auto mode and send message behavior
 auto_mode=0
 send_message=true
+debug_mode=false
 
 for arg in "$@"; do
   case $arg in
@@ -78,10 +81,14 @@ for arg in "$@"; do
     --send)
       send_message=true
       ;;
+    --debug)
+      debug_mode=true
+      ;;
   esac
 done
 
 export CURSOR_AUTOPILOT_AUTO_MODE=$auto_mode
+export CURSOR_AUTOPILOT_DEBUG=$debug_mode
 
 # Update send_message in config.json
 python3 -c '
@@ -91,23 +98,34 @@ config_file = os.environ["CONFIG_FILE"]
 with open(config_file, "r") as f:
     config = json.load(f)
 config["send_message"] = True if "'$send_message'" == "true" else False
+config["debug"] = True if "'$debug_mode'" == "true" else False
+config["inactivity_delay"] = config.get("inactivity_delay", 120)  # Default to 120 seconds if not set
 with open(config_file, "w") as f:
     json.dump(config, f, indent=2)
 '
 
-# === STEP 1: OPEN FOLDER IN CURSOR ===
-open -a "Cursor" "$PROJECT_PATH"
+# === STEP 1: KILL EXISTING APPLICATION IF RUNNING ===
+if [ "$PLATFORM" = "windsurf" ]; then
+  pkill -f "Windsurf" || true
+  APP_NAME="Windsurf"
+else
+  pkill -f "Cursor" || true
+  APP_NAME="Cursor"
+fi
+
+# === STEP 2: OPEN FOLDER IN APPROPRIATE APPLICATION ===
+open -a "$APP_NAME" "$PROJECT_PATH"
 
 python3 generate_initial_prompt.py
 
 # Ensure chat window is open using OpenAI Vision
-python3 ensure_chat_window.py
+python3 ensure_chat_window.py "$PLATFORM"
 
 # Send the initial prompt immediately after opening the chat window, starting a new chat
 if [ -f "initial_prompt.txt" ]; then
-  python3 -c 'import json,os; from actions.send_to_cursor import send_prompt; config=json.load(open(os.environ["CONFIG_FILE"])); send_prompt(open("initial_prompt.txt").read().strip(), new_chat=True, send_message=config.get("send_message", True))'
+  python3 -c 'import json,os; from actions.send_to_cursor import send_prompt; config=json.load(open(os.environ["CONFIG_FILE"])); send_prompt(open("initial_prompt.txt").read().strip(), platform=config.get("platform", "cursor"), new_chat=True, send_message=config.get("send_message", True))'
 fi
 
 # Start Slack bot and watcher together with combined logs
 echo "Starting Slack bot and Cursor watcher... (auto mode: $auto_mode, send messages: $send_message)"
-python3 run_both.py $auto_mode
+python3 run_both.py $auto_mode "$PLATFORM"

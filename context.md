@@ -1,0 +1,1 @@
+# Ask ChatGPT to help build out an architecture guide and coding guidelines to follow for your application stack/language/framework/etc..
