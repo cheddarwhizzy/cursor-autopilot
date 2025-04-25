@@ -49,10 +49,12 @@ if ! command -v tesseract >/dev/null 2>&1; then
 fi
 
 # === CONFIGURATION ===
-# Extract PROJECT_PATH from config.json
+# Extract PROJECT_PATH and PLATFORM from config.json
 export CONFIG_FILE="$(dirname "$0")/config.json"
 if [ -f "$CONFIG_FILE" ]; then
-  PROJECT_PATH=$(python3 -c 'import json,os; c=json.load(open(os.environ["CONFIG_FILE"])); print(os.path.expanduser(c["project_path"]))' CONFIG_FILE="$CONFIG_FILE")
+  CONFIG_VALUES=$(python3 -c 'import json,os; c=json.load(open(os.environ["CONFIG_FILE"])); print(os.path.expanduser(c["project_path"]) + "\t" + c["platform"])' CONFIG_FILE="$CONFIG_FILE")
+  PROJECT_PATH=$(echo "$CONFIG_VALUES" | cut -f1)
+  PLATFORM=$(echo "$CONFIG_VALUES" | cut -f2)
 else
   echo "Error: config.json not found. Set CONFIG_FILE environment variable to the path of your config.json file."
   exit 1
@@ -95,13 +97,22 @@ with open(config_file, "w") as f:
     json.dump(config, f, indent=2)
 '
 
-# === STEP 1: OPEN FOLDER IN CURSOR ===
-open -a "Cursor" "$PROJECT_PATH"
+# === STEP 1: KILL EXISTING APPLICATION IF RUNNING ===
+if [ "$PLATFORM" = "windsurf" ]; then
+  pkill -f "Windsurf" || true
+  APP_NAME="Windsurf"
+else
+  pkill -f "Cursor" || true
+  APP_NAME="Cursor"
+fi
+
+# === STEP 2: OPEN FOLDER IN APPROPRIATE APPLICATION ===
+open -a "$APP_NAME" "$PROJECT_PATH"
 
 python3 generate_initial_prompt.py
 
 # Ensure chat window is open using OpenAI Vision
-python3 ensure_chat_window.py
+python3 ensure_chat_window.py "$PLATFORM"
 
 # Send the initial prompt immediately after opening the chat window, starting a new chat
 if [ -f "initial_prompt.txt" ]; then

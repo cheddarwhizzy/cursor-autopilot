@@ -8,7 +8,7 @@ All major settings are controlled via `config.json` in the project root.
 {
   "project_path": "/path/to/your/project",
   "task_file_path": "TASKS_TO_COMPLETE.md",
-  "important_llm_docs_path": "file_structure_analysis/*.md",
+  "additional_context_path": "file_structure_analysis/*.md",
   "initial_delay": 10,
   "send_message": true,
   "platform": "cursor",
@@ -22,7 +22,7 @@ All major settings are controlled via `config.json` in the project root.
 |-------------------------|---------|---------------------------------------------------------------------------------------------|
 | `project_path`          | string  | Path to the project directory to watch and open with the editor.                            |
 | `task_file_path`        | string  | Path to the file that contains your feature/task list for tracking completion.              |
-| `important_llm_docs_path` | string | Glob path to important documentation files to provide to the LLM for additional context.     |
+| `additional_context_path` | string | Glob path to important documentation files to provide to the LLM for additional context.     |
 | `initial_delay`         | number  | Initial delay (in seconds) before starting automation (default: 10).                        |
 | `send_message`          | boolean | Whether to send the initial prompt automatically after launching (default: true).            |
 | `platform`              | string  | Editor automation target. Use `cursor` (default) or `windsurf`.                             |

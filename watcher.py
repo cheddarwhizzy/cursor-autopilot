@@ -169,7 +169,7 @@ def run_watcher():
                     # Use the continuation prompt for subsequent prompts
                     prompt = CONTINUATION_PROMPT.format(
                         task_file_path=config.get("task_file_path", "TASKS_TO_COMPLETE.md"),
-                        important_llm_docs_path=config.get("important_llm_docs_path", "docs/structure/*.md")
+                        additional_context_path=config.get("additional_context_path", "docs/structure/*.md")
                     )
                     print("Sending continuation prompt (no task completion)")
                     send_prompt(prompt, platform=PLATFORM, new_chat=False,

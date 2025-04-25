@@ -14,7 +14,7 @@ def get_config():
         print(f"Warning: Could not read config: {e}")
         return {}
 
-def ensure_chat_window(platform="cursor"):
+def ensure_chat_window(platform=None):
     """
     Ensures the Cursor/Windsurf chat window is open by:
     1. Killing any existing Cursor/Windsurf process
@@ -24,7 +24,12 @@ def ensure_chat_window(platform="cursor"):
     config = get_config()
     use_vision_api = config.get("use_vision_api", False)
     
+    # Use platform from config if not explicitly provided
+    if platform is None:
+        platform = config.get("platform", "cursor")
+    
     app_name = "Windsurf" if platform == "windsurf" else "Cursor"
+    print(f"[ensure_chat_window] Using configured IDE: {app_name}")
     print(f"[ensure_chat_window] Starting {app_name} chat window check...")
     
     # First kill any existing process
@@ -57,4 +62,6 @@ def ensure_chat_window(platform="cursor"):
     print("[ensure_chat_window] Done.")
 
 if __name__ == "__main__":
-    ensure_chat_window()
+    import sys
+    platform = sys.argv[1] if len(sys.argv) > 1 else None
+    ensure_chat_window(platform)
