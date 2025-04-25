@@ -3,14 +3,23 @@ import subprocess
 import threading
 import sys
 import os
+import logging
+from utils.colored_logging import setup_colored_logging
+
+# Configure logging
+setup_colored_logging(debug=os.environ.get("CURSOR_AUTOPILOT_DEBUG") == "true")
+logger = logging.getLogger('run_both')
 
 def stream_output(process, prefix):
     """Stream output from a process with a prefix"""
     for line in iter(process.stdout.readline, b''):
-        sys.stdout.write(f"{prefix} | {line.decode()}")
-        sys.stdout.flush()
+        # Decode the line and remove any trailing newlines
+        line_text = line.decode().rstrip()
+        if line_text:  # Only log non-empty lines
+            logger.info(f"{prefix} | {line_text}")
 
 def run_flask():
+    """Run the Flask server"""
     env = os.environ.copy()
     env["FLASK_APP"] = "slack_bot.py"
     process = subprocess.Popen(
@@ -23,6 +32,7 @@ def run_flask():
     stream_output(process, "FLASK")
 
 def run_watcher():
+    """Run the watcher process"""
     process = subprocess.Popen(
         ["python3", "watcher.py"],
         stdout=subprocess.PIPE,
@@ -32,7 +42,7 @@ def run_watcher():
     stream_output(process, "WATCH")
 
 if __name__ == "__main__":
-    print("Starting both processes...")
+    logger.info("Starting both processes...")
     
     # Start each process in its own thread
     flask_thread = threading.Thread(target=run_flask)
@@ -50,5 +60,5 @@ if __name__ == "__main__":
             flask_thread.join(1)
             watcher_thread.join(1)
     except KeyboardInterrupt:
-        print("\nShutting down...")
+        logger.info("Shutting down...")
         sys.exit(0)

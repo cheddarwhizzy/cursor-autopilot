@@ -8,13 +8,10 @@ from actions.send_to_cursor import send_prompt
 from state import get_mode
 from generate_initial_prompt import CONTINUATION_PROMPT
 import logging
+from utils.colored_logging import setup_colored_logging
 
 # Configure logging
-logging.basicConfig(
-    level=logging.DEBUG if os.environ.get("CURSOR_AUTOPILOT_DEBUG") == "true" else logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
-)
+setup_colored_logging(debug=os.environ.get("CURSOR_AUTOPILOT_DEBUG") == "true")
 logger = logging.getLogger('watcher')
 
 # Add debug info about logging level
@@ -93,9 +90,11 @@ def hash_folder_state():
                         'mtime': current_mtime,
                         'size': current_size
                     }
-                    logger.info(f"File changed: {rel_path}")
-                    logger.info(f"  Last modified: {datetime.fromtimestamp(current_mtime)}")
-                    logger.info(f"  Size: {current_size} bytes")
+                    # Only log if this is not the first scan
+                    if LAST_HASH is not None:
+                        logger.info(f"File changed: {rel_path}")
+                        logger.info(f"  Last modified: {datetime.fromtimestamp(current_mtime)}")
+                        logger.info(f"  Size: {current_size} bytes")
                 
                 total_files += 1
                 
@@ -119,6 +118,12 @@ def run_watcher():
     initial_prompt_sent = os.path.exists(os.path.join(os.path.dirname(__file__), ".initial_prompt_sent"))
     logger.info(f"Initial prompt {'has' if initial_prompt_sent else 'has not'} been sent yet")
     
+    # Get absolute path to task file
+    task_file_abs_path = os.path.join(WATCH_PATH, TASK_FILE_PATH)
+    if not os.path.exists(task_file_abs_path):
+        logger.error(f"Task file not found at {task_file_abs_path}")
+        return
+    
     while True:
         try:
             # Get current state
@@ -127,7 +132,7 @@ def run_watcher():
             # Check if task file was modified
             task_file_modified = False
             if TASK_FILE_PATH in changed_files:
-                current_mtime = os.path.getmtime(TASK_FILE_PATH)
+                current_mtime = os.path.getmtime(task_file_abs_path)
                 if LAST_README_MTIME is None or current_mtime > LAST_README_MTIME:
                     task_file_modified = True
                     LAST_README_MTIME = current_mtime
@@ -171,7 +176,7 @@ def run_watcher():
                     else:
                         # Use the continuation prompt
                         prompt = CONTINUATION_PROMPT.format(
-                            task_file_path=config.get("task_file_path", "tasks.md"),
+                            task_file_path=task_file_abs_path,
                             additional_context_path=config.get("additional_context_path", "context.md")
                         )
                         logger.info("Sending continuation prompt")

@@ -1,69 +1,91 @@
-import subprocess
-from datetime import datetime
 import os
+import subprocess
+import logging
+from utils.colored_logging import setup_colored_logging
 
-def capture_chat_screenshot():
-    screenshot_dir = "screenshots"
-    os.makedirs(screenshot_dir, exist_ok=True)
-    print(f"Ensuring screenshot directory exists: {os.path.abspath(screenshot_dir)}")
+# Configure logging
+setup_colored_logging(debug=os.environ.get("CURSOR_AUTOPILOT_DEBUG") == "true")
+logger = logging.getLogger('screenshot')
+
+def take_screenshot(filename="screenshot.png", platform="cursor"):
+    """
+    Takes a screenshot of the Cursor/Windsurf window and saves it as filename.
+    Returns the path to the screenshot, or None if failed.
+    """
+    screenshot_dir = os.path.dirname(filename)
+    if not os.path.exists(screenshot_dir):
+        logger.info(f"Ensuring screenshot directory exists: {os.path.abspath(screenshot_dir)}")
+        os.makedirs(screenshot_dir, exist_ok=True)
     
-    filename = f"screenshots/chat_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
     abs_path = os.path.abspath(filename)
-    print(f"Will save screenshot to: {abs_path}")
+    logger.info(f"Will save screenshot to: {abs_path}")
     
-    # Get Cursor window bounds using AppleScript
-    bounds_script = '''
+    # Get window bounds using AppleScript
+    app_name = "Windsurf" if platform == "windsurf" else "Cursor"
+    bounds_script = f'''
     tell application "System Events"
-        tell process "Cursor"
+        tell process "{app_name}"
             try
-                set win to first window whose name does not contain "Settings"
-                return {position, size} of win
-            on error
-                return "error"
+                set allWindows to every window
+                if length of allWindows is 0 then
+                    error "No windows found"
+                end if
+                
+                repeat with w in allWindows
+                    set winName to name of w
+                    log "Checking window: " & winName
+                    if winName contains "—" or winName contains "-" then
+                        set pos to position of w
+                        set sz to size of w
+                        return {{(item 1 of pos), (item 2 of pos), (item 1 of sz), (item 2 of sz)}}
+                    end if
+                end repeat
+                error "No suitable window found (no project window found)"
+            on error errMsg
+                return "error: " & errMsg
             end try
         end tell
     end tell
     '''
     
     bounds_result = subprocess.run(["osascript", "-e", bounds_script], capture_output=True, text=True)
-    if bounds_result.returncode == 0 and bounds_result.stdout.strip() != "error":
+    if bounds_result.returncode == 0 and not bounds_result.stdout.strip().startswith("error:"):
         try:
             # Parse the bounds - format is "x, y, width, height"
             bounds = bounds_result.stdout.strip()
-            print(f"Window bounds: {bounds}")
+            logger.debug(f"Window bounds: {bounds}")
             
             # Split by comma and clean up the values
             parts = [int(p.strip().strip('{}')) for p in bounds.split(',')]
-            window_x, window_y, window_width, window_height = parts
-            
-            # Calculate the chat region relative to the window position
-            # Original values were 500,650,850,400
-            x = window_x + 500
-            y = window_y + 650
-            width = 850
-            height = 400
+            if len(parts) != 4:
+                raise ValueError(f"Expected 4 values for bounds, got {len(parts)}: {parts}")
+                
+            x, y, width, height = parts
+            if width <= 0 or height <= 0:
+                raise ValueError(f"Invalid window dimensions: {width}x{height}")
             
             # Capture the specific region
             capture_cmd = ["screencapture", "-R", f"{x},{y},{width},{height}", filename]
-            print(f"Running capture command: {' '.join(capture_cmd)}")
+            logger.debug(f"Running capture command: {' '.join(capture_cmd)}")
             
             result = subprocess.run(capture_cmd, capture_output=True, text=True)
             if result.returncode == 0:
                 if os.path.exists(filename):
-                    print(f"Screenshot saved successfully: {abs_path}")
-                    print(f"File size: {os.path.getsize(filename)} bytes")
+                    logger.info(f"Screenshot saved successfully: {abs_path}")
+                    logger.debug(f"File size: {os.path.getsize(filename)} bytes")
+                    return filename
                 else:
-                    print(f"Warning: screencapture returned success but file not found at {abs_path}")
+                    logger.warning(f"Warning: screencapture returned success but file not found at {abs_path}")
             else:
-                print(f"Failed to capture screenshot. Return code: {result.returncode}")
+                logger.error(f"Failed to capture screenshot. Return code: {result.returncode}")
                 if result.stderr:
-                    print(f"Error output: {result.stderr}")
+                    logger.error(f"Error output: {result.stderr}")
         except Exception as e:
-            print(f"Error parsing window bounds: {e}")
-            print(f"Raw bounds output: {bounds}")
+            logger.error(f"Error parsing window bounds: {e}")
+            logger.error(f"Raw bounds output: {bounds}")
     else:
-        print("Could not get Cursor window bounds")
+        logger.error("Could not get Cursor window bounds")
         if bounds_result.stderr:
-            print(f"Error output: {bounds_result.stderr}")
+            logger.error(f"Error output: {bounds_result.stderr}")
     
-    return filename
+    return None
