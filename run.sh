@@ -62,47 +62,66 @@ fi
 
 # The initial prompt is now stored in initial_prompt.txt
 
-# Parse flags for auto mode and send message behavior
-auto_mode=0
-send_message=true
-debug_mode=false
+# Default values
+AUTO_MODE=0
+DEBUG_MODE=0
+JSON_MODE=0
 
-for arg in "$@"; do
-  case $arg in
-    --auto)
-      auto_mode=1
-      ;;
-    --no-auto)
-      auto_mode=0
-      ;;
-    --no-send)
-      send_message=false
-      ;;
-    --send)
-      send_message=true
-      ;;
-    --debug)
-      debug_mode=true
-      ;;
-  esac
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --auto)
+            AUTO_MODE=1
+            shift
+            ;;
+        --debug)
+            DEBUG_MODE=1
+            shift
+            ;;
+        --json)
+            JSON_MODE=1
+            shift
+            ;;
+        *)
+            echo "Unknown option: $1"
+            exit 1
+            ;;
+    esac
 done
 
-export CURSOR_AUTOPILOT_AUTO_MODE=$auto_mode
-export CURSOR_AUTOPILOT_DEBUG=$debug_mode
+# Set environment variables
+export CURSOR_AUTOPILOT_AUTO=$AUTO_MODE
+export CURSOR_AUTOPILOT_DEBUG=$DEBUG_MODE
+export CURSOR_AUTOPILOT_JSON=$JSON_MODE
 
-# Update send_message in config.json
-python3 -c '
+# Ensure config.json exists and has required fields
+if [ ! -f "config.json" ]; then
+    echo "Creating default config.json..."
+    cat > config.json << EOF
+{
+  "project_path": "$(pwd)",
+  "task_file_path": "tasks.md",
+  "additional_context_path": "context.md",
+  "initial_delay": 10,
+  "send_message": true,
+  "platform": "cursor",
+  "use_vision_api": false,
+  "debug": $DEBUG_MODE,
+  "inactivity_delay": 120
+}
+EOF
+fi
+
+# Update config.json with current settings
+python3 -c "
 import json
-import os
-config_file = os.environ["CONFIG_FILE"]
-with open(config_file, "r") as f:
+with open('config.json', 'r') as f:
     config = json.load(f)
-config["send_message"] = True if "'$send_message'" == "true" else False
-config["debug"] = True if "'$debug_mode'" == "true" else False
-config["inactivity_delay"] = config.get("inactivity_delay", 120)  # Default to 120 seconds if not set
-with open(config_file, "w") as f:
+config['debug'] = $DEBUG_MODE
+config['inactivity_delay'] = 120
+with open('config.json', 'w') as f:
     json.dump(config, f, indent=2)
-'
+"
 
 # === STEP 1: KILL EXISTING APPLICATION IF RUNNING ===
 if [ "$PLATFORM" = "windsurf" ]; then
@@ -127,5 +146,5 @@ if [ -f "initial_prompt.txt" ]; then
 fi
 
 # Start Slack bot and watcher together with combined logs
-echo "Starting Slack bot and Cursor watcher... (auto mode: $auto_mode, send messages: $send_message)"
-python3 run_both.py $auto_mode "$PLATFORM"
+echo "Starting Slack bot and Cursor watcher... (auto mode: $AUTO_MODE, send messages: true)"
+python3 run_both.py

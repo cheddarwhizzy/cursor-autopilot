@@ -6,6 +6,8 @@
   "send_message": true,
   "platform": "windsurf",
   "use_vision_api": false,
-  "debug": true,
-  "inactivity_delay": 120
+  "debug": 1,
+  "inactivity_delay": 120,
+  "check_chat_window_open": false,
+  "check_chat_waiting_input": false
 }

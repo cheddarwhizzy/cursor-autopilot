@@ -4,7 +4,8 @@ import os
 import hashlib
 import json
 from datetime import datetime
-from actions.send_to_cursor import send_prompt
+from actions.send_to_cursor import send_prompt, take_cursor_screenshot
+from actions.openai_vision import is_chat_waiting_for_input
 from state import get_mode
 from generate_initial_prompt import DEFAULT_CONTINUATION_PROMPT
 import logging
@@ -127,11 +128,27 @@ def run_watcher():
     initial_prompt_sent = os.path.exists(os.path.join(os.path.dirname(__file__), ".initial_prompt_sent"))
     logger.info(f"Initial prompt {'has' if initial_prompt_sent else 'has not'} been sent yet")
     
-    # Get absolute path to task file
-    task_file_abs_path = os.path.join(WATCH_PATH, TASK_FILE_PATH)
-    if not os.path.exists(task_file_abs_path):
-        logger.error(f"Task file not found at {task_file_abs_path}")
-        return
+    # Get vision API settings from config
+    check_chat_waiting = config.get("check_chat_waiting_input", False)
+    logger.info(f"Chat waiting input check: {'enabled' if check_chat_waiting else 'disabled'}")
+    
+    # Log initial state and configuration
+    logger.info(f"Initial state:")
+    logger.info(f"  Inactivity delay: {INACTIVITY_DELAY} seconds")
+    logger.info(f"  Auto mode: {get_mode() == 'auto'}")
+    logger.info(f"  Last prompt time: {datetime.fromtimestamp(last_prompt_time)}")
+    logger.info(f"  Send message: {config.get('send_message', True)}")
+    logger.info(f"  Initial prompt file: {config.get('initial_prompt_file_path', 'initial_prompt.txt')}")
+    logger.info(f"  Continuation prompt file: {config.get('continuation_prompt_file_path', None)}")
+    
+    # Verify prompt files exist
+    initial_prompt_path = config.get("initial_prompt_file_path", "initial_prompt.txt")
+    continuation_prompt_path = config.get("continuation_prompt_file_path")
+    
+    logger.info(f"Checking prompt files:")
+    logger.info(f"  Initial prompt file exists: {os.path.exists(initial_prompt_path)}")
+    if continuation_prompt_path:
+        logger.info(f"  Continuation prompt file exists: {os.path.exists(continuation_prompt_path)}")
     
     while True:
         try:
@@ -141,7 +158,7 @@ def run_watcher():
             # Check if task file was modified
             task_file_modified = False
             if TASK_FILE_PATH in changed_files:
-                current_mtime = os.path.getmtime(task_file_abs_path)
+                current_mtime = os.path.getmtime(TASK_FILE_PATH)
                 if LAST_README_MTIME is None or current_mtime > LAST_README_MTIME:
                     task_file_modified = True
                     LAST_README_MTIME = current_mtime
@@ -163,19 +180,39 @@ def run_watcher():
                     logger.info(f"  Will send prompt in {max(0, INACTIVITY_DELAY-int(inactivity_timer))} seconds if no changes occur")
             
             # Check for inactivity timeout
+            current_time = time.time()
+            logger.info(f"Checking conditions for sending prompt:")
+            logger.info(f"  Inactivity timer: {int(inactivity_timer)} seconds (needs {INACTIVITY_DELAY})")
+            logger.info(f"  Auto mode: {get_mode() == 'auto'}")
+            logger.info(f"  Time since last prompt: {int(current_time - last_prompt_time)} seconds")
+            
             if inactivity_timer >= INACTIVITY_DELAY and get_mode() == "auto":
-                current_time = time.time()
-                # Only send a new prompt if it's been at least INACTIVITY_DELAY seconds since the last one
-                if current_time - last_prompt_time >= INACTIVITY_DELAY:
-                    logger.info(f"Inactivity timeout reached ({int(inactivity_timer)} seconds). Sending prompt to {PLATFORM}.")
-                    
+                logger.info("Inactivity delay reached and auto mode is enabled, checking chat window...")
+                
+                # Check if we should verify chat is waiting for input
+                should_send_prompt = True
+                if check_chat_waiting:
+                    logger.info("Checking if chat is ready...")
+                    screenshot_path = take_cursor_screenshot(platform=PLATFORM)
+                    if screenshot_path:
+                        logger.info("Checking if chat window is waiting for input...")
+                        if not is_chat_waiting_for_input(screenshot_path):
+                            logger.info("Chat window is not ready for input yet. Will check again in 5 seconds...")
+                            should_send_prompt = False
+                    else:
+                        logger.warning("Could not take screenshot. Will try again in 5 seconds...")
+                        should_send_prompt = False
+                
+                if should_send_prompt:
+                    logger.info("All conditions met, sending prompt...")
                     # Use the appropriate prompt based on whether initial prompt was sent
                     if not initial_prompt_sent:
                         try:
-                            with open("initial_prompt.txt", "r") as f:
+                            with open(initial_prompt_path, "r") as f:
                                 prompt = f.read().strip()
+                            logger.info(f"Read initial prompt from {initial_prompt_path}")
                         except Exception as e:
-                            logger.error(f"Failed to read initial_prompt.txt: {e}")
+                            logger.error(f"Failed to read initial prompt file {initial_prompt_path}: {e}")
                             prompt = "continue"
                         logger.info("Starting new chat with initial prompt")
                         send_prompt(prompt, platform=PLATFORM, new_chat=True, 
@@ -183,20 +220,37 @@ def run_watcher():
                                   send_message=config.get("send_message", True))
                         initial_prompt_sent = True
                     else:
-                        # Use the continuation prompt
-                        prompt = DEFAULT_CONTINUATION_PROMPT.format(
-                            task_file_path=task_file_abs_path,
-                            additional_context_path=config.get("additional_context_path", "context.md")
-                        )
+                        # Try to read custom continuation prompt if specified
+                        if continuation_prompt_path and os.path.exists(continuation_prompt_path):
+                            try:
+                                with open(continuation_prompt_path, "r") as f:
+                                    prompt = f.read().strip()
+                                logger.info(f"Read continuation prompt from {continuation_prompt_path}")
+                            except Exception as e:
+                                logger.error(f"Failed to read continuation prompt file {continuation_prompt_path}: {e}")
+                                prompt = DEFAULT_CONTINUATION_PROMPT.format(
+                                    task_file_path=TASK_FILE_PATH,
+                                    additional_context_path=config.get("additional_context_path", "context.md")
+                                )
+                        else:
+                            prompt = DEFAULT_CONTINUATION_PROMPT.format(
+                                task_file_path=TASK_FILE_PATH,
+                                additional_context_path=config.get("additional_context_path", "context.md")
+                            )
                         logger.info("Sending continuation prompt")
                         send_prompt(prompt, platform=PLATFORM, new_chat=False,
                                   send_message=config.get("send_message", True))
                     
                     last_prompt_time = current_time
                     inactivity_timer = 0
-                    logger.info("Watching for changes...")
+                    logger.info("Prompt sent, resetting inactivity timer")
                 else:
-                    logger.info(f"Skipping prompt - last prompt was sent {int(current_time - last_prompt_time)} seconds ago")
+                    logger.info("Skipping prompt - chat window not ready for input")
+            else:
+                logger.debug(f"Not sending prompt - conditions not met:")
+                logger.debug(f"  Inactivity timer: {int(inactivity_timer)} seconds (needs {INACTIVITY_DELAY})")
+                logger.debug(f"  Auto mode: {get_mode() == 'auto'}")
+                logger.debug(f"  Time since last prompt: {int(current_time - last_prompt_time)} seconds")
             
             time.sleep(5)  # Check every 5 seconds
         except Exception as e:

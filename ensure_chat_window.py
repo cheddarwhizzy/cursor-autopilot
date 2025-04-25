@@ -28,7 +28,7 @@ def ensure_chat_window(platform=None):
     3. Taking a screenshot and using OpenAI Vision to check if chat window is open (if enabled)
     """
     config = get_config()
-    use_vision_api = config.get("use_vision_api", False)
+    check_chat_open = config.get("check_chat_window_open", False)
     
     # Use platform from config if not explicitly provided
     if platform is None:
@@ -37,6 +37,7 @@ def ensure_chat_window(platform=None):
     app_name = "Windsurf" if platform == "windsurf" else "Cursor"
     logger.info(f"Using configured IDE: {app_name}")
     logger.info(f"Starting {app_name} chat window check...")
+    logger.info(f"Chat window open check: {'enabled' if check_chat_open else 'disabled'}")
     
     # First kill any existing process
     kill_cursor(platform)
@@ -44,7 +45,7 @@ def ensure_chat_window(platform=None):
     # Launch app and wait for it to be ready
     launch_platform(platform)
     
-    if use_vision_api:
+    if check_chat_open:
         # Take screenshot of window
         logger.info(f"Taking screenshot of {app_name} window...")
         screenshot_path = take_cursor_screenshot(platform=platform)

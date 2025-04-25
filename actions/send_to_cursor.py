@@ -440,8 +440,34 @@ def launch_platform(platform="cursor"):
         end tell
         '''
         subprocess.run(["osascript", "-e", script])
-        logger.info("Waiting 1 second after pressing Enter...")
-        time.sleep(1)
+        logger.info("Waiting 2 seconds after pressing Enter...")
+        time.sleep(2)
+        
+        # Send Control+` to focus terminal
+        logger.info("Sending Control+` to focus terminal...")
+        script = '''
+        tell application "System Events"
+            tell process "Windsurf"
+                keystroke "`" using {control down}
+            end tell
+        end tell
+        '''
+        subprocess.run(["osascript", "-e", script])
+        logger.info("Waiting 2 seconds after focusing terminal...")
+        time.sleep(2)
+        
+        # Send Command+L to focus chat
+        logger.info("Sending Command+L to focus chat...")
+        script = '''
+        tell application "System Events"
+            tell process "Windsurf"
+                keystroke "l" using {command down}
+            end tell
+        end tell
+        '''
+        subprocess.run(["osascript", "-e", script])
+        logger.info("Waiting 2 seconds after focusing chat...")
+        time.sleep(2)
     
     # Give it extra time to fully initialize
     logger.info(f"Waiting 5 seconds for {app_name} to fully initialize...")

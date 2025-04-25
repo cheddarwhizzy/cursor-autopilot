@@ -1,68 +1,72 @@
 import logging
-import os
+import json
+import time
+from datetime import datetime
 
 # ANSI color codes
 COLORS = {
     'ensure_chat_window': '\033[36m',  # Cyan
     'kill_cursor': '\033[31m',         # Red
     'launch_platform': '\033[32m',     # Green
+    'notice': '\033[94m',              # Blue
+    'screenshot': '\033[35m',          # Purple
     'send_to_cursor': '\033[33m',      # Yellow
-    'watcher': '\033[35m',             # Magenta
-    'notice': '\033[34m',              # Blue
-    'warning': '\033[93m',             # Light Yellow
-    'error': '\033[91m',               # Light Red
-    'debug': '\033[90m',               # Gray
-    'info': '\033[37m',                # White
-    'reset': '\033[0m'                 # Reset
+    'slack_bot': '\033[36m',           # Cyan
+    'watcher': '\033[32m',             # Green
+    'RESET': '\033[0m'                 # Reset
 }
 
 class ColoredFormatter(logging.Formatter):
-    def format(self, record):
-        # Get the base logger name (first part before any dots)
-        base_logger = record.name.split('.')[0]
-        
-        # Check if message contains a bracketed prefix
-        message = record.msg
-        if isinstance(message, str) and message.startswith('[') and ']' in message:
-            prefix = message[1:message.index(']')]
-            if prefix in COLORS:
-                # Apply color to the bracketed prefix
-                record.msg = f"{COLORS[prefix]}[{prefix}]{COLORS['reset']}{message[message.index(']')+1:]}"
-            else:
-                # Apply color based on logger name
-                color = COLORS.get(base_logger, COLORS['info'])
-                record.msg = f"{color}{message}{COLORS['reset']}"
-        else:
-            # Apply color based on logger name
-            color = COLORS.get(base_logger, COLORS['info'])
-            record.msg = f"{color}{message}{COLORS['reset']}"
-        
-        return super().format(record)
+    def __init__(self, fmt=None, datefmt=None, style='%', use_json=False):
+        super().__init__(fmt, datefmt, style)
+        self.use_json = use_json
 
-def setup_colored_logging(debug=False):
+    def format(self, record):
+        if self.use_json:
+            log_entry = {
+                'timestamp': datetime.fromtimestamp(record.created).isoformat(),
+                'level': record.levelname,
+                'logger': record.name,
+                'message': record.getMessage(),
+                'module': record.module,
+                'function': record.funcName,
+                'line': record.lineno
+            }
+            if record.exc_info:
+                log_entry['exception'] = self.formatException(record.exc_info)
+            return json.dumps(log_entry)
+        else:
+            # Get the color for this logger
+            color = COLORS.get(record.name, '')
+            reset = COLORS['RESET']
+            
+            # Format the message with color
+            record.msg = f"{color}{record.msg}{reset}"
+            
+            return super().format(record)
+
+def setup_colored_logging(debug=False, use_json=False):
+    """Set up colored logging for the application."""
     # Create a handler that outputs to stdout
     handler = logging.StreamHandler()
     
-    # Create formatter with timestamp and level
-    formatter = ColoredFormatter(
-        '%(asctime)s - %(levelname)s - %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
-    )
-    
     # Set the formatter
+    if use_json:
+        formatter = ColoredFormatter(use_json=True)
+    else:
+        formatter = ColoredFormatter(
+            fmt='%(asctime)s - %(levelname)s - %(name)s - %(message)s',
+            datefmt='%Y-%m-%d %H:%M:%S'
+        )
+    
     handler.setFormatter(formatter)
     
-    # Get the root logger
+    # Configure the root logger
     root_logger = logging.getLogger()
-    
-    # Remove any existing handlers
-    root_logger.handlers = []
-    
-    # Add our handler
+    root_logger.setLevel(logging.DEBUG if debug else logging.INFO)
     root_logger.addHandler(handler)
     
-    # Set the logging level
-    root_logger.setLevel(logging.DEBUG if debug else logging.INFO)
-    
-    # Return the root logger
-    return root_logger 
+    # Remove any existing handlers to avoid duplicate output
+    for h in root_logger.handlers[:]:
+        if h is not handler:
+            root_logger.removeHandler(h) 
