@@ -31,6 +31,7 @@ PLATFORM = config.get("platform", "cursor")
 print(f"\nWatcher Configuration:")
 print(f"Project Path: {WATCH_PATH}")
 print(f"Task README: {TASK_FILE_PATH}")
+print(f"Task README: {TASK_FILE_PATH}")
 print(f"Platform: {PLATFORM}")
 print(f"Excluded Dirs: {EXCLUDE_DIRS}")
 
@@ -100,6 +101,9 @@ def run_watcher():
     if os.path.exists(TASK_FILE_PATH):
         LAST_README_MTIME = os.path.getmtime(TASK_FILE_PATH)
         print(f"Initialized watching task README at: {TASK_FILE_PATH}")
+    if os.path.exists(TASK_FILE_PATH):
+        LAST_README_MTIME = os.path.getmtime(TASK_FILE_PATH)
+        print(f"Initialized watching task README at: {TASK_FILE_PATH}")
     
     print(f"\nStarting file watcher for directory: {WATCH_PATH}")
     print(f"Excluded directories: {EXCLUDE_DIRS}")
@@ -124,7 +128,10 @@ def run_watcher():
             readme_updated = False
             if os.path.exists(TASK_FILE_PATH):
                 new_readme_mtime = os.path.getmtime(TASK_FILE_PATH)
+            if os.path.exists(TASK_FILE_PATH):
+                new_readme_mtime = os.path.getmtime(TASK_FILE_PATH)
                 if LAST_README_MTIME is not None and new_readme_mtime > LAST_README_MTIME:
+                    print(f"\n🎯 Task README {TASK_FILE_PATH} was updated!")
                     print(f"\n🎯 Task README {TASK_FILE_PATH} was updated!")
                     print("Marking task as completed - next prompt will start a new chat")
                     TASK_COMPLETED = True
