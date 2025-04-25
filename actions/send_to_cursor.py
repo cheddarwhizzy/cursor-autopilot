@@ -3,6 +3,18 @@ import os
 import time
 from actions.openai_vision import is_chat_window_open
 import json
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.DEBUG if os.environ.get("CURSOR_AUTOPILOT_DEBUG") == "true" else logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger('send_to_cursor')
+
+# Add debug info about logging level
+logger.debug("Debug logging enabled") if os.environ.get("CURSOR_AUTOPILOT_DEBUG") == "true" else logger.info("Info logging enabled")
 
 def get_project_name():
     """Get the project name from the config file."""
@@ -13,7 +25,7 @@ def get_project_name():
             # Get the last part of the project path
             return os.path.basename(config["project_path"])
     except Exception as e:
-        print(f"Warning: Could not get project name from config: {e}")
+        logger.warning(f"Could not get project name from config: {e}")
         return None
 
 def get_cursor_window_id(max_retries=5, delay=1, platform="cursor"):
@@ -24,7 +36,7 @@ def get_cursor_window_id(max_retries=5, delay=1, platform="cursor"):
     """
     project_name = get_project_name()
     if not project_name:
-        print("[get_cursor_window_id] No project name found in config, will try to find any window")
+        logger.info("No project name found in config, will try to find any window")
     
     app_name = "Windsurf" if platform == "windsurf" else "Cursor"
     
@@ -42,11 +54,11 @@ def get_cursor_window_id(max_retries=5, delay=1, platform="cursor"):
     '''
     
     for attempt in range(max_retries):
-        print(f"[get_cursor_window_id] Attempt {attempt+1} to find {app_name} window...")
+        logger.info(f"Attempt {attempt+1} to find {app_name} window...")
         result = subprocess.run(["osascript", "-e", windows_script], capture_output=True, text=True)
         
         if result.returncode == 0 and result.stdout.strip():
-            print(f"[get_cursor_window_id] Found windows: {result.stdout.strip()}")
+            logger.info(f"Found windows: {result.stdout.strip()}")
             
             # Try to find the project window
             window_check = 'true' if not project_name else f'name of w contains "— {project_name}" or name of w contains "- {project_name}"'
@@ -65,21 +77,21 @@ def get_cursor_window_id(max_retries=5, delay=1, platform="cursor"):
             window_result = subprocess.run(["osascript", "-e", find_window_script], capture_output=True, text=True)
             if window_result.returncode == 0 and window_result.stdout.strip():
                 window_id = window_result.stdout.strip()
-                print(f"[get_cursor_window_id] Found main window ID: {window_id}")
+                logger.info(f"Found main window ID: {window_id}")
                 return window_id
         
-        print(f"[get_cursor_window_id] Attempt {attempt+1} failed.")
+        logger.info(f"Attempt {attempt+1} failed.")
         if result.stderr:
-            print(f"[get_cursor_window_id] Error output: {result.stderr.strip()}")
+            logger.warning(f"Error output: {result.stderr.strip()}")
         time.sleep(delay)
     
-    print("[get_cursor_window_id] Could not find window ID after retries.")
+    logger.warning("Could not find window ID after retries.")
     return None
 
-def activate_cursor(platform="cursor"):
+def activate_platform(platform="cursor"):
     """Activate the Cursor or Windsurf application window."""
     app_name = "Windsurf" if platform == "windsurf" else "Cursor"
-    print(f"[activate_cursor] Activating {app_name}...")
+    logger.info(f"Activating {app_name}...")
     script = f'''
     tell application "{app_name}" to activate
     delay 1
@@ -92,9 +104,9 @@ def activate_cursor(platform="cursor"):
     '''
     subprocess.run(["osascript", "-e", script])
     # Add extra delay after activation to ensure app is fully ready
-    print(f"[activate_cursor] Waiting 3 seconds for {app_name} to fully initialize...")
+    logger.info(f"Waiting 3 seconds for {app_name} to fully initialize...")
     time.sleep(3)
-    print("[activate_cursor] Done.")
+    logger.info("Done.")
 
 def take_cursor_screenshot(filename="cursor_window.png", platform="cursor"):
     """
@@ -262,18 +274,18 @@ def send_prompt(prompt, platform="cursor", new_chat=False, initial_delay=0, send
     Send a prompt to the specified platform with verbose logging and delays.
     """
     if initial_delay > 0:
-        print(f"⏳ Waiting {initial_delay} seconds before sending prompt...")
+        logger.info(f"Waiting {initial_delay} seconds before sending prompt...")
         time.sleep(initial_delay)
     
     app_name = "Windsurf" if platform == "windsurf" else "Cursor"
-    print(f"\n📝 Starting to send prompt to {app_name}...")
+    logger.info(f"Starting to send prompt to {app_name}...")
     
     # Activate the application
-    print(f"🔄 Activating {app_name}...")
-    activate_cursor(platform)
+    logger.info(f"Activating {app_name}...")
+    activate_platform(platform)
     
     if new_chat:
-        print(f"🆕 Creating new chat window in {app_name}...")
+        logger.info(f"Creating new chat window in {app_name}...")
         if platform == "cursor":
             # Send Command+N to create a new chat
             script = f'''
@@ -283,13 +295,13 @@ def send_prompt(prompt, platform="cursor", new_chat=False, initial_delay=0, send
                 end tell
             end tell
             '''
-            print("⌨️  Sending Command+N to create new chat...")
+            logger.info("Sending Command+N to create new chat...")
             subprocess.run(["osascript", "-e", script])
-            print("⏳ Waiting 2 seconds for new chat to open...")
+            logger.info("Waiting 2 seconds for new chat to open...")
             time.sleep(2)
             
             # Open the chat window with Command+L
-            print("⌨️  Sending Command+L to open chat window...")
+            logger.info("Sending Command+L to open chat window...")
             script = f'''
             tell application "System Events"
                 tell process "{app_name}"
@@ -298,7 +310,7 @@ def send_prompt(prompt, platform="cursor", new_chat=False, initial_delay=0, send
             end tell
             '''
             subprocess.run(["osascript", "-e", script])
-            print("⏳ Waiting 2 seconds for chat window to fully open...")
+            logger.info("Waiting 2 seconds for chat window to fully open...")
             time.sleep(2)
         else:  # windsurf
             # Send Command+Shift+L to create a new chat

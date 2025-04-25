@@ -7,6 +7,18 @@ from datetime import datetime
 from actions.send_to_cursor import send_prompt
 from state import get_mode
 from generate_initial_prompt import CONTINUATION_PROMPT
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.DEBUG if os.environ.get("CURSOR_AUTOPILOT_DEBUG") == "true" else logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger('watcher')
+
+# Add debug info about logging level
+logger.debug("Debug logging enabled") if os.environ.get("CURSOR_AUTOPILOT_DEBUG") == "true" else logger.info("Info logging enabled")
 
 EXCLUDE_DIRS = {"node_modules", ".git", "dist", "__pycache__"}
 LAST_HASH = None
@@ -26,14 +38,15 @@ TASK_FILE_PATH = config.get("task_file_path", "tasks.md")
 LAST_README_MTIME = None
 TASK_COMPLETED = False
 PLATFORM = config.get("platform", "cursor")
+INACTIVITY_DELAY = config.get("inactivity_delay", 120)  # Default to 120 seconds if not specified
 
 # Add debug info about paths
-print(f"\nWatcher Configuration:")
-print(f"Project Path: {WATCH_PATH}")
-print(f"Task README: {TASK_FILE_PATH}")
-print(f"Task README: {TASK_FILE_PATH}")
-print(f"Platform: {PLATFORM}")
-print(f"Excluded Dirs: {EXCLUDE_DIRS}")
+logger.info(f"Watcher Configuration:")
+logger.info(f"Project Path: {WATCH_PATH}")
+logger.info(f"Task README: {TASK_FILE_PATH}")
+logger.info(f"Platform: {PLATFORM}")
+logger.info(f"Inactivity Delay: {INACTIVITY_DELAY} seconds")
+logger.info(f"Excluded Dirs: {EXCLUDE_DIRS}")
 
 def hash_folder_state():
     """
@@ -80,11 +93,14 @@ def hash_folder_state():
                         'mtime': current_mtime,
                         'size': current_size
                     }
+                    logger.info(f"File changed: {rel_path}")
+                    logger.info(f"  Last modified: {datetime.fromtimestamp(current_mtime)}")
+                    logger.info(f"  Size: {current_size} bytes")
                 
                 total_files += 1
                 
             except OSError as e:
-                print(f"Warning: Could not access {rel_path}: {e}")
+                logger.warning(f"Could not access {rel_path}: {e}")
                 continue
     
     return sha.hexdigest(), changed_files, total_files
@@ -93,7 +109,7 @@ def run_watcher():
     """
     Main watcher loop that monitors for changes and sends prompts.
     """
-    global LAST_HASH, FILE_MTIMES, LAST_README_MTIME, TASK_COMPLETED
+    global LAST_HASH, FILE_MTIMES, LAST_README_MTIME
     
     inactivity_timer = 0
     last_activity = time.time()
@@ -101,7 +117,7 @@ def run_watcher():
     
     # Check if initial prompt has been sent
     initial_prompt_sent = os.path.exists(os.path.join(os.path.dirname(__file__), ".initial_prompt_sent"))
-    print(f"\n📝 Initial prompt {'has' if initial_prompt_sent else 'has not'} been sent yet")
+    logger.info(f"Initial prompt {'has' if initial_prompt_sent else 'has not'} been sent yet")
     
     while True:
         try:
@@ -115,26 +131,29 @@ def run_watcher():
                 if LAST_README_MTIME is None or current_mtime > LAST_README_MTIME:
                     task_file_modified = True
                     LAST_README_MTIME = current_mtime
-                    print(f"\n📝 Task file {TASK_FILE_PATH} was modified!")
+                    logger.info(f"Task file {TASK_FILE_PATH} was modified!")
+                    logger.info(f"  Last modified: {datetime.fromtimestamp(current_mtime)}")
             
             # Update inactivity timer
             if current_hash != LAST_HASH or task_file_modified:
                 inactivity_timer = 0
                 last_activity = time.time()
                 LAST_HASH = current_hash
-                print(f"\n🔄 Activity detected! Resetting inactivity timer (was at {int(inactivity_timer)} seconds)")
+                logger.info(f"Activity detected! Resetting inactivity timer (was at {int(inactivity_timer)} seconds)")
+                if changed_files:
+                    logger.info(f"  Changed files: {', '.join(changed_files)}")
             else:
                 inactivity_timer = time.time() - last_activity
                 if inactivity_timer >= 30:  # Log status when getting close to timeout
-                    print(f"\n⏳ No changes detected for {int(inactivity_timer)} seconds")
-                    print(f"Will send prompt in {max(0, 120-int(inactivity_timer))} seconds if no changes occur")
+                    logger.info(f"No changes detected for {int(inactivity_timer)} seconds")
+                    logger.info(f"  Will send prompt in {max(0, INACTIVITY_DELAY-int(inactivity_timer))} seconds if no changes occur")
             
-            # Check for inactivity timeout (2 minutes = 120 seconds)
-            if inactivity_timer >= 120 and get_mode() == "auto":
+            # Check for inactivity timeout
+            if inactivity_timer >= INACTIVITY_DELAY and get_mode() == "auto":
                 current_time = time.time()
-                # Only send a new prompt if it's been at least 2 minutes since the last one
-                if current_time - last_prompt_time >= 120:
-                    print(f"\n⚡ Inactivity timeout reached ({int(inactivity_timer)} seconds). Sending prompt to {PLATFORM}.")
+                # Only send a new prompt if it's been at least INACTIVITY_DELAY seconds since the last one
+                if current_time - last_prompt_time >= INACTIVITY_DELAY:
+                    logger.info(f"Inactivity timeout reached ({int(inactivity_timer)} seconds). Sending prompt to {PLATFORM}.")
                     
                     # Use the appropriate prompt based on whether initial prompt was sent
                     if not initial_prompt_sent:
@@ -142,9 +161,9 @@ def run_watcher():
                             with open("initial_prompt.txt", "r") as f:
                                 prompt = f.read().strip()
                         except Exception as e:
-                            print(f"Failed to read initial_prompt.txt: {e}")
+                            logger.error(f"Failed to read initial_prompt.txt: {e}")
                             prompt = "continue"
-                        print("Starting new chat with initial prompt")
+                        logger.info("Starting new chat with initial prompt")
                         send_prompt(prompt, platform=PLATFORM, new_chat=True, 
                                   initial_delay=config.get("initial_delay", 10),
                                   send_message=config.get("send_message", True))
@@ -155,19 +174,19 @@ def run_watcher():
                             task_file_path=config.get("task_file_path", "tasks.md"),
                             additional_context_path=config.get("additional_context_path", "context.md")
                         )
-                        print("Sending continuation prompt")
+                        logger.info("Sending continuation prompt")
                         send_prompt(prompt, platform=PLATFORM, new_chat=False,
                                   send_message=config.get("send_message", True))
                     
                     last_prompt_time = current_time
                     inactivity_timer = 0
-                    print("\n👀 Watching for changes...")
+                    logger.info("Watching for changes...")
                 else:
-                    print(f"\n⏳ Skipping prompt - last prompt was sent {int(current_time - last_prompt_time)} seconds ago")
+                    logger.info(f"Skipping prompt - last prompt was sent {int(current_time - last_prompt_time)} seconds ago")
             
             time.sleep(5)  # Check every 5 seconds
         except Exception as e:
-            print(f"\n⚠️  Error in watcher: {e}")
+            logger.error(f"Error in watcher: {e}")
             time.sleep(5)  # Wait before retrying
 
 if __name__ == "__main__":

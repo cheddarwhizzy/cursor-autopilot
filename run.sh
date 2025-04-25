@@ -65,6 +65,7 @@ fi
 # Parse flags for auto mode and send message behavior
 auto_mode=0
 send_message=true
+debug_mode=false
 
 for arg in "$@"; do
   case $arg in
@@ -80,10 +81,14 @@ for arg in "$@"; do
     --send)
       send_message=true
       ;;
+    --debug)
+      debug_mode=true
+      ;;
   esac
 done
 
 export CURSOR_AUTOPILOT_AUTO_MODE=$auto_mode
+export CURSOR_AUTOPILOT_DEBUG=$debug_mode
 
 # Update send_message in config.json
 python3 -c '
@@ -93,6 +98,8 @@ config_file = os.environ["CONFIG_FILE"]
 with open(config_file, "r") as f:
     config = json.load(f)
 config["send_message"] = True if "'$send_message'" == "true" else False
+config["debug"] = True if "'$debug_mode'" == "true" else False
+config["inactivity_delay"] = config.get("inactivity_delay", 120)  # Default to 120 seconds if not set
 with open(config_file, "w") as f:
     json.dump(config, f, indent=2)
 '
