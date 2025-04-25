@@ -1,0 +1,1488 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+4. Repository files, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+<additional_info>
+
+</additional_info>
+
+</file_summary>
+
+<directory_structure>
+actions/
+  openai_vision.py
+  screenshot.py
+  send_to_cursor.py
+  slack_webhook.py
+docs/
+  AUTOMATION.md
+  CONFIGURATION.md
+  INSTALLATION.md
+  SETUP.md
+  SLACK_BOT.md
+.dockerignore
+.gitignore
+.python-version
+config.json
+docker-compose.yml
+Dockerfile
+ensure_chat_window.py
+generate_initial_prompt.py
+README.md
+requirements.txt
+run_both.py
+run.sh
+slack_bot.py
+state.py
+watcher.py
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="actions/slack_webhook.py">
+# Placeholder if we separate Slack webhooks later
+</file>
+
+<file path=".dockerignore">
+.git
+.gitignore
+venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+.env
+*.log
+</file>
+
+<file path=".python-version">
+3.13.2
+</file>
+
+<file path="docker-compose.yml">
+version: '3.8'
+
+services:
+  cursor-autopilot:
+    build: .
+    volumes:
+      - .:/app
+      - /tmp/.X11-unix:/tmp/.X11-unix  # For X11 forwarding
+    environment:
+      - DISPLAY=${DISPLAY}
+      - WATCH_PATH=${WATCH_PATH:-/app}
+    network_mode: host  # Required for Slack webhook to work
+    restart: unless-stopped
+</file>
+
+<file path="Dockerfile">
+FROM python:3.13.2-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    tesseract-ocr \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements first to leverage Docker cache
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the rest of the application
+COPY . .
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+
+# Command to run the application
+CMD ["python", "run_both.py"]
+</file>
+
+<file path="requirements.txt">
+flask  
+openai 
+pytesseract
+</file>
+
+<file path="actions/openai_vision.py">
+import os
+import openai
+import base64
+
+def is_chat_window_open(screenshot_path):
+    """
+    Uses OpenAI GPT-4.1-mini to check if the screenshot shows a chat window.
+    Returns True if a chat window is detected, False otherwise.
+    """
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        print("OPENAI_API_KEY not found in environment. Skipping vision check.")
+        print("Note: The chat window should be closed when Cursor initially opens.")
+        print("Will wait for the configured delay before proceeding.")
+        return False
+        
+    try:
+        # Read and encode image
+        with open(screenshot_path, "rb") as image_file:
+            image_data = base64.b64encode(image_file.read()).decode('utf-8')
+        
+        openai.api_key = api_key
+        
+        response = openai.chat.completions.create(
+            model="gpt-4.1-mini",
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": "Does this screenshot show a Cursor chat window on the right side of the window? Answer with just 'yes' or 'no'."
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/png;base64,{image_data}"
+                            }
+                        }
+                    ]
+                }
+            ],
+            max_tokens=10
+        )
+        
+        answer = response.choices[0].message.content.lower().strip()
+        print(f"Vision API response: {answer}")
+        return answer == "yes"
+        
+    except Exception as e:
+        print(f"Error checking chat window: {e}")
+        print("Note: The chat window should be closed when Cursor initially opens.")
+        print("Will wait for the configured delay before proceeding.")
+        return False
+</file>
+
+<file path="actions/screenshot.py">
+import subprocess
+from datetime import datetime
+import os
+
+def capture_chat_screenshot():
+    screenshot_dir = "screenshots"
+    os.makedirs(screenshot_dir, exist_ok=True)
+    print(f"Ensuring screenshot directory exists: {os.path.abspath(screenshot_dir)}")
+    
+    filename = f"screenshots/chat_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+    abs_path = os.path.abspath(filename)
+    print(f"Will save screenshot to: {abs_path}")
+    
+    # Get Cursor window bounds using AppleScript
+    bounds_script = '''
+    tell application "System Events"
+        tell process "Cursor"
+            try
+                set win to first window whose name does not contain "Settings"
+                return {position, size} of win
+            on error
+                return "error"
+            end try
+        end tell
+    end tell
+    '''
+    
+    bounds_result = subprocess.run(["osascript", "-e", bounds_script], capture_output=True, text=True)
+    if bounds_result.returncode == 0 and bounds_result.stdout.strip() != "error":
+        try:
+            # Parse the bounds - format is "x, y, width, height"
+            bounds = bounds_result.stdout.strip()
+            print(f"Window bounds: {bounds}")
+            
+            # Split by comma and clean up the values
+            parts = [int(p.strip().strip('{}')) for p in bounds.split(',')]
+            window_x, window_y, window_width, window_height = parts
+            
+            # Calculate the chat region relative to the window position
+            # Original values were 500,650,850,400
+            x = window_x + 500
+            y = window_y + 650
+            width = 850
+            height = 400
+            
+            # Capture the specific region
+            capture_cmd = ["screencapture", "-R", f"{x},{y},{width},{height}", filename]
+            print(f"Running capture command: {' '.join(capture_cmd)}")
+            
+            result = subprocess.run(capture_cmd, capture_output=True, text=True)
+            if result.returncode == 0:
+                if os.path.exists(filename):
+                    print(f"Screenshot saved successfully: {abs_path}")
+                    print(f"File size: {os.path.getsize(filename)} bytes")
+                else:
+                    print(f"Warning: screencapture returned success but file not found at {abs_path}")
+            else:
+                print(f"Failed to capture screenshot. Return code: {result.returncode}")
+                if result.stderr:
+                    print(f"Error output: {result.stderr}")
+        except Exception as e:
+            print(f"Error parsing window bounds: {e}")
+            print(f"Raw bounds output: {bounds}")
+    else:
+        print("Could not get Cursor window bounds")
+        if bounds_result.stderr:
+            print(f"Error output: {bounds_result.stderr}")
+    
+    return filename
+</file>
+
+<file path="docs/INSTALLATION.md">
+# Installation & Environment
+
+## Python Version Management (Recommended)
+
+To ensure consistent Python version across different machines, use Pyenv:
+
+1. **Install Pyenv:**
+   ```bash
+   brew install pyenv
+   ```
+2. **Add Pyenv to your shell configuration:**
+   ```bash
+   echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.zshrc
+   echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.zshrc
+   echo 'eval "$(pyenv init -)"' >> ~/.zshrc
+   ```
+3. **Install Python 3.13.2:**
+   ```bash
+   pyenv install 3.13.2
+   ```
+4. **Set the local Python version:**
+   ```bash
+   pyenv local 3.13.2
+   ```
+
+## Virtual Environment
+
+Create and activate a virtual environment:
+```bash
+python -m venv venv
+source venv/bin/activate
+```
+
+## Install Dependencies
+
+Install required packages:
+```bash
+pip install flask
+```
+
+---
+
+Return to [SETUP.md](./SETUP.md) for the main workflow.
+</file>
+
+<file path="docs/SETUP.md">
+# Setup Guide
+
+## TL;DR
+
+1. **Edit your configuration:**
+   - Open `config.json` in the project root and adjust it to fit your project/environment.
+2. **Run the main script:**
+   - Execute `./run.sh` to start everything. This will:
+     - Open your project in Cursor
+     - Generate `initial_prompt.txt` from your config
+     - Ensure the chat window is open
+     - Start both the Slack bot and watcher with unified logs
+
+That's it! For most users, these are the only steps needed.
+
+---
+
+## Full Setup Instructions
+
+For detailed setup with Python version management, virtual environments, and dependency installation, see [INSTALLATION.md](./INSTALLATION.md).
+</file>
+
+<file path="run_both.py">
+#!/usr/bin/env python3.13
+import subprocess
+import threading
+import sys
+import os
+
+def stream_output(process, prefix):
+    """Stream output from a process with a prefix"""
+    for line in iter(process.stdout.readline, b''):
+        sys.stdout.write(f"{prefix} | {line.decode()}")
+        sys.stdout.flush()
+
+def run_flask():
+    env = os.environ.copy()
+    env["FLASK_APP"] = "slack_bot.py"
+    process = subprocess.Popen(
+        ["flask", "run", "--port=5005"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        env=env,
+        text=False
+    )
+    stream_output(process, "FLASK")
+
+def run_watcher():
+    process = subprocess.Popen(
+        ["python3", "watcher.py"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=False
+    )
+    stream_output(process, "WATCH")
+
+if __name__ == "__main__":
+    print("Starting both processes...")
+    
+    # Start each process in its own thread
+    flask_thread = threading.Thread(target=run_flask)
+    watcher_thread = threading.Thread(target=run_watcher)
+    
+    flask_thread.daemon = True
+    watcher_thread.daemon = True
+    
+    flask_thread.start()
+    watcher_thread.start()
+    
+    # Keep the main thread alive
+    try:
+        while True:
+            flask_thread.join(1)
+            watcher_thread.join(1)
+    except KeyboardInterrupt:
+        print("\nShutting down...")
+        sys.exit(0)
+</file>
+
+<file path="slack_bot.py">
+#!/usr/bin/env python3.13
+from flask import Flask, request
+from state import set_mode, get_mode
+from actions.send_to_cursor import send_prompt
+from actions.screenshot import capture_chat_screenshot
+
+app = Flask(__name__)
+
+@app.route("/cursor", methods=["POST"])
+def slack_command():
+    text = request.form.get("text", "")
+    user = request.form.get("user_name", "someone")
+
+    if text.strip() == "code":
+        set_mode("code")
+        return f"Mode set to CODE — you're now in control, {user}!"
+
+    elif text.strip() == "auto":
+        set_mode("auto")
+        return "Mode set to AUTO — Cursor will continue on its own."
+
+    elif text.strip().startswith("send "):
+        prompt = text.replace("send ", "", 1)
+        send_prompt(prompt)
+        return f"Sent to Cursor: {prompt}"
+
+    elif text.strip() == "screenshot":
+        file = capture_chat_screenshot()
+        return f"Screenshot saved: {file}"
+
+    elif text.strip() == "status":
+        return f"Mode: {get_mode()}"
+
+    return "Unknown command."
+</file>
+
+<file path="state.py">
+import os
+
+STATE_FILE = ".cursor_mode"
+
+# Set initial mode from environment if state file does not exist
+def get_mode():
+    if not os.path.exists(STATE_FILE):
+        auto_env = os.environ.get("CURSOR_AUTOPILOT_AUTO_MODE", "0")
+        return "auto" if auto_env == "1" else "code"
+    return open(STATE_FILE).read().strip()
+
+def set_mode(mode):
+    with open(STATE_FILE, "w") as f:
+        f.write(mode)
+</file>
+
+<file path=".gitignore">
+__pycache__/
+venv/
+initial_prompt.txt
+cursor_window.png
+</file>
+
+<file path="docs/AUTOMATION.md">
+# Automation & AppleScript
+
+## AppleScript Integration
+
+The project uses AppleScript (osascript) to control Cursor, ensuring the chat window is always activated before sending prompts. This enables seamless automation for:
+- Opening the chat window
+- Sending code and messages
+- Switching between manual and autonomous modes
+
+## File Overview
+
+- `run.sh` — Main entry script
+- `run_both.py` — Runs Slack bot and watcher concurrently with unified logs
+- `slack_bot.py` — Flask app for Slack bot
+- `watcher.py` — Watches for inactivity in the project directory and updates based on `task_file_path`.
+- `actions/send_to_cursor.py` — Handles AppleScript automation for Cursor
+
+## Usage Notes
+
+- All automation (AppleScript, window management, etc.) requires macOS and will not work on Windows.
+- You can run as many VMs as your hardware allows, each with its own Cursor Autopilot instance and configuration.
+
+See [SETUP.md](./SETUP.md) for the main workflow.
+</file>
+
+<file path="docs/SLACK_BOT.md">
+# Slack Bot Usage
+
+The Slack bot listens for commands and enables remote control of Cursor Autopilot via your Slack workspace. Slack bot is NOT IMPLEMENTED YET. API is available
+
+## Supported Commands
+
+- `code` — Switch to code mode (manual control)
+- `auto` — Switch to auto mode (autonomous operation)
+- `send <your prompt>` — Send a prompt to Cursor
+- `screenshot` — Capture a chat screenshot
+- `status` — Get current mode
+
+## Testing Locally
+
+You can test the Slack bot's endpoints directly by sending POST requests to the running Flask server. Use the following `curl` commands to simulate Slack commands:
+
+Replace `USER_NAME` with your desired username (optional).
+
+### Enter Manual Mode (code)
+```bash
+curl -X POST http://localhost:5005/cursor -d 'text=code&user_name=USER_NAME'
+```
+
+### Enable Autonomous Coding (auto)
+```bash
+curl -X POST http://localhost:5005/cursor -d 'text=auto&user_name=USER_NAME'
+```
+
+### Send a Message to Cursor
+```bash
+curl -X POST http://localhost:5005/cursor -d 'text=send <your message here>&user_name=USER_NAME'
+```
+
+### Capture Chat Window Screenshot
+```bash
+curl -X POST http://localhost:5005/cursor -d 'text=screenshot&user_name=USER_NAME'
+```
+
+### Show Current Mode
+```bash
+curl -X POST http://localhost:5005/cursor -d 'text=status&user_name=USER_NAME'
+```
+
+These commands simulate the Slack slash commands as if used in Slack.
+</file>
+
+<file path="ensure_chat_window.py">
+import time
+import os
+import json
+from actions.send_to_cursor import get_cursor_window_id, take_cursor_screenshot, send_keys, kill_cursor, launch_platform
+from actions.openai_vision import is_chat_window_open
+import subprocess
+
+def get_config():
+    config_path = os.path.join(os.path.dirname(__file__), "config.json")
+    try:
+        with open(config_path, "r") as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"Warning: Could not read config: {e}")
+        return {}
+
+def ensure_chat_window(platform=None):
+    """
+    Ensures the Cursor/Windsurf chat window is open by:
+    1. Killing any existing Cursor/Windsurf process
+    2. Launching Cursor/Windsurf and waiting for it to be ready
+    3. Taking a screenshot and using OpenAI Vision to check if chat window is open (if enabled)
+    """
+    config = get_config()
+    use_vision_api = config.get("use_vision_api", False)
+    
+    # Use platform from config if not explicitly provided
+    if platform is None:
+        platform = config.get("platform", "cursor")
+    
+    app_name = "Windsurf" if platform == "windsurf" else "Cursor"
+    print(f"[ensure_chat_window] Using configured IDE: {app_name}")
+    print(f"[ensure_chat_window] Starting {app_name} chat window check...")
+    
+    # First kill any existing process
+    kill_cursor(platform)
+    
+    # Launch app and wait for it to be ready
+    launch_platform(platform)
+    
+    if use_vision_api:
+        # Take screenshot of window
+        print(f"[ensure_chat_window] Taking screenshot of {app_name} window...")
+        screenshot_path = take_cursor_screenshot(platform=platform)
+        if not screenshot_path:
+            print(f"[ensure_chat_window] Could not take screenshot. Skipping vision check.")
+            return
+        
+        # Check if chat window is open using Vision API
+        print("[ensure_chat_window] Sending screenshot to OpenAI Vision...")
+        chat_window_open = is_chat_window_open(screenshot_path)
+        print(f"[ensure_chat_window] OpenAI Vision detected chat window state: {chat_window_open}")
+        
+        # If chat window is open, we want to close it
+        # If chat window is closed, we want to open it
+        # In either case, one Command+L will do the job
+        print(f"[ensure_chat_window] Chat window is {'open' if chat_window_open else 'closed'}, sending Command+L to toggle state...")
+        send_keys(["command down", "l", "command up"], platform=platform)
+    else:
+        print("[ensure_chat_window] Vision API disabled, skipping chat window check.")
+    
+    print("[ensure_chat_window] Done.")
+
+if __name__ == "__main__":
+    import sys
+    platform = sys.argv[1] if len(sys.argv) > 1 else None
+    ensure_chat_window(platform)
+</file>
+
+<file path="docs/CONFIGURATION.md">
+# Configuration Guide
+
+All major settings are controlled via `config.json` in the project root.
+
+## Example `config.json`
+
+```json
+{
+  "project_path": "/path/to/your/project",
+  "task_file_path": "tasks.md",
+  "additional_context_path": "file_structure_analysis/*.md",
+  "initial_delay": 10,
+  "send_message": true,
+  "platform": "cursor",
+  "use_vision_api": false
+}
+```
+
+## Configuration Options
+
+| Option                  | Type    | Description                                                                                 |
+|-------------------------|---------|---------------------------------------------------------------------------------------------|
+| `project_path`          | string  | Path to the project directory to watch and open with the editor.                            |
+| `task_file_path`        | string  | Path to the file that contains your feature/task list for tracking completion.              |
+| `additional_context_path` | string | Glob path to important documentation files to provide to the LLM for additional context.     |
+| `initial_delay`         | number  | Initial delay (in seconds) before starting automation (default: 10).                        |
+| `send_message`          | boolean | Whether to send the initial prompt automatically after launching (default: true).            |
+| `platform`              | string  | Editor automation target. Use `cursor` (default) or `windsurf`.                             |
+| `use_vision_api`        | boolean | Whether to use the Vision API for chat window detection (default: false).                   |
+
+See [SETUP.md](./SETUP.md) for how to use these options in practice.
+</file>
+
+<file path="generate_initial_prompt.py">
+import json
+import os
+
+CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.json")
+INITIAL_PROMPT_PATH = os.path.join(os.path.dirname(__file__), "initial_prompt.txt")
+INITIAL_PROMPT_SENT_PATH = os.path.join(os.path.dirname(__file__), ".initial_prompt_sent")
+
+INITIAL_PROMPT = '''You are working in a pre-existing TypeScript application. 
+Before implementing any feature, always reference and update!!.
+
+Before implementing any feature:
+- Carefully review all relevant documentation in {additional_context_path} to understand the existing architecture, components, and file responsibilities.
+- Use existing files and components whenever possible; only create new files if no suitable file exists - See repomix-output.xml if it exists.
+- Keep each file under 600–1000 lines if possible. If a file grows too large, refactor by using subdirectories and splitting logic into separate, well-named files.
+
+It contains documentation on existing components, API routes, utility files, and their responsibilities. 
+Do not create a file if it already exists — search  first.
+
+Use the {task_file_path} as your task list. Implement each feature one by one, and after each one:
+- Update {task_file_path} to reflect any new files or components.
+- Write tests for the feature.
+- Test it end-to-end.
+- Mark the feature as completed inside {task_file_path}.
+
+If a file doesn't exist, document it before creating it.
+
+Rerun repomix command to update the repomix-output.xml file after each feature. If the command isn't stalled, fail gracefully.
+'''
+
+CONTINUATION_PROMPT = '''Continue working on the tasks in {task_file_path}. Remember to reference the documentation in {additional_context_path} as needed. Maintain the same development practices of updating documentation, writing tests, and marking completed features.'''
+
+def main():
+    if not os.path.exists(CONFIG_PATH):
+        print(f"Config file not found at {CONFIG_PATH}")
+        return
+
+    with open(CONFIG_PATH, "r") as f:
+        config = json.load(f)
+
+    task_file_path = config.get("task_file_path", "tasks.md")
+    additional_context_path = config.get("additional_context_path", "context.md")
+    
+    # Check if initial prompt has already been sent
+    is_new_chat = not os.path.exists(INITIAL_PROMPT_SENT_PATH)
+    if is_new_chat:
+        print("📝 Initial prompt has not been sent yet, using INITIAL_PROMPT")
+    else:
+        print("📝 Initial prompt was already sent, using CONTINUATION_PROMPT")
+
+    prompt_template = INITIAL_PROMPT if is_new_chat else CONTINUATION_PROMPT
+    prompt = prompt_template.format(task_file_path=task_file_path, additional_context_path=additional_context_path)
+
+    with open(INITIAL_PROMPT_PATH, "w") as f:
+        f.write(prompt)
+    print(f"📝 Wrote {'initial' if is_new_chat else 'continuation'} prompt to {INITIAL_PROMPT_PATH}")
+
+    # If this was an initial prompt, create the marker file
+    if is_new_chat:
+        with open(INITIAL_PROMPT_SENT_PATH, "w") as f:
+            f.write("This file indicates that the initial prompt has been sent.")
+        print("📝 Created .initial_prompt_sent marker file")
+
+if __name__ == "__main__":
+    main()
+</file>
+
+<file path="config.json">
+{
+  "project_path": "/Users/cheddarwhizzy/cheddar/payload-website",
+  "task_file_path": "tasks.md",
+  "additional_context_path": "context.md",
+  "initial_delay": 10,
+  "send_message": true,
+  "platform": "windsurf",
+  "use_vision_api": false
+}
+</file>
+
+<file path="README.md">
+# Cursor Autopilot
+
+## TL;DR
+
+1. **Edit your configuration:**
+   - Open `config.json` and adjust it for your project (be sure to use `task_file_path` for your task/feature file).
+2. **Run the main script:**
+   - Execute `./run.sh` to start everything.
+
+That’s it! For most users, these are the only steps needed.
+
+---
+
+## 📚 Documentation
+
+- [Setup Guide](./docs/SETUP.md)
+- [Configuration Options](./docs/CONFIGURATION.md)
+- [Installation & Environment](./docs/INSTALLATION.md)
+- [Slack Bot Usage](./docs/SLACK_BOT.md)
+- [Automation & AppleScript](./docs/AUTOMATION.md)
+</file>
+
+<file path="run.sh">
+#!/bin/bash
+
+# Check if pyenv is installed
+if ! command -v pyenv >/dev/null 2>&1; then
+    echo "pyenv is required but not found."
+    echo "Would you like to install it now with 'brew install pyenv'?"
+    read -p "Press [Enter] to install or Ctrl+C to cancel..."
+    if command -v brew >/dev/null 2>&1; then
+        brew install pyenv
+        if ! command -v pyenv >/dev/null 2>&1; then
+            echo "pyenv installation failed. Please install it manually and re-run this script."
+            exit 1
+        fi
+    else
+        echo "Homebrew is not installed. Please install Homebrew first: https://brew.sh/"
+        exit 1
+    fi
+fi
+
+# Set Python version using pyenv
+echo "Setting Python version to 3.13.2..."
+pyenv local 3.13.2
+
+# Create and activate virtual environment if it doesn't exist
+if [ ! -d "venv" ]; then
+    echo "Creating virtual environment..."
+    python -m venv venv
+fi
+
+# Activate virtual environment
+echo "Activating virtual environment..."
+source venv/bin/activate
+
+# Verify Python version
+PYTHON_VERSION=$(python --version 2>&1 | awk '{print $2}')
+if [[ ! "$PYTHON_VERSION" =~ ^3\.13\. ]]; then
+    echo "Error: Virtual environment is not using Python 3.13+ (current version: $PYTHON_VERSION)"
+    echo "Please delete the venv directory and run this script again"
+    exit 1
+fi
+
+# Install required packages
+echo "Installing required Python packages..."
+pip install -r requirements.txt 2>&1 > /dev/null
+
+# Check for tesseract-ocr (needed for pytesseract)
+if ! command -v tesseract >/dev/null 2>&1; then
+  echo "Warning: tesseract-ocr is not installed. Please install it with 'brew install tesseract' for OCR support."
+fi
+
+# === CONFIGURATION ===
+# Extract PROJECT_PATH and PLATFORM from config.json
+export CONFIG_FILE="$(dirname "$0")/config.json"
+if [ -f "$CONFIG_FILE" ]; then
+  CONFIG_VALUES=$(python3 -c 'import json,os; c=json.load(open(os.environ["CONFIG_FILE"])); print(os.path.expanduser(c["project_path"]) + "\t" + c["platform"])' CONFIG_FILE="$CONFIG_FILE")
+  PROJECT_PATH=$(echo "$CONFIG_VALUES" | cut -f1)
+  PLATFORM=$(echo "$CONFIG_VALUES" | cut -f2)
+else
+  echo "Error: config.json not found. Set CONFIG_FILE environment variable to the path of your config.json file."
+  exit 1
+fi
+
+# The initial prompt is now stored in initial_prompt.txt
+
+# Parse flags for auto mode and send message behavior
+auto_mode=0
+send_message=true
+
+for arg in "$@"; do
+  case $arg in
+    --auto)
+      auto_mode=1
+      ;;
+    --no-auto)
+      auto_mode=0
+      ;;
+    --no-send)
+      send_message=false
+      ;;
+    --send)
+      send_message=true
+      ;;
+  esac
+done
+
+export CURSOR_AUTOPILOT_AUTO_MODE=$auto_mode
+
+# Update send_message in config.json
+python3 -c '
+import json
+import os
+config_file = os.environ["CONFIG_FILE"]
+with open(config_file, "r") as f:
+    config = json.load(f)
+config["send_message"] = True if "'$send_message'" == "true" else False
+with open(config_file, "w") as f:
+    json.dump(config, f, indent=2)
+'
+
+# === STEP 1: KILL EXISTING APPLICATION IF RUNNING ===
+if [ "$PLATFORM" = "windsurf" ]; then
+  pkill -f "Windsurf" || true
+  APP_NAME="Windsurf"
+else
+  pkill -f "Cursor" || true
+  APP_NAME="Cursor"
+fi
+
+# === STEP 2: OPEN FOLDER IN APPROPRIATE APPLICATION ===
+open -a "$APP_NAME" "$PROJECT_PATH"
+
+python3 generate_initial_prompt.py
+
+# Ensure chat window is open using OpenAI Vision
+python3 ensure_chat_window.py "$PLATFORM"
+
+# Send the initial prompt immediately after opening the chat window, starting a new chat
+if [ -f "initial_prompt.txt" ]; then
+  python3 -c 'import json,os; from actions.send_to_cursor import send_prompt; config=json.load(open(os.environ["CONFIG_FILE"])); send_prompt(open("initial_prompt.txt").read().strip(), platform=config.get("platform", "cursor"), new_chat=True, send_message=config.get("send_message", True))'
+fi
+
+# Start Slack bot and watcher together with combined logs
+echo "Starting Slack bot and Cursor watcher... (auto mode: $auto_mode, send messages: $send_message)"
+python3 run_both.py $auto_mode "$PLATFORM"
+</file>
+
+<file path="actions/send_to_cursor.py">
+import subprocess
+import os
+import time
+from actions.openai_vision import is_chat_window_open
+import json
+
+def get_project_name():
+    """Get the project name from the config file."""
+    config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.json")
+    try:
+        with open(config_path) as f:
+            config = json.load(f)
+            # Get the last part of the project path
+            return os.path.basename(config["project_path"])
+    except Exception as e:
+        print(f"Warning: Could not get project name from config: {e}")
+        return None
+
+def get_cursor_window_id(max_retries=5, delay=1, platform="cursor"):
+    """
+    Gets the window ID of the Cursor/Windsurf app using AppleScript.
+    Retries several times if not found, with debug info.
+    Returns the window ID as a string, or None if not found.
+    """
+    project_name = get_project_name()
+    if not project_name:
+        print("[get_cursor_window_id] No project name found in config, will try to find any window")
+    
+    app_name = "Windsurf" if platform == "windsurf" else "Cursor"
+    
+    # List all windows and their properties
+    windows_script = f'''
+    tell application "System Events"
+        tell process "{app_name}"
+            set windowList to {{}}
+            repeat with w in every window
+                copy {{title:name of w, id:id of w, position:position of w, size:size of w}} to end of windowList
+            end repeat
+            return windowList
+        end tell
+    end tell
+    '''
+    
+    for attempt in range(max_retries):
+        print(f"[get_cursor_window_id] Attempt {attempt+1} to find {app_name} window...")
+        result = subprocess.run(["osascript", "-e", windows_script], capture_output=True, text=True)
+        
+        if result.returncode == 0 and result.stdout.strip():
+            print(f"[get_cursor_window_id] Found windows: {result.stdout.strip()}")
+            
+            # Try to find the project window
+            window_check = 'true' if not project_name else f'name of w contains "— {project_name}" or name of w contains "- {project_name}"'
+            find_window_script = f'''
+            tell application "System Events"
+                tell process "{app_name}"
+                    repeat with w in every window
+                        if {window_check} then
+                            return id of w
+                        end if
+                    end repeat
+                end tell
+            end tell
+            '''
+            
+            window_result = subprocess.run(["osascript", "-e", find_window_script], capture_output=True, text=True)
+            if window_result.returncode == 0 and window_result.stdout.strip():
+                window_id = window_result.stdout.strip()
+                print(f"[get_cursor_window_id] Found main window ID: {window_id}")
+                return window_id
+        
+        print(f"[get_cursor_window_id] Attempt {attempt+1} failed.")
+        if result.stderr:
+            print(f"[get_cursor_window_id] Error output: {result.stderr.strip()}")
+        time.sleep(delay)
+    
+    print("[get_cursor_window_id] Could not find window ID after retries.")
+    return None
+
+def activate_cursor(platform="cursor"):
+    """Activate the Cursor or Windsurf application window."""
+    app_name = "Windsurf" if platform == "windsurf" else "Cursor"
+    print(f"[activate_cursor] Activating {app_name}...")
+    script = f'''
+    tell application "{app_name}" to activate
+    delay 1
+    tell application "System Events"
+        tell process "{app_name}"
+            set frontmost to true
+        end tell
+    end tell
+    delay 1
+    '''
+    subprocess.run(["osascript", "-e", script])
+    # Add extra delay after activation to ensure app is fully ready
+    print(f"[activate_cursor] Waiting 3 seconds for {app_name} to fully initialize...")
+    time.sleep(3)
+    print("[activate_cursor] Done.")
+
+def take_cursor_screenshot(filename="cursor_window.png", platform="cursor"):
+    """
+    Takes a screenshot of the Cursor/Windsurf window and saves it as filename.
+    Returns the path to the screenshot, or None if failed.
+    """
+    project_name = get_project_name()
+    if not project_name:
+        print("Warning: No project name found in config, will try to find any window")
+    
+    app_name = "Windsurf" if platform == "windsurf" else "Cursor"
+    abs_path = os.path.abspath(filename)
+    print(f"Attempting to take screenshot, will save to: {abs_path}")
+    
+    # First list all processes to debug
+    process_script = '''
+    tell application "System Events"
+        set allProcesses to name of every process
+        return allProcesses
+    end tell
+    '''
+    
+    process_result = subprocess.run(["osascript", "-e", process_script], capture_output=True, text=True)
+    if process_result.returncode == 0:
+        print(f"All processes: {process_result.stdout.strip()}")
+    
+    # First list all windows to debug
+    debug_script = f'''
+    tell application "System Events"
+        tell process "{app_name}"
+            set windowInfo to ""
+            repeat with w in every window
+                set windowInfo to windowInfo & "Window: " & name of w & ", "
+            end repeat
+            return windowInfo
+        end tell
+    end tell
+    '''
+    
+    debug_result = subprocess.run(["osascript", "-e", debug_script], capture_output=True, text=True)
+    if debug_result.returncode == 0:
+        print(f"Found {app_name} windows: {debug_result.stdout.strip()}")
+    else:
+        print("Could not list windows")
+        if debug_result.stderr:
+            print(f"Debug error: {debug_result.stderr}")
+    
+    # Get window bounds using AppleScript
+    window_check = 'true' if not project_name else f'winName contains "— {project_name}" or winName contains "- {project_name}"'
+    bounds_script = f'''
+    tell application "System Events"
+        tell process "{app_name}"
+            try
+                set allWindows to every window
+                if length of allWindows is 0 then
+                    error "No windows found"
+                end if
+                
+                repeat with w in allWindows
+                    set winName to name of w
+                    log "Checking window: " & winName
+                    if {window_check} then
+                        set pos to position of w
+                        set sz to size of w
+                        return {{(item 1 of pos), (item 2 of pos), (item 1 of sz), (item 2 of sz)}}
+                    end if
+                end repeat
+                error "No suitable window found (no project window found)"
+            on error errMsg
+                return "error: " & errMsg
+            end try
+        end tell
+    end tell
+    '''
+    
+    bounds_result = subprocess.run(["osascript", "-e", bounds_script], capture_output=True, text=True)
+    if bounds_result.returncode == 0 and not bounds_result.stdout.strip().startswith("error:"):
+        try:
+            # Parse the bounds - format is "x, y, width, height"
+            bounds = bounds_result.stdout.strip()
+            print(f"Window bounds: {bounds}")
+            
+            # Split by comma and clean up the values
+            parts = [int(p.strip().strip('{}')) for p in bounds.split(',')]
+            if len(parts) != 4:
+                raise ValueError(f"Expected 4 values for bounds, got {len(parts)}: {parts}")
+                
+            x, y, width, height = parts
+            if width <= 0 or height <= 0:
+                raise ValueError(f"Invalid window dimensions: {width}x{height}")
+            
+            # Capture the specific region
+            capture_cmd = ["screencapture", "-R", f"{x},{y},{width},{height}", filename]
+            print(f"Running capture command: {' '.join(capture_cmd)}")
+            
+            result = subprocess.run(capture_cmd, capture_output=True, text=True)
+            if result.returncode == 0:
+                if os.path.exists(filename):
+                    print(f"Screenshot saved successfully: {filename}")
+                    print(f"File size: {os.path.getsize(filename)} bytes")
+                    return filename
+                else:
+                    print(f"Warning: screencapture returned success but file not found at {abs_path}")
+            else:
+                print(f"Failed to capture screenshot. Return code: {result.returncode}")
+                if result.stderr:
+                    print(f"Error output: {result.stderr}")
+        except Exception as e:
+            print(f"Error parsing window bounds: {e}")
+            print(f"Raw bounds output: {bounds}")
+    else:
+        error_msg = bounds_result.stdout.strip()[7:] if bounds_result.stdout.strip().startswith("error:") else "unknown error"
+        print(f"Could not get window bounds: {error_msg}")
+        if bounds_result.stderr:
+            print(f"Error output: {bounds_result.stderr}")
+    
+    return None
+
+def send_keys(key_sequence):
+    """
+    Send a sequence of keystrokes to Cursor.
+    key_sequence should be a list of strings, e.g. ["command down", "l", "command up"]
+    """
+    print(f"[send_keys] Sending key sequence: {key_sequence}")
+    
+    # First make sure Cursor is properly activated
+    activate_script = '''
+    tell application "Cursor" to activate
+    delay 1
+    tell application "System Events"
+        tell process "Cursor"
+            set frontmost to true
+        end tell
+    end tell
+    delay 1
+    '''
+    
+    print("[send_keys] Ensuring Cursor is active...")
+    activate_result = subprocess.run(["osascript", "-e", activate_script], capture_output=True, text=True)
+    if activate_result.returncode != 0:
+        print(f"[send_keys] Warning: Error activating Cursor: {activate_result.stderr}")
+    
+    # Add a delay to ensure Cursor is ready
+    print("[send_keys] Waiting 2 seconds for Cursor to be ready...")
+    time.sleep(2)
+    
+    # Now send the keystroke
+    script = '''
+    tell application "System Events"
+        tell process "Cursor"
+            keystroke "l" using {command down}
+        end tell
+    end tell
+    '''
+    
+    print("[send_keys] Executing keystroke...")
+    result = subprocess.run(["osascript", "-e", script], capture_output=True, text=True)
+    if result.returncode == 0:
+        print("[send_keys] Keys sent successfully")
+    else:
+        print(f"[send_keys] Error sending keys: {result.stderr}")
+
+def send_prompt(prompt, platform="cursor", new_chat=False, initial_delay=0, send_message=True):
+    """
+    Send a prompt to the specified platform with verbose logging and delays.
+    """
+    if initial_delay > 0:
+        print(f"⏳ Waiting {initial_delay} seconds before sending prompt...")
+        time.sleep(initial_delay)
+    
+    app_name = "Windsurf" if platform == "windsurf" else "Cursor"
+    print(f"\n📝 Starting to send prompt to {app_name}...")
+    
+    # Activate the application
+    print(f"🔄 Activating {app_name}...")
+    activate_cursor(platform)
+    
+    if new_chat:
+        print(f"🆕 Creating new chat window in {app_name}...")
+        if platform == "cursor":
+            # Send Command+N to create a new chat
+            script = f'''
+            tell application "System Events"
+                tell process "{app_name}"
+                    keystroke "n" using {{command down}}
+                end tell
+            end tell
+            '''
+            print("⌨️  Sending Command+N to create new chat...")
+            subprocess.run(["osascript", "-e", script])
+            print("⏳ Waiting 2 seconds for new chat to open...")
+            time.sleep(2)
+            
+            # Open the chat window with Command+L
+            print("⌨️  Sending Command+L to open chat window...")
+            script = f'''
+            tell application "System Events"
+                tell process "{app_name}"
+                    keystroke "l" using {{command down}}
+                end tell
+            end tell
+            '''
+            subprocess.run(["osascript", "-e", script])
+            print("⏳ Waiting 2 seconds for chat window to fully open...")
+            time.sleep(2)
+        else:  # windsurf
+            # Send Command+Shift+L to create a new chat
+            print("⌨️  Sending Command+Shift+L to create new chat...")
+            script = f'''
+            tell application "System Events"
+                tell process "{app_name}"
+                    keystroke "l" using {{command down, shift down}}
+                end tell
+            end tell
+            '''
+            subprocess.run(["osascript", "-e", script])
+            print("⏳ Waiting 2 seconds for new chat to open...")
+            time.sleep(2)
+    
+    # Clear any existing text with Command+A then backspace
+    print("🧹 Clearing any existing text...")
+    script = f'''
+    tell application "System Events"
+        tell process "{app_name}"
+            -- Select all text
+            keystroke "a" using {{command down}}
+            delay 0.1
+            
+            -- Press delete key multiple times to ensure text is cleared
+            repeat 10 times
+                key code 51  -- Delete/Backspace key
+                delay 0.05
+            end repeat
+        end tell
+    end tell
+    '''
+    subprocess.run(["osascript", "-e", script])
+    print("⏳ Waiting 1 second after clearing text...")
+    time.sleep(1)
+    
+    # Split prompt into lines and send with Shift+Enter between them
+    lines = prompt.splitlines()
+    print(f"📄 Sending {len(lines)} lines of text...")
+    
+    for i, line in enumerate(lines):
+        # Send the line
+        print(f"📝 Sending line {i+1}/{len(lines)}: {line[:50]}{'...' if len(line) > 50 else ''}")
+        script = f'''
+        tell application "System Events"
+            tell process "{app_name}"
+                keystroke "{line.replace('"', '\\"')}"
+            end tell
+        end tell
+        '''
+        subprocess.run(["osascript", "-e", script])
+        
+        if i < len(lines) - 1:
+            print("⌨️  Sending Shift+Enter for newline...")
+            script = f'''
+            tell application "System Events"
+                tell process "{app_name}"
+                    key code 36 using {{shift down}}  -- Shift+Enter
+                end tell
+            end tell
+            '''
+            subprocess.run(["osascript", "-e", script])
+            print("⏳ Waiting 0.8 seconds after newline...")
+            time.sleep(0.8)
+        elif send_message:
+            print("⌨️  Sending Enter to send message...")
+            script = f'''
+            tell application "System Events"
+                tell process "{app_name}"
+                    key code 36  -- Enter
+                end tell
+            end tell
+            '''
+            subprocess.run(["osascript", "-e", script])
+            print("⏳ Waiting 1 second after sending message...")
+            time.sleep(1)
+    
+    print("✅ Prompt sent successfully!")
+
+def kill_cursor(platform="cursor"):
+    """Kill the Cursor or Windsurf application if it's running."""
+    app_name = "Windsurf" if platform == "windsurf" else "Cursor"
+    print(f"[kill_cursor] Checking if {app_name} is running...")
+    
+    # Check if app is running
+    check_script = f'''
+    tell application "System Events"
+        count (every process whose name is "{app_name}")
+    end tell
+    '''
+    
+    result = subprocess.run(["osascript", "-e", check_script], capture_output=True, text=True)
+    if result.returncode == 0 and result.stdout.strip() != "0":
+        print(f"[kill_cursor] {app_name} is running, killing it...")
+        subprocess.run(["pkill", "-x", app_name])
+        print(f"[kill_cursor] Waiting 2 seconds for process to fully terminate...")
+        time.sleep(2)  # Wait longer for process to fully terminate
+        print("[kill_cursor] Done.")
+    else:
+        print(f"[kill_cursor] {app_name} is not running.")
+
+def launch_platform(platform="cursor"):
+    """Launch Cursor or Windsurf and wait for it to be ready."""
+    app_name = "Windsurf" if platform == "windsurf" else "Cursor"
+    print(f"[launch_platform] Starting {app_name}...")
+    subprocess.run(["open", "-a", app_name])
+    
+    # Wait for process to appear
+    print(f"[launch_platform] Waiting for {app_name} process...")
+    for _ in range(10):  # Try for 10 seconds
+        check_script = f'''
+        tell application "System Events"
+            count (every process whose name is "{app_name}")
+        end tell
+        '''
+        result = subprocess.run(["osascript", "-e", check_script], capture_output=True, text=True)
+        if result.returncode == 0 and result.stdout.strip() != "0":
+            print(f"[launch_platform] {app_name} process detected.")
+            break
+        time.sleep(1)
+    
+    # For Windsurf, press Enter to clear any dialog boxes
+    if platform == "windsurf":
+        print("[launch_platform] Pressing Enter to clear any dialog boxes in Windsurf...")
+        script = '''
+        tell application "System Events"
+            tell process "Windsurf"
+                key code 36  -- Enter key
+            end tell
+        end tell
+        '''
+        subprocess.run(["osascript", "-e", script])
+        print("[launch_platform] Waiting 1 second after pressing Enter...")
+        time.sleep(1)
+    
+    # Give it extra time to fully initialize
+    print(f"[launch_platform] Waiting 5 seconds for {app_name} to fully initialize...")
+    time.sleep(5)
+    
+    print("[launch_platform] Done.")
+</file>
+
+<file path="watcher.py">
+#!/usr/bin/env python3.13
+import time
+import os
+import hashlib
+import json
+from datetime import datetime
+from actions.send_to_cursor import send_prompt
+from state import get_mode
+from generate_initial_prompt import CONTINUATION_PROMPT
+
+EXCLUDE_DIRS = {"node_modules", ".git", "dist", "__pycache__"}
+LAST_HASH = None
+FILE_MTIMES = {}
+
+# --- Configurable README tracking ---
+CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.json")
+if os.path.exists(CONFIG_PATH):
+    with open(CONFIG_PATH, "r") as f:
+        config = json.load(f)
+else:
+    config = {}
+
+# Get paths from config
+WATCH_PATH = os.path.expanduser(config.get("project_path", "~/cheddar/mushattention/mushattention"))
+TASK_FILE_PATH = config.get("task_file_path", "tasks.md")
+LAST_README_MTIME = None
+TASK_COMPLETED = False
+PLATFORM = config.get("platform", "cursor")
+
+# Add debug info about paths
+print(f"\nWatcher Configuration:")
+print(f"Project Path: {WATCH_PATH}")
+print(f"Task README: {TASK_FILE_PATH}")
+print(f"Task README: {TASK_FILE_PATH}")
+print(f"Platform: {PLATFORM}")
+print(f"Excluded Dirs: {EXCLUDE_DIRS}")
+
+def hash_folder_state():
+    """
+    Scan directory for changes and return:
+    - A hash representing the current state
+    - List of files that changed since last scan
+    - Total number of files being watched
+    """
+    sha = hashlib.sha256()
+    changed_files = []
+    total_files = 0
+    
+    # Walk through directory
+    for root, dirs, files in os.walk(WATCH_PATH):
+        # Filter out excluded directories
+        dirs[:] = [d for d in dirs if d not in EXCLUDE_DIRS]
+        
+        # Process each file
+        for filename in sorted(files):  # Sort for consistent ordering
+            if filename.endswith(".tmp"): 
+                continue
+                
+            abs_path = os.path.join(root, filename)
+            rel_path = os.path.relpath(abs_path, WATCH_PATH)
+            
+            try:
+                # Get file stats
+                stats = os.stat(abs_path)
+                current_mtime = stats.st_mtime
+                current_size = stats.st_size
+                
+                # Create a unique hash for this file's state
+                file_state = f"{rel_path}:{current_mtime}:{current_size}"
+                sha.update(file_state.encode())
+                
+                # Check if file changed
+                last_mtime = FILE_MTIMES.get(abs_path, {}).get('mtime')
+                last_size = FILE_MTIMES.get(abs_path, {}).get('size')
+                
+                if last_mtime is None or last_size is None or \
+                   current_mtime > last_mtime or current_size != last_size:
+                    changed_files.append(rel_path)
+                    FILE_MTIMES[abs_path] = {
+                        'mtime': current_mtime,
+                        'size': current_size
+                    }
+                
+                total_files += 1
+                
+            except OSError as e:
+                print(f"Warning: Could not access {rel_path}: {e}")
+                continue
+    
+    return sha.hexdigest(), changed_files, total_files
+
+def run_watcher():
+    """
+    Main watcher loop that monitors for changes and sends prompts.
+    """
+    global LAST_HASH, FILE_MTIMES, LAST_README_MTIME, TASK_COMPLETED
+    
+    inactivity_timer = 0
+    last_activity = time.time()
+    last_prompt_time = 0  # Track when we last sent a prompt
+    
+    # Check if initial prompt has been sent
+    initial_prompt_sent = os.path.exists(os.path.join(os.path.dirname(__file__), ".initial_prompt_sent"))
+    print(f"\n📝 Initial prompt {'has' if initial_prompt_sent else 'has not'} been sent yet")
+    
+    while True:
+        try:
+            # Get current state
+            current_hash, changed_files, total_files = hash_folder_state()
+            
+            # Check if task file was modified
+            task_file_modified = False
+            if TASK_FILE_PATH in changed_files:
+                current_mtime = os.path.getmtime(TASK_FILE_PATH)
+                if LAST_README_MTIME is None or current_mtime > LAST_README_MTIME:
+                    task_file_modified = True
+                    LAST_README_MTIME = current_mtime
+                    print(f"\n📝 Task file {TASK_FILE_PATH} was modified!")
+            
+            # Update inactivity timer
+            if current_hash != LAST_HASH or task_file_modified:
+                inactivity_timer = 0
+                last_activity = time.time()
+                LAST_HASH = current_hash
+                print(f"\n🔄 Activity detected! Resetting inactivity timer (was at {int(inactivity_timer)} seconds)")
+            else:
+                inactivity_timer = time.time() - last_activity
+                if inactivity_timer >= 30:  # Log status when getting close to timeout
+                    print(f"\n⏳ No changes detected for {int(inactivity_timer)} seconds")
+                    print(f"Will send prompt in {max(0, 120-int(inactivity_timer))} seconds if no changes occur")
+            
+            # Check for inactivity timeout (2 minutes = 120 seconds)
+            if inactivity_timer >= 120 and get_mode() == "auto":
+                current_time = time.time()
+                # Only send a new prompt if it's been at least 2 minutes since the last one
+                if current_time - last_prompt_time >= 120:
+                    print(f"\n⚡ Inactivity timeout reached ({int(inactivity_timer)} seconds). Sending prompt to {PLATFORM}.")
+                    
+                    # Use the appropriate prompt based on whether initial prompt was sent
+                    if not initial_prompt_sent:
+                        try:
+                            with open("initial_prompt.txt", "r") as f:
+                                prompt = f.read().strip()
+                        except Exception as e:
+                            print(f"Failed to read initial_prompt.txt: {e}")
+                            prompt = "continue"
+                        print("Starting new chat with initial prompt")
+                        send_prompt(prompt, platform=PLATFORM, new_chat=True, 
+                                  initial_delay=config.get("initial_delay", 10),
+                                  send_message=config.get("send_message", True))
+                        initial_prompt_sent = True
+                    else:
+                        # Use the continuation prompt
+                        prompt = CONTINUATION_PROMPT.format(
+                            task_file_path=config.get("task_file_path", "tasks.md"),
+                            additional_context_path=config.get("additional_context_path", "context.md")
+                        )
+                        print("Sending continuation prompt")
+                        send_prompt(prompt, platform=PLATFORM, new_chat=False,
+                                  send_message=config.get("send_message", True))
+                    
+                    last_prompt_time = current_time
+                    inactivity_timer = 0
+                    print("\n👀 Watching for changes...")
+                else:
+                    print(f"\n⏳ Skipping prompt - last prompt was sent {int(current_time - last_prompt_time)} seconds ago")
+            
+            time.sleep(5)  # Check every 5 seconds
+        except Exception as e:
+            print(f"\n⚠️  Error in watcher: {e}")
+            time.sleep(5)  # Wait before retrying
+
+if __name__ == "__main__":
+    run_watcher()
+</file>
+
+</files>

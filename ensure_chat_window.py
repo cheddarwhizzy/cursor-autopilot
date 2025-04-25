@@ -1,7 +1,7 @@
 import time
 import os
 import json
-from actions.send_to_cursor import get_cursor_window_id, take_cursor_screenshot, send_keys, kill_cursor, launch_cursor
+from actions.send_to_cursor import get_cursor_window_id, take_cursor_screenshot, send_keys, kill_cursor, launch_platform
 from actions.openai_vision import is_chat_window_open
 import subprocess
 
@@ -36,12 +36,12 @@ def ensure_chat_window(platform=None):
     kill_cursor(platform)
     
     # Launch app and wait for it to be ready
-    launch_cursor(platform)
+    launch_platform(platform)
     
     if use_vision_api:
         # Take screenshot of window
         print(f"[ensure_chat_window] Taking screenshot of {app_name} window...")
-        screenshot_path = take_cursor_screenshot()
+        screenshot_path = take_cursor_screenshot(platform=platform)
         if not screenshot_path:
             print(f"[ensure_chat_window] Could not take screenshot. Skipping vision check.")
             return
@@ -55,7 +55,7 @@ def ensure_chat_window(platform=None):
         # If chat window is closed, we want to open it
         # In either case, one Command+L will do the job
         print(f"[ensure_chat_window] Chat window is {'open' if chat_window_open else 'closed'}, sending Command+L to toggle state...")
-        send_keys(["command down", "l", "command up"])
+        send_keys(["command down", "l", "command up"], platform=platform)
     else:
         print("[ensure_chat_window] Vision API disabled, skipping chat window check.")
     

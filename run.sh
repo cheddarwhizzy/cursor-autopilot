@@ -116,9 +116,9 @@ python3 ensure_chat_window.py "$PLATFORM"
 
 # Send the initial prompt immediately after opening the chat window, starting a new chat
 if [ -f "initial_prompt.txt" ]; then
-  python3 -c 'import json,os; from actions.send_to_cursor import send_prompt; config=json.load(open(os.environ["CONFIG_FILE"])); send_prompt(open("initial_prompt.txt").read().strip(), new_chat=True, send_message=config.get("send_message", True))'
+  python3 -c 'import json,os; from actions.send_to_cursor import send_prompt; config=json.load(open(os.environ["CONFIG_FILE"])); send_prompt(open("initial_prompt.txt").read().strip(), platform=config.get("platform", "cursor"), new_chat=True, send_message=config.get("send_message", True))'
 fi
 
 # Start Slack bot and watcher together with combined logs
 echo "Starting Slack bot and Cursor watcher... (auto mode: $auto_mode, send messages: $send_message)"
-python3 run_both.py $auto_mode
+python3 run_both.py $auto_mode "$PLATFORM"

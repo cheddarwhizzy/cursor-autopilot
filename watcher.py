@@ -91,98 +91,81 @@ def hash_folder_state():
 
 def run_watcher():
     """
-    Watch directory for changes and trigger prompts based on inactivity.
+    Main watcher loop that monitors for changes and sends prompts.
     """
-    global LAST_HASH, LAST_README_MTIME, TASK_COMPLETED, FILE_MTIMES
+    global LAST_HASH, FILE_MTIMES, LAST_README_MTIME, TASK_COMPLETED
+    
     inactivity_timer = 0
-    last_check_time = time.time()
+    last_activity = time.time()
+    last_prompt_time = 0  # Track when we last sent a prompt
     
-    # Initialize README mtime
-    if os.path.exists(TASK_FILE_PATH):
-        LAST_README_MTIME = os.path.getmtime(TASK_FILE_PATH)
-        print(f"Initialized watching task README at: {TASK_FILE_PATH}")
-    if os.path.exists(TASK_FILE_PATH):
-        LAST_README_MTIME = os.path.getmtime(TASK_FILE_PATH)
-        print(f"Initialized watching task README at: {TASK_FILE_PATH}")
-    
-    print(f"\nStarting file watcher for directory: {WATCH_PATH}")
-    print(f"Excluded directories: {EXCLUDE_DIRS}")
-    print("Watching for changes...")
+    # Check if initial prompt has been sent
+    initial_prompt_sent = os.path.exists(os.path.join(os.path.dirname(__file__), ".initial_prompt_sent"))
+    print(f"\n📝 Initial prompt {'has' if initial_prompt_sent else 'has not'} been sent yet")
     
     while True:
         try:
-            time.sleep(5)
-            current_time = time.time()
-            elapsed = current_time - last_check_time
+            # Get current state
+            current_hash, changed_files, total_files = hash_folder_state()
             
-            # Check if project directory exists
-            if not os.path.exists(WATCH_PATH):
-                print(f"\n⚠️  Warning: Project directory not found: {WATCH_PATH}")
-                print("Waiting for directory to become available...")
-                last_check_time = current_time
-                continue
+            # Check if task file was modified
+            task_file_modified = False
+            if TASK_FILE_PATH in changed_files:
+                current_mtime = os.path.getmtime(TASK_FILE_PATH)
+                if LAST_README_MTIME is None or current_mtime > LAST_README_MTIME:
+                    task_file_modified = True
+                    LAST_README_MTIME = current_mtime
+                    print(f"\n📝 Task file {TASK_FILE_PATH} was modified!")
             
-            new_hash, changed_files, total_files = hash_folder_state()
-            
-            # Check if README was updated
-            readme_updated = False
-            if os.path.exists(TASK_FILE_PATH):
-                new_readme_mtime = os.path.getmtime(TASK_FILE_PATH)
-            if os.path.exists(TASK_FILE_PATH):
-                new_readme_mtime = os.path.getmtime(TASK_FILE_PATH)
-                if LAST_README_MTIME is not None and new_readme_mtime > LAST_README_MTIME:
-                    print(f"\n🎯 Task README {TASK_FILE_PATH} was updated!")
-                    print(f"\n🎯 Task README {TASK_FILE_PATH} was updated!")
-                    print("Marking task as completed - next prompt will start a new chat")
-                    TASK_COMPLETED = True
-                    readme_updated = True
-                LAST_README_MTIME = new_readme_mtime
-            
-            if new_hash == LAST_HASH:
-                inactivity_timer += elapsed
-                if inactivity_timer >= 30:  # Only log status when getting close to timeout
-                    print(f"\n⏳ No changes detected for {int(inactivity_timer)} seconds")
-                    print(f"Will send continuation prompt in {max(0, 60-int(inactivity_timer))} seconds")
-                    print(f"Currently watching {total_files} files")
+            # Update inactivity timer
+            if current_hash != LAST_HASH or task_file_modified:
+                inactivity_timer = 0
+                last_activity = time.time()
+                LAST_HASH = current_hash
+                print(f"\n🔄 Activity detected! Resetting inactivity timer (was at {int(inactivity_timer)} seconds)")
             else:
-                if changed_files:
-                    print(f"\n📝 Detected changes in {len(changed_files)} files:")
-                    for f in changed_files[:5]:  # Show up to 5 changed files
-                        print(f"  - {f}")
-                    if len(changed_files) > 5:
-                        print(f"  ... and {len(changed_files)-5} more files")
-                    print(f"Resetting inactivity timer (was at {int(inactivity_timer)} seconds)")
-                inactivity_timer = 0
+                inactivity_timer = time.time() - last_activity
+                if inactivity_timer >= 30:  # Log status when getting close to timeout
+                    print(f"\n⏳ No changes detected for {int(inactivity_timer)} seconds")
+                    print(f"Will send prompt in {max(0, 120-int(inactivity_timer))} seconds if no changes occur")
             
-            LAST_HASH = new_hash
-            last_check_time = current_time
-            
-            if inactivity_timer >= 60 and get_mode() == "auto":
-                print("\n⚡ Inactivity timeout reached. Sending prompt to Cursor.")
-                # Use platform and task completion flag
-                if TASK_COMPLETED:
-                    try:
-                        with open("initial_prompt.txt", "r") as f:
-                            initial_prompt = f.read().strip()
-                    except Exception as e:
-                        print(f"Failed to read initial_prompt.txt: {e}")
-                        initial_prompt = "continue"
-                    print("Starting new chat with initial prompt (task was completed)")
-                    send_prompt(initial_prompt, platform=PLATFORM, new_chat=True, 
-                              initial_delay=config.get("initial_delay", 10),
-                              send_message=config.get("send_message", True))
-                    TASK_COMPLETED = False
+            # Check for inactivity timeout (2 minutes = 120 seconds)
+            if inactivity_timer >= 120 and get_mode() == "auto":
+                current_time = time.time()
+                # Only send a new prompt if it's been at least 2 minutes since the last one
+                if current_time - last_prompt_time >= 120:
+                    print(f"\n⚡ Inactivity timeout reached ({int(inactivity_timer)} seconds). Sending prompt to {PLATFORM}.")
+                    
+                    # Use the appropriate prompt based on whether initial prompt was sent
+                    if not initial_prompt_sent:
+                        try:
+                            with open("initial_prompt.txt", "r") as f:
+                                prompt = f.read().strip()
+                        except Exception as e:
+                            print(f"Failed to read initial_prompt.txt: {e}")
+                            prompt = "continue"
+                        print("Starting new chat with initial prompt")
+                        send_prompt(prompt, platform=PLATFORM, new_chat=True, 
+                                  initial_delay=config.get("initial_delay", 10),
+                                  send_message=config.get("send_message", True))
+                        initial_prompt_sent = True
+                    else:
+                        # Use the continuation prompt
+                        prompt = CONTINUATION_PROMPT.format(
+                            task_file_path=config.get("task_file_path", "tasks.md"),
+                            additional_context_path=config.get("additional_context_path", "context.md")
+                        )
+                        print("Sending continuation prompt")
+                        send_prompt(prompt, platform=PLATFORM, new_chat=False,
+                                  send_message=config.get("send_message", True))
+                    
+                    last_prompt_time = current_time
+                    inactivity_timer = 0
+                    print("\n👀 Watching for changes...")
                 else:
-                    # Use the continuation prompt for subsequent prompts
-                    prompt = CONTINUATION_PROMPT.format(
-                        task_file_path=config.get("task_file_path", "tasks.md"),
-                        additional_context_path=config.get("additional_context_path", "context.md")
-                    )
-                    print("Sending continuation prompt (no task completion)")
-                    send_prompt(prompt, platform=PLATFORM, new_chat=False,
-                              send_message=config.get("send_message", True))
-                inactivity_timer = 0
-                print("\nWatching for changes...")
+                    print(f"\n⏳ Skipping prompt - last prompt was sent {int(current_time - last_prompt_time)} seconds ago")
+            
+            time.sleep(5)  # Check every 5 seconds
         except Exception as e:
             print(f"\n⚠️  Error in watcher: {e}")
             time.sleep(5)  # Wait before retrying
