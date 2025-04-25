@@ -9,10 +9,11 @@ An autonomous development assistant that automatically implements features by fo
    - Set `project_path` to your project directory
    - Set `platform` to either "cursor" or "windsurf"
    - Optionally set `initial_prompt_file_path` and `continuation_prompt_file_path` for custom prompts
-3. Create `tasks.md` with your feature implementation list
-4. Create `context.md` with project documentation and architecture details
-5. Create `docs.md` with additional project documentation and links for LLM tool calling
-6. Run: `./run.sh --auto --debug`
+3. Create the following files in your project directory:
+   - [`tasks.md`](./tasks.md): Your feature implementation list
+   - [`docs.md`](./docs.md): Additional project documentation and links
+   - [`context.md`](./context.md): Project documentation and architecture details
+4. Run: `./run.sh --auto --debug`
 
 > 💡 **Tip**: Use ChatGPT to help generate your `tasks.md`, `docs.md`, and `context.md` files. It can help structure your tasks and documentation based on your project's needs.
 
@@ -122,11 +123,6 @@ The tool provides detailed logging with color-coded output:
 - Red: Error messages
 
 Debug logging can be enabled via the `--debug` flag or by setting `debug: true` in `config.json`.
-
-## Requirements
-
-- Python 3.13+
-- Dependencies listed in `requirements.txt`
 
 ## License
 
