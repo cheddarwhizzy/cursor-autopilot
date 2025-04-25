@@ -6,7 +6,7 @@ import json
 from datetime import datetime
 from actions.send_to_cursor import send_prompt
 from state import get_mode
-from generate_initial_prompt import CONTINUATION_PROMPT
+from generate_initial_prompt import DEFAULT_CONTINUATION_PROMPT
 import logging
 from utils.colored_logging import setup_colored_logging
 
@@ -55,6 +55,7 @@ def hash_folder_state():
     sha = hashlib.sha256()
     changed_files = []
     total_files = 0
+    watched_files = []
     
     # Walk through directory
     for root, dirs, files in os.walk(WATCH_PATH):
@@ -68,6 +69,7 @@ def hash_folder_state():
                 
             abs_path = os.path.join(root, filename)
             rel_path = os.path.relpath(abs_path, WATCH_PATH)
+            watched_files.append(rel_path)
             
             try:
                 # Get file stats
@@ -90,17 +92,24 @@ def hash_folder_state():
                         'mtime': current_mtime,
                         'size': current_size
                     }
-                    # Only log if this is not the first scan
-                    if LAST_HASH is not None:
-                        logger.info(f"File changed: {rel_path}")
-                        logger.info(f"  Last modified: {datetime.fromtimestamp(current_mtime)}")
-                        logger.info(f"  Size: {current_size} bytes")
                 
                 total_files += 1
                 
             except OSError as e:
                 logger.warning(f"Could not access {rel_path}: {e}")
                 continue
+    
+    # Log watched files only during initialization
+    if LAST_HASH is None:
+        logger.info(f"Watching {total_files} files:")
+        for file in sorted(watched_files):
+            logger.info(f"  {file}")
+    
+    # Log changed files only when there are actual changes
+    if changed_files and LAST_HASH is not None:
+        logger.info(f"Changed files:")
+        for file in changed_files:
+            logger.info(f"  {file}")
     
     return sha.hexdigest(), changed_files, total_files
 
@@ -175,7 +184,7 @@ def run_watcher():
                         initial_prompt_sent = True
                     else:
                         # Use the continuation prompt
-                        prompt = CONTINUATION_PROMPT.format(
+                        prompt = DEFAULT_CONTINUATION_PROMPT.format(
                             task_file_path=task_file_abs_path,
                             additional_context_path=config.get("additional_context_path", "context.md")
                         )

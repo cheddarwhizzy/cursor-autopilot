@@ -11,7 +11,8 @@ An autonomous development assistant that automatically implements features by fo
    - Optionally set `initial_prompt_file_path` and `continuation_prompt_file_path` for custom prompts
 3. Create `tasks.md` with your feature implementation list
 4. Create `context.md` with project documentation and architecture details
-5. Run: `./run.sh --auto`
+5. Create `docs.md` with additional project documentation and links for LLM tool calling
+6. Run: `./run.sh --auto --debug`
 
 > 💡 **Tip**: Use ChatGPT to help generate your `tasks.md`, `docs.md`, and `context.md` files. It can help structure your tasks and documentation based on your project's needs.
 
@@ -106,8 +107,9 @@ If these paths are not specified, the tool will use its default prompts.
 
 ## File Structure
 
-- `tasks.md`: Your task list
-- `context.md`: Project documentation
+- `tasks.md`: Your feature implementation list
+- `context.md`: Project documentation and architecture details
+- `docs.md`: Additional project documentation and links
 - `initial_prompt.txt`: Generated initial prompt
 - `.initial_prompt_sent`: Marker file indicating initial prompt was sent
 
