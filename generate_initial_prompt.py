@@ -34,8 +34,8 @@ def main():
     with open(CONFIG_PATH, "r") as f:
         config = json.load(f)
 
-    task_file_path = config.get("task_file_path", "@src/notifications/README.md")
-    additional_context_path = config.get("additional_context_path", "docs/structure/*.md")
+    task_file_path = config.get("task_file_path", "tasks.md")
+    additional_context_path = config.get("additional_context_path", "context.md")
     is_new_chat = config.get("is_new_chat", True)
 
     prompt_template = INITIAL_PROMPT if is_new_chat else CONTINUATION_PROMPT

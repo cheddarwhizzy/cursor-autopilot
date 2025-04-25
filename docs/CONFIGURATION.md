@@ -7,7 +7,7 @@ All major settings are controlled via `config.json` in the project root.
 ```json
 {
   "project_path": "/path/to/your/project",
-  "task_file_path": "TASKS_TO_COMPLETE.md",
+  "task_file_path": "tasks.md",
   "additional_context_path": "file_structure_analysis/*.md",
   "initial_delay": 10,
   "send_message": true,
