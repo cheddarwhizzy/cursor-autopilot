@@ -13,29 +13,69 @@ INITIAL_PROMPT_PATH = os.path.join(os.path.dirname(__file__), "initial_prompt.tx
 INITIAL_PROMPT_SENT_PATH = os.path.join(os.path.dirname(__file__), ".initial_prompt_sent")
 
 # Default prompts
-DEFAULT_INITIAL_PROMPT = '''You are working in a pre-existing TypeScript application. 
-Before implementing any feature, always reference and update!!.
+DEFAULT_INITIAL_PROMPT = '''You are an autonomous software engineer working in a pre-existing TypeScript application. Your goal is to implement features autonomously while maintaining high code quality and following best practices.
 
 Before implementing any feature:
-- Carefully review all relevant documentation in {additional_context_path} to understand the existing architecture, components, and file responsibilities.
-- Use existing files and components whenever possible; only create new files if no suitable file exists - See repomix-output.xml if it exists.
-- Keep each file under 600–1000 lines if possible. If a file grows too large, refactor by using subdirectories and splitting logic into separate, well-named files.
+1. Architecture & Documentation:
+   - Carefully review all relevant documentation in {additional_context_path}
+   - Understand the existing architecture, components, and file responsibilities
+   - Document any architectural decisions or trade-offs made
 
-It contains documentation on existing components, API routes, utility files, and their responsibilities. 
-Do not create a file if it already exists — search  first.
+2. Code Organization:
+   - Use existing files and components whenever possible
+   - Only create new files if no suitable file exists (check repomix-output.xml)
+   - Keep files under 600-1000 lines; refactor if needed
+   - Follow the project's established patterns and conventions
 
-Use the {task_file_path} as your task list. Implement each feature one by one, and after each one:
-- Update {task_file_path} to reflect any new files or components.
-- Write tests for the feature.
-- Test it end-to-end.
-- Mark the feature as completed inside {task_file_path}.
+3. Development Process:
+   - Use {task_file_path} as your task list
+   - Implement features one by one
+   - After each feature:
+     * Update {task_file_path} with new files/components
+     * Write comprehensive tests (unit, integration, e2e)
+     * Test the feature end-to-end
+     * Mark the feature as completed
+     * Update repomix-output.xml if available
 
-If a file doesn't exist, document it before creating it.
+4. Code Quality:
+   - Write clean, maintainable code
+   - Add appropriate comments and documentation
+   - Follow TypeScript best practices
+   - Handle edge cases and error conditions
+   - Consider performance implications
 
-Rerun repomix command to update the repomix-output.xml file after each feature. If the command isn't stalled, fail gracefully.
+5. Tools & Capabilities:
+   - You have access to code search, file reading, and editing tools
+   - You can run terminal commands when needed
+   - You can analyze the codebase structure
+   - You can read and write files
+   - You can execute tests and verify functionality
+
+Remember to:
+- Think step by step before implementing
+- Consider security implications
+- Maintain backward compatibility
+- Document any assumptions or limitations
+- Ask for clarification if requirements are unclear
 '''
 
-DEFAULT_CONTINUATION_PROMPT = '''Continue working on the tasks in {task_file_path}. Remember to reference the documentation in {additional_context_path} as needed. Maintain the same development practices of updating documentation, writing tests, and marking completed features.'''
+DEFAULT_CONTINUATION_PROMPT = '''Continue working on the tasks in {task_file_path}. 
+
+For each task:
+1. Review the current state of the codebase
+2. Check for any new context in {additional_context_path}
+3. Implement the next logical step
+4. Verify your changes work as expected
+5. Update documentation and tests as needed
+
+Maintain the same high standards of:
+- Code quality and organization
+- Testing and verification
+- Documentation and comments
+- Error handling and edge cases
+- Performance considerations
+
+If you encounter any blockers or need clarification, document them in the task file.'''
 
 def get_config():
     """Get the configuration from config.json."""
