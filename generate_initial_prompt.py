@@ -12,8 +12,8 @@ CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.json")
 INITIAL_PROMPT_PATH = os.path.join(os.path.dirname(__file__), "initial_prompt.txt")
 INITIAL_PROMPT_SENT_PATH = os.path.join(os.path.dirname(__file__), ".initial_prompt_sent")
 
-# Default prompts
-DEFAULT_INITIAL_PROMPT = '''You are an autonomous software engineer working in a pre-existing TypeScript application. Your goal is to implement features autonomously while maintaining high code quality and following best practices.
+DEFAULT_INITIAL_PROMPT = '''You are working in a pre-existing application. 
+Before implementing any feature, always reference and update!!.
 
 Before implementing any feature:
 1. Architecture & Documentation:

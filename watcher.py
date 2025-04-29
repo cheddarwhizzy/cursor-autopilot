@@ -9,6 +9,7 @@ from state import get_mode
 from generate_initial_prompt import DEFAULT_CONTINUATION_PROMPT
 import logging
 from utils.colored_logging import setup_colored_logging
+import fnmatch
 
 # Configure logging
 setup_colored_logging(debug=os.environ.get("CURSOR_AUTOPILOT_DEBUG") == "true")
@@ -17,11 +18,33 @@ logger = logging.getLogger('watcher')
 # Add debug info about logging level
 logger.debug("Debug logging enabled") if os.environ.get("CURSOR_AUTOPILOT_DEBUG") == "true" else logger.info("Info logging enabled")
 
-EXCLUDE_DIRS = {"node_modules", ".git", "dist", "__pycache__"}
-LAST_HASH = None
-FILE_MTIMES = {}
-
 # --- Configurable README tracking ---
+def load_gitignore_patterns(gitignore_path):
+    patterns = set()
+    if os.path.exists(gitignore_path):
+        with open(gitignore_path, "r") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith('#'):
+                    continue
+                # Remove trailing slashes for directory patterns
+                if line.endswith('/'):
+                    patterns.add(line.rstrip('/'))
+                else:
+                    patterns.add(line)
+    return patterns
+
+GITIGNORE_PATH = os.path.join(os.path.dirname(__file__), ".gitignore")
+GITIGNORE_PATTERNS = load_gitignore_patterns(GITIGNORE_PATH)
+
+# Set up EXCLUDE_DIRS for os.walk (directories only)
+EXCLUDE_DIRS = {p for p in GITIGNORE_PATTERNS if not any(char in p for char in '*?[]!') and not '.' in os.path.basename(p)}
+# Also add hardcoded ones for safety
+EXCLUDE_DIRS.update({"node_modules", ".git", "dist", "__pycache__"})
+
+# Set up EXCLUDE_FILES for file-level ignores
+EXCLUDE_FILES = {p for p in GITIGNORE_PATTERNS if '.' in os.path.basename(p) or '*' in p or '?' in p or '[' in p or '!' in p}
+
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.json")
 if os.path.exists(CONFIG_PATH):
     with open(CONFIG_PATH, "r") as f:
@@ -44,6 +67,10 @@ logger.info(f"Task README: {TASK_FILE_PATH}")
 logger.info(f"Platform: {PLATFORM}")
 logger.info(f"Inactivity Delay: {INACTIVITY_DELAY} seconds")
 logger.info(f"Excluded Dirs: {EXCLUDE_DIRS}")
+logger.info(f"Gitignore Patterns: {GITIGNORE_PATTERNS}")
+
+LAST_HASH = None
+FILE_MTIMES = {}
 
 def hash_folder_state():
     """
@@ -60,11 +87,18 @@ def hash_folder_state():
     # Walk through directory
     for root, dirs, files in os.walk(WATCH_PATH):
         # Filter out excluded directories
-        dirs[:] = [d for d in dirs if d not in EXCLUDE_DIRS]
+        dirs[:] = [d for d in dirs if d not in EXCLUDE_DIRS and not any(fnmatch.fnmatch(d, pat) for pat in GITIGNORE_PATTERNS)]
         
         # Process each file
         for filename in sorted(files):  # Sort for consistent ordering
-            if filename.endswith(".tmp"): 
+            # Skip files matching .gitignore patterns
+            skip_file = False
+            rel_file_path = os.path.relpath(os.path.join(root, filename), WATCH_PATH)
+            for pat in GITIGNORE_PATTERNS:
+                if fnmatch.fnmatch(filename, pat) or fnmatch.fnmatch(rel_file_path, pat):
+                    skip_file = True
+                    break
+            if skip_file or filename.endswith(".tmp"): 
                 continue
                 
             abs_path = os.path.join(root, filename)
