@@ -1,0 +1,41 @@
+# Cursor Autopilot YAML Configuration
+
+platforms:
+  cursor:
+    os_type: osx  # or 'windows' or 'linux'
+    initialization:
+      - keys: "command+shift+p"
+        delay_ms: 100
+    keystrokes:
+      - keys: "command+l"
+        delay_ms: 100
+    options:
+      enable_auto_mode: true
+      continuation_prompt: "Continue?"
+      initial_prompt: "Start session"
+      timeout_seconds: 30
+  windsurf:
+    os_type: osx  # or 'windows' or 'linux'
+    initialization:
+      - keys: "command+shift+p"
+        delay_ms: 100
+    keystrokes:
+      - keys: "command+l"
+        delay_ms: 100
+    options:
+      enable_auto_mode: false
+      continuation_prompt: "Continue?"
+      initial_prompt: "Start session"
+      timeout_seconds: 30
+
+general:
+  project_path: "/path/to/your/project"
+  task_file_path: "tasks.md"
+  additional_context_path: "context.md"
+  initial_delay: 10
+  send_message: true
+  use_vision_api: false
+  debug: true
+  inactivity_delay: 120
+  initial_prompt_file_path: "path/to/initial_prompt.txt"
+  continuation_prompt_file_path: "path/to/continuation_prompt.txt"

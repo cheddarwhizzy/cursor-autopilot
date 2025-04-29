@@ -1,31 +1,69 @@
-# Configuration Guide
+# Configuration Guide (YAML)
 
-All major settings are controlled via `config.json` in the project root.
+All major settings are now controlled via `config.yaml` in the project root.
 
-## Example `config.json`
+## Example `config.yaml`
 
-```json
-{
-  "project_path": "/path/to/your/project",
-  "task_file_path": "tasks.md",
-  "additional_context_path": "file_structure_analysis/*.md",
-  "initial_delay": 10,
-  "send_message": true,
-  "platform": "cursor",
-  "use_vision_api": false
-}
+```yaml
+platforms:
+  cursor:
+    os_type: osx  # or 'windows' or 'linux'
+    initialization:
+      - keys: "command+shift+p"
+        delay_ms: 100
+    keystrokes:
+      - keys: "command+l"
+        delay_ms: 100
+    options:
+      enable_auto_mode: true
+      continuation_prompt: "Continue?"
+      initial_prompt: "Start session"
+      timeout_seconds: 30
+  windsurf:
+    os_type: osx  # or 'windows' or 'linux'
+    initialization:
+      - keys: "command+shift+p"
+        delay_ms: 100
+    keystrokes:
+      - keys: "command+l"
+        delay_ms: 100
+    options:
+      enable_auto_mode: false
+      continuation_prompt: "Continue?"
+      initial_prompt: "Start session"
+      timeout_seconds: 30
+
+general:
+  project_path: "/path/to/your/project"
+  task_file_path: "tasks.md"
+  additional_context_path: "context.md"
+  initial_delay: 10
+  send_message: true
+  use_vision_api: false
+  debug: true
+  inactivity_delay: 120
+  initial_prompt_file_path: "path/to/initial_prompt.txt"
+  continuation_prompt_file_path: "path/to/continuation_prompt.txt"
 ```
 
 ## Configuration Options
 
-| Option                  | Type    | Description                                                                                 |
-|-------------------------|---------|---------------------------------------------------------------------------------------------|
-| `project_path`          | string  | Path to the project directory to watch and open with the editor.                            |
-| `task_file_path`        | string  | Path to the file that contains your feature/task list for tracking completion.              |
-| `additional_context_path` | string | Glob path to important documentation files to provide to the LLM for additional context.     |
-| `initial_delay`         | number  | Initial delay (in seconds) before starting automation (default: 10).                        |
-| `send_message`          | boolean | Whether to send the initial prompt automatically after launching (default: true).            |
-| `platform`              | string  | Editor automation target. Use `cursor` (default) or `windsurf`.                             |
-| `use_vision_api`        | boolean | Whether to use the Vision API for chat window detection (default: false).                   |
+- `platforms`: Map of platform names (`cursor`, `windsurf`) to platform-specific config. Set `os_type` to `osx`, `windows`, or `linux` as appropriate. Use the correct key syntax for each OS.
+- `initialization`: List of keystrokes (with delays) to send when initializing the platform.
+- `keystrokes`: List of keystrokes (with delays) for automation.
+- `options`: Platform-specific options (e.g., auto mode, prompts, timeouts).
+- `general`: Global settings for project path, context, delays, debug, etc.
 
-See [SETUP.md](./SETUP.md) for how to use these options in practice.
+## Migration Instructions
+
+1. Copy the above example as `config.yaml` in your project root.
+2. Remove or archive your old `config.json`.
+3. Update your codebase to load configuration from YAML (using a library like `pyyaml`).
+4. Adjust your automation logic to use the new config structure.
+
+## Notes
+- For Windows or Linux support, set `os_type` and use the appropriate key combinations (e.g., `ctrl+shift+p` for Windows/Linux).
+- You can add more platforms or options as needed.
+- All keystrokes should be listed in the order they are to be sent, with optional delays between them.
+
+See [tasks.md](../tasks.md) for feature requirements and implementation progress.

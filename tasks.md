@@ -85,6 +85,77 @@ Building a modern web application with React, TypeScript, and Node.js backend. T
   - [ ] Set up SSL certificates
   - [ ] Configure monitoring
 
+## New Feature Requirements: Configurable Automation & API Integration
+
+### 1. YAML-Based Configuration
+- [ ] Migrate all configuration to a single YAML file (replacing/merging any existing config.json)
+- [ ] Support configuration of keystrokes, delays, and automation options via YAML
+- [ ] Allow separate, customizable keystroke sets for Cursor and Windsurf platforms
+- [ ] Add support for Windows and Ubuntu Desktop platforms (if programmatic keystroke sending is possible)
+- [ ] Implement platform-specific initialization keystrokes in YAML config
+- [ ] Example YAML structure:
+
+```yaml
+platforms:
+  cursor:
+    os_type: osx  # or 'windows' or 'linux'
+    initialization:
+      - keys: "command+shift+p"
+        delay_ms: 100
+    keystrokes:
+      - keys: "command+l"
+        delay_ms: 100
+    options:
+      enable_auto_mode: true
+      continuation_prompt: "Continue?"
+      initial_prompt: "Start session"
+      timeout_seconds: 30
+  windsurf:
+    os_type: osx  # or 'windows' or 'linux'
+    initialization:
+      - keys: "command+shift+p"
+        delay_ms: 100
+    keystrokes:
+      - keys: "command+l"
+        delay_ms: 100
+    options:
+      enable_auto_mode: false
+      continuation_prompt: "Continue?"
+      initial_prompt: "Start session"
+      timeout_seconds: 30
+```
+
+# To support Windows or Linux, set `os_type: windows` or `os_type: linux` under the relevant platform (cursor/windsurf) and use the appropriate key syntax for that OS.
+
+### 2. API Endpoints (for Slack Integration)
+- [ ] Implement POST endpoints to:
+  - Enable/disable auto mode (toggle automatic keystroke sending)
+  - Grab a screenshot of the IDE platform
+  - Set the timeout for sending the continuation prompt
+  - Set the continuation or initial prompt
+- [ ] Endpoints should be Slack-app compatible (JSON responses, Slack-friendly error handling)
+
+### 3. OpenAI Vision Integration
+- [ ] From YAML config, define conditions to trigger OpenAI Vision (e.g., file type, user action)
+- [ ] If condition is true, take a screenshot and ask a question; then run a set of keystrokes based on the result
+- [ ] If condition is false, run an alternate set of keystrokes
+- [ ] Ensure this workflow is compatible with Slack commands and API triggers
+
+### 4. Migration
+- [ ] Remove and merge all config.json settings into the new YAML config
+- [ ] Document all YAML options and provide migration instructions
+
+### 5. Update run.sh for Config Flags
+- [ ] Add support to run.sh for accepting command-line flags to override config parameters, including:
+  - `--project_path`
+  - `--platform`
+  - `--debug`
+  - `--inactivity_delay`
+  - `--send_message`
+  - (and any other relevant config options)
+- [ ] Ensure CLI flags take precedence over YAML config values
+- [ ] Document usage examples in the README
+
 ## Acceptance Criteria
 - All features must be fully tested
 - Code coverage must be above 80%
