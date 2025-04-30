@@ -1,6 +1,7 @@
 import time
 import os
 import json
+import yaml
 from actions.send_to_cursor import get_cursor_window_id, take_cursor_screenshot, send_keys, kill_cursor, launch_platform
 from actions.openai_vision import is_chat_window_open
 import subprocess
@@ -8,10 +9,10 @@ import logging
 from utils.colored_logging import setup_colored_logging
 
 def get_config():
-    config_path = os.path.join(os.path.dirname(__file__), "config.json")
+    config_path = os.path.join(os.path.dirname(__file__), "config.yaml")
     try:
         with open(config_path, "r") as f:
-            return json.load(f)
+            return yaml.safe_load(f)
     except Exception as e:
         logger.warning(f"Could not read config: {e}")
         return {}

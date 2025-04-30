@@ -3,39 +3,105 @@
 platforms:
   cursor:
     os_type: osx  # or 'windows' or 'linux'
+    project_path: "/Users/cheddarwhizzy/cheddar/cheddarwhizzy/cursor-autopilot"
+    task_file_path: "tasks.md"
+    additional_context_path: "context.md"
+    # initial_prompt_file_path: "initial_prompt.txt"
+    # continuation_prompt_file_path: "continuation_prompt.txt"
     initialization:
-      - keys: "command+shift+p"
+      - keys: "command+shift+p"  # For Windows: "ctrl+shift+p", For Linux: "ctrl+shift+p"
         delay_ms: 100
     keystrokes:
-      - keys: "command+l"
+      - keys: "command+l"  # For Windows: "ctrl+l", For Linux: "ctrl+l"
         delay_ms: 100
     options:
       enable_auto_mode: true
       continuation_prompt: "Continue?"
       initial_prompt: "Start session"
       timeout_seconds: 30
+      vision_conditions:
+        - file_type: "*.py"
+          action: "save"
+          question: "Does this code need any improvements?"
+          success_keystrokes:
+            - keys: "command+shift+p"
+              delay_ms: 100
+            - keys: "cursor-autopilot:improve"
+              delay_ms: 100
+          failure_keystrokes:
+            - keys: "command+s"
+              delay_ms: 100
   windsurf:
     os_type: osx  # or 'windows' or 'linux'
+    project_path: "/Users/cheddarwhizzy/cheddar/cheddarwhizzy/cursor-autopilot"
+    task_file_path: "tasks.md"
+    additional_context_path: "context.md"
+    # initial_prompt_file_path: "initial_prompt.txt"
+    # continuation_prompt_file_path: "continuation_prompt.txt"
     initialization:
-      - keys: "command+shift+p"
+      - keys: "command+shift+p"  # For Windows: "ctrl+shift+p", For Linux: "ctrl+shift+p"
         delay_ms: 100
     keystrokes:
-      - keys: "command+l"
+      - keys: "command+l"  # For Windows: "ctrl+l", For Linux: "ctrl+l"
         delay_ms: 100
     options:
       enable_auto_mode: false
       continuation_prompt: "Continue?"
       initial_prompt: "Start session"
       timeout_seconds: 30
+      vision_conditions:
+        - file_type: "*.py"
+          action: "save"
+          question: "Does this code need any improvements?"
+          success_keystrokes:
+            - keys: "command+shift+p"
+              delay_ms: 100
+            - keys: "windsurf:improve"
+              delay_ms: 100
+          failure_keystrokes:
+            - keys: "command+s"
+              delay_ms: 100
 
 general:
-  project_path: "/path/to/your/project"
-  task_file_path: "tasks.md"
-  additional_context_path: "context.md"
+  active_platforms: ["cursor"]
+  staggered: false
+  stagger_delay: 90
   initial_delay: 10
   send_message: true
   use_vision_api: false
   debug: true
   inactivity_delay: 120
-  initial_prompt_file_path: "path/to/initial_prompt.txt"
-  continuation_prompt_file_path: "path/to/continuation_prompt.txt"
+
+slack:
+  enabled: false
+  bot_token: ""  # Set your Slack bot token here
+  app_token: ""  # Set your Slack app token here
+  channels:
+    - name: "automation"
+      id: ""  # Set your channel ID here
+  commands:
+    - name: "enable_auto"
+      description: "Enable automatic mode"
+    - name: "disable_auto"
+      description: "Disable automatic mode"
+    - name: "screenshot"
+      description: "Take a screenshot of the IDE"
+    - name: "set_timeout"
+      description: "Set the timeout for continuation prompts"
+    - name: "set_prompt"
+      description: "Set the continuation or initial prompt"
+
+openai:
+  vision:
+    enabled: false
+    api_key: ""  # Set your OpenAI API key here
+    model: "gpt-4o"
+    max_tokens: 300
+    temperature: 0.7
+    conditions:
+      - file_type: "*.py"
+        action: "save"
+        question: "Does this code need any improvements?"
+      - file_type: "*.md"
+        action: "save"
+        question: "Is this documentation clear and complete?"

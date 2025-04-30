@@ -2,7 +2,7 @@ import subprocess
 import os
 import time
 from actions.openai_vision import is_chat_window_open
-import json
+import yaml
 import logging
 from utils.colored_logging import setup_colored_logging
 
@@ -13,17 +13,19 @@ logger = logging.getLogger('send_to_cursor')
 # Add debug info about logging level
 logger.debug("Debug logging enabled") if os.environ.get("CURSOR_AUTOPILOT_DEBUG") == "true" else logger.info("Info logging enabled")
 
+def get_config():
+    config_path = os.path.join(os.path.dirname(__file__), "config.yaml")
+    try:
+        with open(config_path, "r") as f:
+            return yaml.safe_load(f)
+    except Exception as e:
+        logger.warning(f"Could not read config: {e}")
+        return {}
+
 def get_project_name():
     """Get the project name from the config file."""
-    config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.json")
-    try:
-        with open(config_path) as f:
-            config = json.load(f)
-            # Get the last part of the project path
-            return os.path.basename(config["project_path"])
-    except Exception as e:
-        logger.warning(f"Could not get project name from config: {e}")
-        return None
+    config = get_config()
+    return config.get("project_path", {}).get("name")
 
 def get_cursor_window_id(max_retries=5, delay=1, platform="cursor"):
     """

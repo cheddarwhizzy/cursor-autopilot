@@ -1,14 +1,15 @@
 import os
 import json
+import yaml
 import logging
 from utils.colored_logging import setup_colored_logging
 
 # Configure logging
-setup_colored_logging(debug=os.environ.get("CURSOR_AUTOPILOT_DEBUG") == "true")
+setup_colored_logging(debug=os.environ.get("CURATOR_AUTOPILOT_DEBUG") == "true")
 logger = logging.getLogger('generate_initial_prompt')
 
 # Constants
-CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.json")
+CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.yaml")
 INITIAL_PROMPT_PATH = os.path.join(os.path.dirname(__file__), "initial_prompt.txt")
 INITIAL_PROMPT_SENT_PATH = os.path.join(os.path.dirname(__file__), ".initial_prompt_sent")
 
@@ -78,12 +79,12 @@ Maintain the same high standards of:
 If you encounter any blockers or need clarification, document them in the task file.'''
 
 def get_config():
-    """Get the configuration from config.json."""
+    config_path = os.path.join(os.path.dirname(__file__), "config.yaml")
     try:
-        with open(CONFIG_PATH, "r") as f:
-            return json.load(f)
+        with open(config_path, "r") as f:
+            return yaml.safe_load(f)
     except Exception as e:
-        logger.error(f"Config file not found at {CONFIG_PATH}")
+        logger.warning(f"Could not read config: {e}")
         return {}
 
 def read_prompt_from_file(file_path):

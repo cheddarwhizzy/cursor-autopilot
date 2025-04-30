@@ -1,128 +1,99 @@
 # Cursor Autopilot
 
-An autonomous development assistant that automatically implements features by following a structured task list, using Cursor or Windsurf as its interface. It reads tasks from a task list, understands project context and documentation, and autonomously implements each feature one by one.
+An autonomous development assistant that automatically implements features by following a structured task list, using Cursor or Windsurf as its interface.
 
-## TL;DR
+## Quick Start
 
-1. Install dependencies: `pip install -r requirements.txt`
-2. Configure `config.json`:
-   - Set `project_path` to your project directory
-   - Set `platform` to either "cursor" or "windsurf"
-   - Optionally set `initial_prompt_file_path` and `continuation_prompt_file_path` for custom prompts
-3. Create the following files in your project directory:
-   - [`tasks.md`](./tasks.md): Your feature implementation list
-   - [`docs.md`](./docs.md): Additional project documentation and links
-   - [`context.md`](./context.md): Project documentation and architecture details
-4. Run: `./run.sh --auto --debug`
+1.  **Install Dependencies**: `pip install -r requirements.txt`
+2.  **Configure**: Edit `config.yaml` (set `project_path` and target `platforms`).
+3.  **Create Task Files**: Ensure `tasks.md` and `context.md` exist in your project.
+4.  **Run**: `./run.sh --platform cursor --debug` (replace `cursor` if needed)
+    *   Use `--auto` for fully automatic mode.
+    *   Override settings: `./run.sh --platform cursor --inactivity-delay 60`
 
-> 💡 **Tip**: Use ChatGPT to help generate your `tasks.md`, `docs.md`, and `context.md` files. It can help structure your tasks and documentation based on your project's needs.
+For more detailed setup and configuration, see the [Full Documentation](#-documentation).
+
+## Overview
+
+Cursor Autopilot reads tasks from a task list (`tasks.md`), understands project context (`context.md`), and autonomously implements each feature step-by-step using the configured platform (Cursor or Windsurf). It monitors file changes to track progress and uses inactivity timers to continue its work.
 
 ## Features
 
-- Autonomous feature implementation following a structured task list
-- Reads and understands project documentation and architecture
-- Automatically detects code changes and progress
-- Configurable inactivity delay before sending prompts
-- Supports custom initial and continuation prompts via config.json
-- Detailed logging with color-coded output
-- Vision API integration for screenshots (optional)
+- Autonomous feature implementation following a structured task list (`tasks.md`).
+- Reads and understands project documentation and architecture (`context.md`).
+- Automatically detects code changes and progress via file monitoring.
+- Configurable automation behavior via `config.yaml`.
+- Supports **Cursor** and **Windsurf** IDEs on **macOS**, **Windows**, and **Linux**.
+- Cross-platform keystroke sending using `pyautogui`.
+- Command-line overrides for `config.yaml` settings using `argparse`.
+- Slack integration for remote control and notifications (via API endpoints).
+- Optional OpenAI Vision integration for visual analysis.
+- Detailed logging with color-coded output.
 
-## Configuration
+## Configuration (`config.yaml`)
 
-The `config.json` file supports the following options:
+The primary configuration is done via `config.yaml`. Key settings include:
 
-```json
-{
-  "project_path": "/path/to/your/project",
-  "task_file_path": "tasks.md",
-  "additional_context_path": "context.md",
-  "initial_delay": 10,
-  "send_message": true,
-  "platform": "cursor",
-  "use_vision_api": false,
-  "debug": true,
-  "inactivity_delay": 120,
-  "initial_prompt_file_path": "path/to/initial_prompt.txt",
-  "continuation_prompt_file_path": "path/to/continuation_prompt.txt"
-}
-```
+- `platforms`: Configure settings specific to Cursor, Windsurf, etc.
+  - `os_type`: (Informational) `osx`, `windows`, `linux`
+  - `project_path`: **Required** path to the project being worked on.
+  - `task_file_path`: Path to the task list (relative to `project_path`).
+  - `keystrokes`: Sequences of keys to press for automation.
+- `general`:
+  - `active_platforms`: List of platforms to run (e.g., `["cursor"]`).
+  - `inactivity_delay`: Seconds of inactivity before sending a continuation prompt.
+  - `debug`: Enable verbose logging.
+- `slack` / `openai`: Settings for integrations.
 
-### Configuration Options
+See the [Full Configuration Guide](./docs/configuration/yaml_config.md) for all options.
 
-- `project_path`: Path to your project directory
-- `task_file_path`: Path to your task list file (default: "tasks.md")
-- `additional_context_path`: Path to your project documentation (default: "context.md")
-- `initial_delay`: Delay in seconds before sending the first prompt
-- `send_message`: Whether to send messages to Cursor/Windsurf
-- `platform`: Either "cursor" or "windsurf"
-- `use_vision_api`: Whether to use the Vision API for screenshots
-- `debug`: Enable debug logging
-- `inactivity_delay`: Delay in seconds of inactivity before sending a prompt
-- `initial_prompt_file_path`: Path to a custom initial prompt file (optional)
-- `continuation_prompt_file_path`: Path to a custom continuation prompt file (optional)
+## Command-Line Arguments
 
-## Custom Prompts
+You can override `config.yaml` settings using command-line flags:
 
-You can customize both the initial and continuation prompts by creating your own prompt files and specifying their paths in `config.json`:
+- `--project-path /new/path`: Set project directory.
+- `--platform cursor,windsurf`: Set active platforms (comma-separated).
+- `--inactivity-delay 60`: Set inactivity delay to 60 seconds.
+- `--send-message` / `--no-send-message`: Override message sending flag.
+- `--debug`: Enable debug logging.
 
-1. Create your custom prompt files:
-   - `initial_prompt.txt`: For the first message in a new chat
-   - `continuation_prompt.txt`: For follow-up messages
-
-2. Add their paths to `config.json`:
-   ```json
-   {
-     "initial_prompt_file_path": "path/to/initial_prompt.txt",
-     "continuation_prompt_file_path": "path/to/continuation_prompt.txt"
-   }
-   ```
-
-If these paths are not specified, the tool will use its default prompts.
+Run `python main.py --help` (or `./run.sh --help` after `run.sh` is updated) for a full list.
 
 ## Usage
 
-1. **Automatic Mode**:
-   ```bash
-   ./run.sh --auto
-   ```
-   This will:
-   - Start the watcher
-   - Send initial prompt if needed
-   - Monitor for changes
-   - Send prompts on inactivity
+```bash
+# Run automatically with debug logs for Cursor
+./run.sh --platform cursor --debug --auto
 
-2. **Manual Mode**:
-   ```bash
-   ./run.sh
-   ```
-   This will:
-   - Start the watcher
-   - Wait for manual trigger
-   - Send prompts when triggered
+# Run manually for Windsurf, overriding inactivity delay
+./run.sh --platform windsurf --inactivity-delay 90
 
-3. **Debug Mode**:
-   ```bash
-   ./run.sh --auto --debug
-   ```
-   This enables detailed logging.
+# Run both platforms staggered (requires config setup)
+./run.sh --platform cursor,windsurf 
+```
+
+(Note: `run.sh` needs to be updated to call the Python script that uses `argparse`)
 
 ## File Structure
 
-- `tasks.md`: Your feature implementation list
-- `context.md`: Project documentation and architecture details
-- `docs.md`: Additional project documentation and links
-- `initial_prompt.txt`: Generated initial prompt
-- `.initial_prompt_sent`: Marker file indicating initial prompt was sent
+- `config.yaml`: Main configuration.
+- `tasks.md`: Feature implementation list.
+- `context.md`: Project context and architecture.
+- `architecture.md`: Technical design decisions.
+- `watcher.py`: File monitoring and main loop.
+- `actions/`: Modules for IDE interaction, etc.
+- `api_documentation.md`: Details on Flask API endpoints.
+- `docs/`: Folder for detailed documentation.
 
 ## Logging
 
-The tool provides detailed logging with color-coded output:
-- Blue: Notice messages
-- Green: Success messages
-- Yellow: Warning messages
-- Red: Error messages
+Color-coded logs provide insights:
+- Blue: Notice
+- Green: Success
+- Yellow: Warning
+- Red: Error
 
-Debug logging can be enabled via the `--debug` flag or by setting `debug: true` in `config.json`.
+Enable debug logging with `--debug`.
 
 ## License
 
@@ -132,8 +103,12 @@ MIT
 
 ## 📚 Documentation
 
-- [Setup Guide](./docs/SETUP.md)
-- [Configuration Options](./docs/CONFIGURATION.md)
-- [Installation & Environment](./docs/INSTALLATION.md)
-- [Slack Bot Usage](./docs/SLACK_BOT.md)
-- [Automation & AppleScript](./docs/AUTOMATION.md)
+- **Quick Start**: See [Quick Start](#quick-start) section above.
+- **Configuration**: [YAML Config Guide](./docs/configuration/yaml_config.md)
+- **API Docs**:
+  - [Flask API](./api_documentation.md)
+  - [Slack Endpoints](./docs/api/slack_endpoints.md)
+- **Setup & Installation**: [Installation Guide](./docs/INSTALLATION.md), [Setup Guide](./docs/SETUP.md)
+- **Core Concepts**: [Architecture](./architecture.md), [Automation](./docs/AUTOMATION.md)
+- **Integrations**: [Slack Bot](./docs/SLACK_BOT.md)
+- **Other Docs**: [Original Docs](./docs.md), [Context](./context.md)

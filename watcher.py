@@ -2,7 +2,7 @@
 import time
 import os
 import hashlib
-import json
+import yaml
 from datetime import datetime
 from actions.send_to_cursor import send_prompt
 from state import get_mode
@@ -10,6 +10,10 @@ from generate_initial_prompt import DEFAULT_CONTINUATION_PROMPT
 import logging
 from utils.colored_logging import setup_colored_logging
 import fnmatch
+import platform
+import openai
+import requests
+from typing import Dict, List, Optional, Tuple
 
 # Configure logging
 setup_colored_logging(debug=os.environ.get("CURSOR_AUTOPILOT_DEBUG") == "true")
@@ -45,32 +49,164 @@ EXCLUDE_DIRS.update({"node_modules", ".git", "dist", "__pycache__"})
 # Set up EXCLUDE_FILES for file-level ignores
 EXCLUDE_FILES = {p for p in GITIGNORE_PATTERNS if '.' in os.path.basename(p) or '*' in p or '?' in p or '[' in p or '!' in p}
 
-CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.json")
-if os.path.exists(CONFIG_PATH):
-    with open(CONFIG_PATH, "r") as f:
-        config = json.load(f)
-else:
-    config = {}
+CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.yaml")
+with open(CONFIG_PATH, "r") as f:
+    config = yaml.safe_load(f)
 
-# Get paths from config
-WATCH_PATH = os.path.expanduser(config.get("project_path", "~/cheddar/mushattention/mushattention"))
-TASK_FILE_PATH = config.get("task_file_path", "tasks.md")
+# Get current OS type
+CURRENT_OS = platform.system().lower()
+if CURRENT_OS == "darwin":
+    CURRENT_OS = "osx"
+
+# Get platform configuration
+PLATFORM = config.get("platform", "cursor")
+platform_config = config["platforms"].get(PLATFORM, {})
+if not platform_config:
+    logger.error(f"Platform {PLATFORM} not found in config")
+    exit(1)
+
+# Get paths from platform config
+WATCH_PATH = os.path.expanduser(platform_config.get("project_path", ""))
+if not WATCH_PATH:
+    logger.error(f"Project path not configured for platform {PLATFORM}")
+    exit(1)
+
+TASK_FILE_PATH = platform_config.get("task_file_path", "tasks.md")
 LAST_README_MTIME = None
 TASK_COMPLETED = False
-PLATFORM = config.get("platform", "cursor")
 INACTIVITY_DELAY = config.get("inactivity_delay", 120)  # Default to 120 seconds if not specified
+
+# Defensive: Ensure INACTIVITY_DELAY is not None and is a number
+try:
+    inactivity_delay_val = float(INACTIVITY_DELAY)
+except (TypeError, ValueError):
+    logger.warning(f"INACTIVITY_DELAY invalid or None, defaulting to 120.")
+    inactivity_delay_val = 120.0
+logger.debug(f"DEBUG: INACTIVITY_DELAY raw value: {INACTIVITY_DELAY}, parsed: {inactivity_delay_val} (type: {type(INACTIVITY_DELAY)})")
+
+# Defensive: Ensure all timing variables are initialized to 0 if None
+last_activity = 0.0
+last_prompt_time = 0.0
+inactivity_timer = 0.0
+
+# Initialize OpenAI client if configured
+openai_client = None
+if config.get("openai", {}).get("vision", {}).get("enabled", False):
+    openai.api_key = config["openai"]["vision"]["api_key"]
+    openai_client = openai
+
+# Initialize Slack client if configured
+slack_client = None
+if config.get("slack", {}).get("enabled", False):
+    slack_client = {
+        "bot_token": config["slack"]["bot_token"],
+        "app_token": config["slack"]["app_token"],
+        "channels": config["slack"]["channels"]
+    }
 
 # Add debug info about paths
 logger.info(f"Watcher Configuration:")
+logger.info(f"Platform: {PLATFORM}")
 logger.info(f"Project Path: {WATCH_PATH}")
 logger.info(f"Task README: {TASK_FILE_PATH}")
-logger.info(f"Platform: {PLATFORM}")
-logger.info(f"Inactivity Delay: {INACTIVITY_DELAY} seconds")
+logger.info(f"Inactivity Delay: {inactivity_delay_val} seconds")
 logger.info(f"Excluded Dirs: {EXCLUDE_DIRS}")
 logger.info(f"Gitignore Patterns: {GITIGNORE_PATTERNS}")
+logger.info(f"Current OS: {CURRENT_OS}")
+logger.info(f"OpenAI Vision: {'Enabled' if openai_client else 'Disabled'}")
+logger.info(f"Slack Integration: {'Enabled' if slack_client else 'Disabled'}")
+
+# Verify project path exists
+if not os.path.exists(WATCH_PATH):
+    logger.error(f"Project path {WATCH_PATH} does not exist")
+    exit(1)
 
 LAST_HASH = None
 FILE_MTIMES = {}
+
+def get_platform_config(platform_name: str) -> Dict:
+    """Get platform-specific configuration with OS-specific keystrokes."""
+    platform_config = config["platforms"].get(platform_name, {})
+    if not platform_config:
+        return {}
+    
+    # Map OS-specific keystrokes
+    os_type = platform_config.get("os_type", "osx")
+    if os_type != CURRENT_OS:
+        logger.warning(f"Platform {platform_name} configured for {os_type} but running on {CURRENT_OS}")
+    
+    # Convert keystrokes based on OS
+    keystrokes = platform_config.get("keystrokes", [])
+    for keystroke in keystrokes:
+        keys = keystroke["keys"]
+        if CURRENT_OS == "windows":
+            keys = keys.replace("command", "ctrl")
+        elif CURRENT_OS == "linux":
+            keys = keys.replace("command", "ctrl")
+        keystroke["keys"] = keys
+    
+    return platform_config
+
+def check_vision_conditions(file_path: str, action: str) -> Optional[Tuple[str, List[Dict]]]:
+    """Check if a file matches any vision conditions and return the appropriate keystrokes."""
+    if not openai_client:
+        return None
+    
+    platform_config = get_platform_config(PLATFORM)
+    vision_conditions = platform_config.get("options", {}).get("vision_conditions", [])
+    
+    for condition in vision_conditions:
+        if fnmatch.fnmatch(file_path, condition["file_type"]) and condition["action"] == action:
+            try:
+                # Take screenshot and analyze with OpenAI Vision
+                response = openai_client.chat.completions.create(
+                    model=config["openai"]["vision"]["model"],
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "text", "text": condition["question"]},
+                                {"type": "image_url", "image_url": {"url": f"file://{file_path}"}}
+                            ]
+                        }
+                    ],
+                    max_tokens=config["openai"]["vision"]["max_tokens"],
+                    temperature=config["openai"]["vision"]["temperature"]
+                )
+                
+                # Determine success based on response
+                success = "yes" in response.choices[0].message.content.lower()
+                return condition["question"], condition["success_keystrokes" if success else "failure_keystrokes"]
+            except Exception as e:
+                logger.error(f"Error in vision analysis: {e}")
+                return None
+    
+    return None
+
+def send_slack_message(message: str, channel: str = "automation"):
+    """Send a message to Slack if configured."""
+    if not slack_client:
+        return
+    
+    try:
+        channel_id = next((c["id"] for c in slack_client["channels"] if c["name"] == channel), None)
+        if not channel_id:
+            logger.error(f"Slack channel {channel} not found")
+            return
+        
+        response = requests.post(
+            "https://slack.com/api/chat.postMessage",
+            headers={"Authorization": f"Bearer {slack_client['bot_token']}"},
+            json={
+                "channel": channel_id,
+                "text": message
+            }
+        )
+        
+        if not response.ok:
+            logger.error(f"Failed to send Slack message: {response.text}")
+    except Exception as e:
+        logger.error(f"Error sending Slack message: {e}")
 
 def hash_folder_state():
     """
@@ -126,6 +262,16 @@ def hash_folder_state():
                         'mtime': current_mtime,
                         'size': current_size
                     }
+                    
+                    # Check vision conditions for changed files
+                    if current_mtime > last_mtime and last_mtime is not None:
+                        vision_result = check_vision_conditions(abs_path, "save")
+                        if vision_result:
+                            question, keystrokes = vision_result
+                            logger.info(f"Vision analysis triggered for {rel_path}")
+                            logger.info(f"Question: {question}")
+                            for keystroke in keystrokes:
+                                send_prompt(keystroke["keys"], platform=PLATFORM, delay_ms=keystroke["delay_ms"])
                 
                 total_files += 1
                 
@@ -153,10 +299,6 @@ def run_watcher():
     """
     global LAST_HASH, FILE_MTIMES, LAST_README_MTIME
     
-    inactivity_timer = 0
-    last_activity = time.time()
-    last_prompt_time = 0  # Track when we last sent a prompt
-    
     # Check if initial prompt has been sent
     initial_prompt_sent = os.path.exists(os.path.join(os.path.dirname(__file__), ".initial_prompt_sent"))
     logger.info(f"Initial prompt {'has' if initial_prompt_sent else 'has not'} been sent yet")
@@ -169,9 +311,33 @@ def run_watcher():
     
     while True:
         try:
+            global last_activity, last_prompt_time, inactivity_timer, inactivity_delay_val
+            # Defensive: Ensure all timing variables are initialized and valid before use
+            if last_activity is None or not isinstance(last_activity, (int, float)):
+                logger.error(f"last_activity is invalid in loop: {last_activity} (type: {type(last_activity)}) - setting to time.time()")
+                last_activity = time.time()
+            if last_prompt_time is None or not isinstance(last_prompt_time, (int, float)):
+                logger.error(f"last_prompt_time is invalid in loop: {last_prompt_time} (type: {type(last_prompt_time)}) - setting to 0.0")
+                last_prompt_time = 0.0
+            if inactivity_timer is None or not isinstance(inactivity_timer, (int, float)):
+                logger.error(f"inactivity_timer is invalid in loop: {inactivity_timer} (type: {type(inactivity_timer)}) - setting to 0.0")
+                inactivity_timer = 0.0
+            if 'inactivity_delay_val' not in globals() or inactivity_delay_val is None or not isinstance(inactivity_delay_val, (int, float)):
+                logger.error(f"inactivity_delay_val is invalid or not set in loop: {globals().get('inactivity_delay_val', None)} (type: {type(globals().get('inactivity_delay_val', None))}) - setting to 120.0")
+                inactivity_delay_val = 120.0
+
+            # FINAL DEFENSIVE CHECK: If any timing variable is still None, skip this loop iteration
+            if any(x is None for x in [last_activity, last_prompt_time, inactivity_timer, inactivity_delay_val]):
+                logger.critical(f"Timing variable(s) still None after defensive checks. Skipping iteration. last_activity={last_activity}, last_prompt_time={last_prompt_time}, inactivity_timer={inactivity_timer}, inactivity_delay_val={inactivity_delay_val}")
+                time.sleep(1)
+                continue
+            # ADDITIONAL DEFENSIVE CHECK: If any timing variable is not a number, log and skip
+            if not all(isinstance(x, (int, float)) for x in [last_activity, last_prompt_time, inactivity_timer, inactivity_delay_val]):
+                logger.critical(f"Timing variable(s) not numeric after defensive checks. Skipping iteration. last_activity={last_activity} (type: {type(last_activity)}), last_prompt_time={last_prompt_time} (type: {type(last_prompt_time)}), inactivity_timer={inactivity_timer} (type: {type(inactivity_timer)}), inactivity_delay_val={inactivity_delay_val} (type: {type(inactivity_delay_val)})")
+                time.sleep(1)
+                continue
             # Get current state
             current_hash, changed_files, total_files = hash_folder_state()
-            
             # Check if task file was modified
             task_file_modified = False
             if TASK_FILE_PATH in changed_files:
@@ -181,7 +347,8 @@ def run_watcher():
                     LAST_README_MTIME = current_mtime
                     logger.info(f"Task file {TASK_FILE_PATH} was modified!")
                     logger.info(f"  Last modified: {datetime.fromtimestamp(current_mtime)}")
-            
+                    if slack_client:
+                        send_slack_message(f"Task file modified: {TASK_FILE_PATH}")
             # Update inactivity timer
             if current_hash != LAST_HASH or task_file_modified:
                 inactivity_timer = 0
@@ -194,13 +361,15 @@ def run_watcher():
                 inactivity_timer = time.time() - last_activity
                 if inactivity_timer >= 30:  # Log status when getting close to timeout
                     logger.info(f"No changes detected for {int(inactivity_timer)} seconds")
-                    logger.info(f"  Will send prompt in {max(0, INACTIVITY_DELAY-int(inactivity_timer))} seconds if no changes occur")
-            
-            # Check for inactivity timeout
-            if inactivity_timer >= INACTIVITY_DELAY and get_mode() == "auto":
+                    logger.info(f"  Will send prompt in {max(0, inactivity_delay_val-int(inactivity_timer))} seconds if no changes occur")
+            if inactivity_timer >= inactivity_delay_val and get_mode() == "auto":
                 current_time = time.time()
+                logger.debug(f"DEBUG: current_time={current_time}, current_time-last_prompt_time={current_time - last_prompt_time}")
+                # Defensive: Ensure current_time and last_prompt_time are not None
+                if current_time is None or last_prompt_time is None:
+                    logger.error(f"current_time or last_prompt_time is None: current_time={current_time}, last_prompt_time={last_prompt_time}")
                 # Only send a new prompt if it's been at least INACTIVITY_DELAY seconds since the last one
-                if current_time - last_prompt_time >= INACTIVITY_DELAY:
+                elif current_time - last_prompt_time >= inactivity_delay_val:
                     logger.info(f"Inactivity timeout reached ({int(inactivity_timer)} seconds). Sending prompt to {PLATFORM}.")
                     
                     # Use the appropriate prompt based on whether initial prompt was sent
@@ -231,10 +400,11 @@ def run_watcher():
                     logger.info("Watching for changes...")
                 else:
                     logger.info(f"Skipping prompt - last prompt was sent {int(current_time - last_prompt_time)} seconds ago")
-            
             time.sleep(5)  # Check every 5 seconds
         except Exception as e:
             logger.error(f"Error in watcher: {e}")
+            if slack_client:
+                send_slack_message(f"Error in watcher: {str(e)}")
             time.sleep(5)  # Wait before retrying
 
 if __name__ == "__main__":

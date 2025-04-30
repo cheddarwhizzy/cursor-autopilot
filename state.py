@@ -1,3 +1,4 @@
+import yaml
 import os
 
 STATE_FILE = ".cursor_mode"
@@ -12,3 +13,12 @@ def get_mode():
 def set_mode(mode):
     with open(STATE_FILE, "w") as f:
         f.write(mode)
+
+def get_config():
+    config_path = os.path.join(os.path.dirname(__file__), "config.yaml")
+    try:
+        with open(config_path, "r") as f:
+            return yaml.safe_load(f)
+    except Exception as e:
+        print(f"Could not read config: {e}")
+        return {}
