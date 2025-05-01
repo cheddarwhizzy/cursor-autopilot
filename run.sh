@@ -66,22 +66,112 @@ pip install -r requirements.txt -q
 # Launch the application based on config.yaml
 if [[ -f "$SCRIPT_DIR/config.yaml" ]]; then
     log "Loading platform information from config.yaml..."
+    # Show the first few lines of the config file for debugging
+    log "Config file (first 10 lines):"
+    head -n 10 "$SCRIPT_DIR/config.yaml"
     
     # For cross-platform compatibility, check OS before launching app
     if [[ "$OSTYPE" == "darwin"* ]]; then
         # macOS
         if grep -q "windsurf" "$SCRIPT_DIR/config.yaml"; then
-            # Extract project path from config
-            PROJECT_PATH=$(grep -A 3 "project_path" "$SCRIPT_DIR/config.yaml" | grep -v "project_path:" | head -n 1 | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | tr -d "'" | tr -d '"' | cut -d: -f2 | sed 's/^[[:space:]]*//')
+            # Improved way to extract project path from config
+            # First find the windsurf section
+            PROJECT_PATH=""
+            
+            # Read the config file and extract the project path
+            SECTION_FOUND=false
+            while IFS= read -r line; do
+                # Check if we're in the windsurf section
+                if [[ "$line" =~ [[:space:]]+"windsurf":[[:space:]]* ]]; then
+                    SECTION_FOUND=true
+                    continue
+                fi
+                
+                # Once in the windsurf section, look for project_path
+                if [[ "$SECTION_FOUND" == "true" && "$line" =~ [[:space:]]+"project_path":[[:space:]]* ]]; then
+                    # Extract the value after the colon
+                    PROJECT_PATH=$(echo "$line" | sed 's/.*project_path:[[:space:]]*\(.*\)/\1/' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | tr -d "'" | tr -d '"')
+                    break
+                fi
+            done < "$SCRIPT_DIR/config.yaml"
+            
+            # If project path not found yet, try with grep as fallback
+            if [[ -z "$PROJECT_PATH" ]]; then
+                log "Trying alternate method to find project path..."
+                # Extract all platforms section
+                PLATFORMS_SECTION=$(sed -n '/platforms:/,/general:/p' "$SCRIPT_DIR/config.yaml")
+                
+                # Extract windsurf section
+                WINDSURF_SECTION=$(echo "$PLATFORMS_SECTION" | sed -n '/windsurf:/,/cursor:/p')
+                if [[ -z "$WINDSURF_SECTION" ]]; then
+                    # If cursor: not found after windsurf, try till end of platforms section
+                    WINDSURF_SECTION=$(echo "$PLATFORMS_SECTION" | sed -n '/windsurf:/,/general:/p')
+                fi
+                
+                # Extract project_path line
+                PROJECT_PATH_LINE=$(echo "$WINDSURF_SECTION" | grep "project_path:")
+                if [[ -n "$PROJECT_PATH_LINE" ]]; then
+                    PROJECT_PATH=$(echo "$PROJECT_PATH_LINE" | sed 's/.*project_path:[[:space:]]*\(.*\)/\1/' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | tr -d "'" | tr -d '"')
+                fi
+            fi
             
             if [[ -n "$PROJECT_PATH" ]]; then
                 log "Launching WindSurf with project path: $PROJECT_PATH"
-                # Try to launch the application
-                open -a "WindSurf" "$PROJECT_PATH" &
-                # Wait for the app to launch
-                sleep 3
+                
+                # Expand path if it contains ~ or other shell variables
+                PROJECT_PATH=$(eval echo "$PROJECT_PATH")
+                
+                # Make sure path exists
+                if [[ ! -d "$PROJECT_PATH" ]]; then
+                    log "Warning: Project path does not exist: $PROJECT_PATH"
+                    ls -la "$(dirname "$PROJECT_PATH")" || true
+                else
+                    # Try multiple app name variants
+                    for APP_NAME in "WindSurf" "Windsurf" "windsurf"; do
+                        log "Trying to launch $APP_NAME with path: $PROJECT_PATH"
+                        # Kill any existing instances first (just to be sure)
+                        killall -9 "$APP_NAME" 2>/dev/null || true
+                        
+                        # Try to launch the application
+                        open -a "$APP_NAME" "$PROJECT_PATH" 2>/dev/null
+                        if [[ $? -eq 0 ]]; then
+                            log "Successfully launched $APP_NAME"
+                            # Wait for the app to launch
+                            sleep 3
+                            
+                            # Verify app is running
+                            if pgrep -i "$APP_NAME" > /dev/null; then
+                                log "$APP_NAME is running"
+                                break
+                            else
+                                log "Warning: $APP_NAME failed to start"
+                            fi
+                        else
+                            log "Failed to launch $APP_NAME"
+                        fi
+                    done
+                    
+                    # Double-check that application is running
+                    if ! pgrep -i "[Ww]ind[Ss]urf" > /dev/null; then
+                        log "Warning: WindSurf application did not start, trying direct AppleScript launch"
+                        osascript -e "tell application \"WindSurf\" to open \"$PROJECT_PATH\"" || true
+                        sleep 3
+                    fi
+                    
+                    # Output project directory contents count for debugging
+                    if [[ -d "$PROJECT_PATH" ]]; then
+                        FILE_COUNT=$(find "$PROJECT_PATH" -type f | wc -l)
+                        DIR_COUNT=$(find "$PROJECT_PATH" -type d | wc -l)
+                        log "Project directory contains $FILE_COUNT files and $DIR_COUNT directories"
+                        log "Project directory contents (first level):"
+                        ls -la "$PROJECT_PATH" | head -n 20
+                    fi
+                fi
             else
                 log "Warning: Could not find project_path for WindSurf in config.yaml"
+                # Print config file for debugging
+                log "Config file contents:"
+                cat "$SCRIPT_DIR/config.yaml" | grep -A 20 "windsurf:"
             fi
         fi
     elif [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
