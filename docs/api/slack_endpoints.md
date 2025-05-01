@@ -1,260 +1,372 @@
-# Slack API Endpoints
+# Slack API Integration
 
 ## Overview
 
-The Cursor Autopilot system provides a set of Slack API endpoints for integration with Slack workspaces. These endpoints handle various automation commands, status updates, and notifications between the IDE and Slack.
+Cursor Autopilot provides a set of RESTful endpoints that can be integrated with Slack to enable remote control and monitoring of the automation process. These endpoints are designed to be compatible with Slack's Block Kit and follow Slack's best practices for error handling and response formatting.
 
-## Authentication
+## Setup Instructions
 
-All endpoints require authentication using the Slack bot token and app token configured in the `config.yaml` file. These tokens must have the appropriate OAuth scopes for the required functionality.
+### 1. Create a Slack App
 
-### Required Scopes
+1. Go to [api.slack.com/apps](https://api.slack.com/apps)
+2. Click "Create New App"
+3. Choose "From scratch"
+4. Enter an app name and select your workspace
+5. Under "Add features and functionality", enable:
+   - Slash Commands
+   - Incoming Webhooks
+   - Event Subscriptions
 
-- `chat:write` - Send messages to channels
-- `commands` - Create and respond to slash commands
-- `files:write` - Upload files (for screenshots)
-- `channels:history` - Read channel messages
-- `channels:read` - View basic channel information
+### 2. Configure App Permissions
 
-## Endpoints
+1. Go to "OAuth & Permissions"
+2. Add the following scopes:
+   - `chat:write` - Send messages
+   - `files:write` - Upload files
+   - `commands` - Handle slash commands
 
-### Command Handling
+### 3. Install the App
 
-#### POST `/api/slack/commands`
+1. Click "Install to Workspace"
+2. Authorize the app
+3. Save the Bot User OAuth Token
 
-Handles incoming Slack slash commands.
+### 4. Configure Cursor Autopilot
 
-**Request Body:**
+Add the following to your `config.yaml`:
+
+```yaml
+slack:
+  bot_token: "xoxb-your-bot-token"
+  signing_secret: "your-signing-secret"
+  webhook_url: "https://hooks.slack.com/services/your/webhook/url"
+```
+
+## API Endpoints
+
+### 1. Enable/Disable Auto Mode
+
+**Endpoint:** `POST /api/slack/auto`
+
+Toggle automatic keystroke sending.
+
+#### Request
+
 ```json
 {
-  "command": "/cursor",
-  "text": "command_name [arguments]",
-  "user_id": "U0123456789",
-  "channel_id": "C0123456789",
-  "team_id": "T0123456789"
+  "command": "/auto",
+  "text": "on|off",
+  "response_url": "https://hooks.slack.com/commands/your/response/url"
 }
 ```
 
-**Response:**
-```json
-{
-  "response_type": "in_channel",
-  "text": "Command processed successfully"
-}
-```
+#### Response
 
-**Supported Commands:**
-- `/cursor enable_auto` - Enable automatic mode
-- `/cursor disable_auto` - Disable automatic mode
-- `/cursor screenshot` - Take a screenshot of the IDE
-- `/cursor set_timeout <seconds>` - Set continuation prompt timeout
-- `/cursor set_prompt <prompt_text>` - Set continuation or initial prompt
-
-### Event Subscriptions
-
-#### POST `/api/slack/events`
-
-Handles Slack events using the Events API.
-
-**Request Body:**
-```json
-{
-  "type": "event_callback",
-  "event": {
-    "type": "message",
-    "channel": "C0123456789",
-    "user": "U0123456789",
-    "text": "message content",
-    "ts": "1234567890.123456"
-  }
-}
-```
-
-**Response:**
-```json
-{
-  "ok": true
-}
-```
-
-**Supported Events:**
-- `message` - Process channel messages
-- `app_mention` - Handle bot mentions
-- `reaction_added` - Process emoji reactions
-
-### Interactive Components
-
-#### POST `/api/slack/interactivity`
-
-Handles interactive message components like buttons and modals.
-
-**Request Body:**
-```json
-{
-  "type": "block_actions",
-  "user": {
-    "id": "U0123456789"
-  },
-  "actions": [{
-    "action_id": "action_identifier",
-    "value": "selected_value"
-  }]
-}
-```
-
-**Response:**
+Success:
 ```json
 {
   "response_type": "in_channel",
-  "replace_original": true,
-  "text": "Action processed successfully"
+  "blocks": [
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "Auto mode has been *enabled*"
+      }
+    }
+  ]
 }
 ```
 
-### File Upload
-
-#### POST `/api/slack/files/upload`
-
-Uploads files (such as screenshots) to Slack channels.
-
-**Request Body (multipart/form-data):**
-```
-file: [binary file data]
-channels: C0123456789
-title: Screenshot 2024-03-21
-```
-
-**Response:**
+Error:
 ```json
 {
-  "ok": true,
-  "file": {
-    "id": "F0123456789",
-    "url_private": "https://files.slack.com/..."
-  }
+  "response_type": "ephemeral",
+  "blocks": [
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "Error: Invalid command format. Use `/auto on` or `/auto off`"
+      }
+    }
+  ]
 }
 ```
 
-## Error Handling
+### 2. Get Screenshot
 
-All endpoints follow a consistent error response format:
+**Endpoint:** `POST /api/slack/screenshot`
+
+Capture and upload a screenshot of the IDE.
+
+#### Request
 
 ```json
 {
-  "ok": false,
-  "error": "error_code",
-  "error_message": "Human-readable error description"
+  "command": "/screenshot",
+  "text": "cursor|windsurf",
+  "response_url": "https://hooks.slack.com/commands/your/response/url"
 }
 ```
 
-Common error codes:
-- `invalid_auth` - Invalid or expired tokens
-- `missing_scope` - Missing required OAuth scopes
-- `channel_not_found` - Invalid channel ID
-- `rate_limited` - Too many requests
-- `invalid_arguments` - Invalid command arguments
+#### Response
+
+Success:
+```json
+{
+  "response_type": "in_channel",
+  "blocks": [
+    {
+      "type": "image",
+      "title": {
+        "type": "plain_text",
+        "text": "IDE Screenshot"
+      },
+      "image_url": "https://example.com/screenshots/123.png",
+      "alt_text": "IDE Screenshot"
+    }
+  ]
+}
+```
+
+Error:
+```json
+{
+  "response_type": "ephemeral",
+  "blocks": [
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "Error: Failed to capture screenshot. Platform not found."
+      }
+    }
+  ]
+}
+```
+
+### 3. Set Timeout
+
+**Endpoint:** `POST /api/slack/timeout`
+
+Set the inactivity delay before sending continuation prompts.
+
+#### Request
+
+```json
+{
+  "command": "/timeout",
+  "text": "300",
+  "response_url": "https://hooks.slack.com/commands/your/response/url"
+}
+```
+
+#### Response
+
+Success:
+```json
+{
+  "response_type": "in_channel",
+  "blocks": [
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "Inactivity delay set to *300* seconds"
+      }
+    }
+  ]
+}
+```
+
+Error:
+```json
+{
+  "response_type": "ephemeral",
+  "blocks": [
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "Error: Invalid timeout value. Must be a positive number."
+      }
+    }
+  ]
+}
+```
+
+### 4. Set Prompt
+
+**Endpoint:** `POST /api/slack/prompt`
+
+Set the initial or continuation prompt.
+
+#### Request
+
+```json
+{
+  "command": "/prompt",
+  "text": "initial|continue Your prompt text here",
+  "response_url": "https://hooks.slack.com/commands/your/response/url"
+}
+```
+
+#### Response
+
+Success:
+```json
+{
+  "response_type": "in_channel",
+  "blocks": [
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "Prompt updated successfully"
+      }
+    }
+  ]
+}
+```
+
+Error:
+```json
+{
+  "response_type": "ephemeral",
+  "blocks": [
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "Error: Invalid prompt format. Use `/prompt initial|continue Your text`"
+      }
+    }
+  ]
+}
+```
+
+## Error Codes and Handling
+
+The API uses standard HTTP status codes and provides detailed error messages:
+
+- `200 OK`: Request successful
+- `400 Bad Request`: Invalid request format or parameters
+- `401 Unauthorized`: Invalid or missing authentication
+- `403 Forbidden`: Insufficient permissions
+- `404 Not Found`: Resource not found
+- `500 Internal Server Error`: Server-side error
+
+All error responses include:
+- Error message
+- Error code
+- Suggested action (if applicable)
 
 ## Rate Limiting
 
-- Default rate limit: 50 requests per minute per workspace
-- File upload rate limit: 20 uploads per minute
-- Endpoints use standard Slack API rate limiting headers:
-  - `Retry-After`: Seconds to wait before retrying
-  - `X-Rate-Limit-Limit`: Total allowed requests
-  - `X-Rate-Limit-Remaining`: Remaining requests
-  - `X-Rate-Limit-Reset`: Timestamp when limit resets
+The API implements rate limiting to prevent abuse:
+- 100 requests per minute per workspace
+- 1000 requests per hour per workspace
 
-## Best Practices
+Rate limit responses include:
+- Current limit
+- Remaining requests
+- Reset time
 
-1. **Error Handling**
-   - Always check response status codes
-   - Implement exponential backoff for rate limits
-   - Log detailed error information
+## Security
 
-2. **Performance**
-   - Cache channel and user information
-   - Batch updates when possible
-   - Use RTM API for real-time requirements
+### Authentication
+- All requests must include a valid Slack signing secret
+- Requests are verified using Slack's signature verification
+- Bot tokens are required for certain operations
 
-3. **Security**
-   - Validate all incoming requests
-   - Use environment variables for tokens
-   - Implement request signing verification
+### Data Protection
+- No sensitive data is stored
+- Screenshots are temporary and deleted after sending
+- All communication is encrypted (HTTPS)
 
-4. **Maintenance**
-   - Monitor API usage and rate limits
-   - Keep tokens and scopes up to date
-   - Regular testing of all endpoints
+## Troubleshooting
 
-## Example Usage
+### Common Issues
 
-### Command Processing
+1. **Command not working**
+   - Verify the app is installed in your workspace
+   - Check the bot token in config.yaml
+   - Ensure the app has the required permissions
+
+2. **Screenshot failures**
+   - Verify the platform is running
+   - Check file permissions
+   - Ensure the webhook URL is correct
+
+3. **Rate limiting**
+   - Check your current rate limit status
+   - Implement exponential backoff
+   - Consider caching responses
+
+### Debug Mode
+
+Enable debug mode in `config.yaml` to get detailed logs:
+
+```yaml
+slack:
+  debug: true
+```
+
+## Examples
+
+### Python Integration
 
 ```python
-from slack_sdk import WebClient
-from slack_sdk.errors import SlackApiError
+import requests
+import json
 
-client = WebClient(token=BOT_TOKEN)
-
-try:
-    # Handle enable_auto command
-    response = client.chat_postMessage(
-        channel=channel_id,
-        text="Automatic mode enabled",
-        thread_ts=thread_ts
+def send_slack_command(command, text, response_url):
+    payload = {
+        "command": command,
+        "text": text,
+        "response_url": response_url
+    }
+    
+    response = requests.post(
+        "http://localhost:5000/api/slack/command",
+        json=payload,
+        headers={"Content-Type": "application/json"}
     )
-except SlackApiError as e:
-    print(f"Error: {e.response['error']}")
+    
+    return response.json()
 ```
 
-### Event Handling
+### JavaScript Integration
 
-```python
-@app.event("app_mention")
-def handle_mention(event, say):
-    try:
-        say(
-            text="I received your mention!",
-            thread_ts=event.get("thread_ts", event["ts"])
-        )
-    except Exception as e:
-        print(f"Error handling mention: {str(e)}")
-```
-
-## Testing
-
-The API includes a set of test endpoints for verifying integration:
-
-### GET `/api/slack/test`
-
-Tests basic connectivity and authentication.
-
-**Response:**
-```json
-{
-  "ok": true,
-  "authenticated": true,
-  "bot_user_id": "U0123456789"
+```javascript
+async function sendSlackCommand(command, text, responseUrl) {
+    const response = await fetch('http://localhost:5000/api/slack/command', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            command,
+            text,
+            response_url: responseUrl
+        })
+    });
+    
+    return await response.json();
 }
 ```
 
-### POST `/api/slack/test/command`
+### cURL Examples
 
-Tests command processing without affecting production channels.
+```bash
+# Enable auto mode
+curl -X POST http://localhost:5000/api/slack/auto \
+     -H "Content-Type: application/json" \
+     -d '{"command": "/auto", "text": "on"}'
 
-**Request Body:**
-```json
-{
-  "command": "/cursor",
-  "text": "test_command",
-  "channel_id": "C0123456789"
-}
-```
-
-**Response:**
-```json
-{
-  "ok": true,
-  "command_received": true
-}
+# Get screenshot
+curl -X POST http://localhost:5000/api/slack/screenshot \
+     -H "Content-Type: application/json" \
+     -d '{"command": "/screenshot", "text": "cursor"}'
 ``` 

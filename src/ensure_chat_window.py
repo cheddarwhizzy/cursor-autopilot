@@ -2,11 +2,11 @@ import time
 import os
 import json
 import yaml
-from actions.send_to_cursor import get_cursor_window_id, take_cursor_screenshot, send_keys, kill_cursor, launch_platform
-from actions.openai_vision import is_chat_window_open
+from src.actions.send_to_cursor import get_cursor_window_id, take_cursor_screenshot, send_keys, kill_cursor, launch_platform
+from src.actions.openai_vision import is_chat_window_open
 import subprocess
 import logging
-from utils.colored_logging import setup_colored_logging
+from src.utils.colored_logging import setup_colored_logging
 
 def get_config():
     config_path = os.path.join(os.path.dirname(__file__), "config.yaml")

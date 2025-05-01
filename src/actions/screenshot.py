@@ -1,7 +1,7 @@
 import os
 import subprocess
 import logging
-from utils.colored_logging import setup_colored_logging
+from src.utils.colored_logging import setup_colored_logging
 
 # Configure logging
 setup_colored_logging(debug=os.environ.get("CURSOR_AUTOPILOT_DEBUG") == "true")

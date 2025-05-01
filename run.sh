@@ -1,150 +1,282 @@
 #!/bin/bash
 
-# Check if pyenv is installed
-if ! command -v pyenv >/dev/null 2>&1; then
-    echo "pyenv is required but not found."
-    echo "Would you like to install it now with 'brew install pyenv'?"
-    read -p "Press [Enter] to install or Ctrl+C to cancel..."
-    if command -v brew >/dev/null 2>&1; then
-        brew install pyenv
-        if ! command -v pyenv >/dev/null 2>&1; then
-            echo "pyenv installation failed. Please install it manually and re-run this script."
-            exit 1
+# Exit on error
+set -e
+
+# Function to check if a command exists
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+# Function to log messages
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
+}
+
+# Function to check if a process is running
+is_process_running() {
+    pgrep -f "$1" >/dev/null
+}
+
+# Function to kill existing processes
+kill_existing_processes() {
+    if [ "$CURSOR_AUTOPILOT_NO_KILL_EXISTING" != "true" ]; then
+        log "Checking for existing processes..."
+        if is_process_running "python.*cursor-autopilot"; then
+            log "Killing existing processes..."
+            pkill -f "python.*cursor-autopilot"
+            sleep 2
         fi
-    else
-        echo "Homebrew is not installed. Please install Homebrew first: https://brew.sh/"
+    fi
+}
+
+# Function to start a platform
+start_platform() {
+    local platform=$1
+    local project_path=$2
+    
+    case "$platform" in
+        "cursor")
+            log "Starting Cursor..."
+            # Check if application is already running
+            if ! pgrep -x "Cursor" > /dev/null; then
+                # Different ways to attempt opening the app
+                if [ -d "/Applications/Cursor.app" ]; then
+                    open -a "Cursor" "$project_path"
+                elif [ -d "/Applications/cursor.app" ]; then
+                    open -a "cursor" "$project_path"
+                else
+                    # Try different variations
+                    open -a "Cursor" "$project_path" 2>/dev/null || \
+                    open -a "cursor" "$project_path" 2>/dev/null || \
+                    open "$project_path"
+                fi
+            else
+                log "Cursor is already running, activating..."
+                osascript -e 'tell application "Cursor" to activate'
+            fi
+            ;;
+        "windsurf")
+            log "Starting Windsurf..."
+            # Check if application is already running
+            if ! pgrep -x "Windsurf" > /dev/null && ! pgrep -x "WindSurf" > /dev/null; then
+                # Different ways to attempt opening the app
+                if [ -d "/Applications/Windsurf.app" ]; then
+                    open -a "Windsurf" "$project_path"
+                elif [ -d "/Applications/WindSurf.app" ]; then
+                    open -a "WindSurf" "$project_path"
+                else
+                    # Try different variations
+                    open -a "Windsurf" "$project_path" 2>/dev/null || \
+                    open -a "WindSurf" "$project_path" 2>/dev/null || \
+                    open -a "windsurf" "$project_path" 2>/dev/null || \
+                    open "$project_path"
+                fi
+            else
+                log "Windsurf is already running, activating..."
+                osascript -e 'tell application "Windsurf" to activate' 2>/dev/null || \
+                osascript -e 'tell application "WindSurf" to activate' 2>/dev/null
+            fi
+            ;;
+        *)
+            log "Error: Unknown platform: $platform"
+            exit 1
+            ;;
+    esac
+}
+
+# Check for required commands
+for cmd in python3 pip pyenv; do
+    if ! command_exists "$cmd"; then
+        log "Error: $cmd is required but not installed"
+        exit 1
+    fi
+done
+
+# Check if pyenv is installed
+if ! command_exists pyenv; then
+    log "Error: pyenv is required but not installed"
+    exit 1
+fi
+
+# Set Python version
+PYTHON_VERSION="3.11.0"
+log "Setting Python version to $PYTHON_VERSION..."
+pyenv install -s "$PYTHON_VERSION"
+pyenv global "$PYTHON_VERSION"
+
+# Create and activate virtual environment
+VENV_DIR=".venv"
+if [ ! -d "$VENV_DIR" ]; then
+    log "Creating virtual environment..."
+    python3 -m venv "$VENV_DIR"
+fi
+
+log "Activating virtual environment..."
+source "$VENV_DIR/bin/activate"
+
+# Install required packages
+log "Installing required packages..."
+pip install -r requirements.txt -q
+
+# Install additional packages that might be missing
+log "Installing additional dependencies..."
+pip install pyautogui pyyaml openai requests -q
+
+# Load configuration
+log "Loading configuration..."
+python3 -m src.cli "$@"
+if [ $? -ne 0 ]; then
+    log "Error: Failed to load configuration"
+    exit 1
+fi
+
+# Debug logging for environment variables
+if [ "$CURSOR_AUTOPILOT_DEBUG" = "true" ]; then
+    log "DEBUG: Environment variables after CLI:"
+    log "DEBUG: CURSOR_AUTOPILOT_PLATFORM='$CURSOR_AUTOPILOT_PLATFORM'"
+    log "DEBUG: CURSOR_AUTOPILOT_PROJECT_PATH='$CURSOR_AUTOPILOT_PROJECT_PATH'"
+    log "DEBUG: CURSOR_AUTOPILOT_INACTIVITY_DELAY='$CURSOR_AUTOPILOT_INACTIVITY_DELAY'"
+    log "DEBUG: CURSOR_AUTOPILOT_DEBUG='$CURSOR_AUTOPILOT_DEBUG'"
+fi
+
+# Check if project path is set
+if [ -z "$CURSOR_AUTOPILOT_PROJECT_PATH" ]; then
+    log "Error: Project path not set"
+    # Add fallback for CLI argument
+    for arg in "$@"; do
+        if [[ $arg == --project-path=* ]]; then
+            CURSOR_AUTOPILOT_PROJECT_PATH="${arg#*=}"
+            log "Using project path from CLI argument: $CURSOR_AUTOPILOT_PROJECT_PATH"
+            break
+        elif [[ $prev_arg == "--project-path" ]]; then
+            CURSOR_AUTOPILOT_PROJECT_PATH="$arg"
+            log "Using project path from CLI argument: $CURSOR_AUTOPILOT_PROJECT_PATH"
+            break
+        fi
+        prev_arg="$arg"
+    done
+    
+    # Still not set?
+    if [ -z "$CURSOR_AUTOPILOT_PROJECT_PATH" ]; then
         exit 1
     fi
 fi
 
-# Set Python version using pyenv
-echo "Setting Python version to 3.13.2..."
-pyenv local 3.13.2
-
-# Create and activate virtual environment if it doesn't exist
-if [ ! -d "venv" ]; then
-    echo "Creating virtual environment..."
-    python -m venv venv
+# Check if platform is set
+if [ -z "$CURSOR_AUTOPILOT_PLATFORM" ]; then
+    log "Error: Platform not set"
+    # Add fallback for CLI argument
+    for arg in "$@"; do
+        if [[ $arg == --platform=* ]]; then
+            CURSOR_AUTOPILOT_PLATFORM="${arg#*=}"
+            log "Using platform from CLI argument: $CURSOR_AUTOPILOT_PLATFORM"
+            break
+        elif [[ $prev_arg == "--platform" ]]; then
+            CURSOR_AUTOPILOT_PLATFORM="$arg"
+            log "Using platform from CLI argument: $CURSOR_AUTOPILOT_PLATFORM"
+            break
+        fi
+        prev_arg="$arg"
+    done
+    
+    # Still not set?
+    if [ -z "$CURSOR_AUTOPILOT_PLATFORM" ]; then
+        exit 1
+    fi
 fi
 
-# Activate virtual environment
-echo "Activating virtual environment..."
-source venv/bin/activate
-
-# Verify Python version
-PYTHON_VERSION=$(python --version 2>&1 | awk '{print $2}')
-if [[ ! "$PYTHON_VERSION" =~ ^3\.13\. ]]; then
-    echo "Error: Virtual environment is not using Python 3.13+ (current version: $PYTHON_VERSION)"
-    echo "Please delete the venv directory and run this script again"
-    exit 1
+# Set environment variables if needed
+if [ -z "$CURSOR_AUTOPILOT_INACTIVITY_DELAY" ]; then
+    CURSOR_AUTOPILOT_INACTIVITY_DELAY=125
 fi
 
-# Install required packages
-echo "Installing required Python packages..."
-pip install -r requirements.txt 2>&1 > /dev/null
-
-# Check for tesseract-ocr (needed for pytesseract)
-if ! command -v tesseract >/dev/null 2>&1; then
-  echo "Warning: tesseract-ocr is not installed. Please install it with 'brew install tesseract' for OCR support."
+if [ "$CURSOR_AUTOPILOT_DEBUG" != "true" ]; then
+    CURSOR_AUTOPILOT_DEBUG=true
 fi
 
-# === CONFIGURATION ===
-# Extract PROJECT_PATH and PLATFORM from config.yaml
-export CONFIG_FILE="$(dirname "$0")/config.yaml"
-if [ -f "$CONFIG_FILE" ]; then
-  CONFIG_VALUES=$(python3 -c 'import yaml,os; c=yaml.safe_load(open(os.environ["CONFIG_FILE"])); p=c["platforms"][list(c["platforms"].keys())[0]]; print(os.path.expanduser(p["project_path"]) + "\t" + list(c["platforms"].keys())[0])' CONFIG_FILE="$CONFIG_FILE")
-  PROJECT_PATH=$(echo "$CONFIG_VALUES" | cut -f1)
-  PLATFORM=$(echo "$CONFIG_VALUES" | cut -f2)
-else
-  echo "Error: config.yaml not found. Set CONFIG_FILE environment variable to the path of your config.yaml file."
-  exit 1
-fi
+# Fix variables to export for main script
+export CURSOR_AUTOPILOT_PROJECT_PATH
+export CURSOR_AUTOPILOT_PLATFORM
+export CURSOR_AUTOPILOT_INACTIVITY_DELAY
+export CURSOR_AUTOPILOT_DEBUG
 
-# The initial prompt is now stored in initial_prompt.txt
+# Kill existing processes
+kill_existing_processes
 
-# Parse flags for auto mode and send message behavior
-auto_mode=0
-send_message=true
-debug_mode=false
-
-for arg in "$@"; do
-  case $arg in
-    --auto)
-      auto_mode=1
-      ;;
-    --no-auto)
-      auto_mode=0
-      ;;
-    --no-send)
-      send_message=false
-      ;;
-    --send)
-      send_message=true
-      ;;
-    --debug)
-      debug_mode=true
-      ;;
-  esac
+# Start each platform
+IFS=',' read -ra PLATFORMS <<< "$CURSOR_AUTOPILOT_PLATFORM"
+for platform in "${PLATFORMS[@]}"; do
+    log "Starting platform: $platform with project path: $CURSOR_AUTOPILOT_PROJECT_PATH"
+    start_platform "$platform" "$CURSOR_AUTOPILOT_PROJECT_PATH"
 done
 
-export CURSOR_AUTOPILOT_AUTO_MODE=$auto_mode
-export CURSOR_AUTOPILOT_DEBUG=$debug_mode
+# Start the watcher script
+log "Starting watcher script..."
+# Debug environment variables
+log "Environment variables for watcher:"
+log "CURSOR_AUTOPILOT_PLATFORM=$CURSOR_AUTOPILOT_PLATFORM"
+log "CURSOR_AUTOPILOT_PROJECT_PATH=$CURSOR_AUTOPILOT_PROJECT_PATH"
+log "CURSOR_AUTOPILOT_INACTIVITY_DELAY=$CURSOR_AUTOPILOT_INACTIVITY_DELAY"
+log "CURSOR_AUTOPILOT_DEBUG=$CURSOR_AUTOPILOT_DEBUG"
 
-# Update send_message in config.yaml only if PLATFORM is set
-if [ -n "$PLATFORM" ]; then
-python3 -c '
-import yaml
-import os
-config_file = os.environ["CONFIG_FILE"]
-platform = os.environ["PLATFORM"]
-with open(config_file, "r") as f:
-    config = yaml.safe_load(f)
-config["platforms"][platform]["options"]["enable_auto_mode"] = True if "'$send_message'" == "true" else False
-config["platforms"][platform]["options"]["debug"] = True if "'$debug_mode'" == "true" else False
-config["platforms"][platform]["options"]["inactivity_delay"] = config["platforms"][platform]["options"].get("inactivity_delay", 120)  # Default to 120 seconds if not set
-with open(config_file, "w") as f:
-    yaml.dump(config, f, indent=2)
-'
-fi
-
-# === STEP 1: KILL EXISTING APPLICATION IF RUNNING ===
-if [ "$PLATFORM" = "windsurf" ]; then
-  pkill -f "Windsurf" || true
-  APP_NAME="Windsurf"
+# Use existing config.yaml as base
+CONFIG_FILE="config.yaml"
+if [ ! -f "$CONFIG_FILE" ]; then
+    log "Warning: $CONFIG_FILE not found. Creating a minimal config file."
+    # Create a minimal config file
+    cat > "$CONFIG_FILE" << EOL
+platforms:
+  windsurf:
+    os_type: osx
+    window_title: WindSurf
+    project_path: $CURSOR_AUTOPILOT_PROJECT_PATH
+    initialization:
+      - keys: "command+l"
+        delay_ms: 100
+    options:
+      inactivity_prompt: "Continue working on the task. Here's what I've done so far..."
+      
+inactivity_delay: $CURSOR_AUTOPILOT_INACTIVITY_DELAY
+debug: $CURSOR_AUTOPILOT_DEBUG
+EOL
 else
-  pkill -f "Cursor" || true
-  APP_NAME="Cursor"
+    log "Using existing $CONFIG_FILE as base configuration"
 fi
 
-# === STEP 2: OPEN FOLDER IN APPROPRIATE APPLICATION ===
-if [ "$PLATFORM" = "cursor" ]; then
-  if command -v cursor >/dev/null 2>&1; then
-    echo "Detected cursor CLI, opening project with cursor CLI..."
-    cursor "$PROJECT_PATH"
-  else
-    echo "Opening project in Cursor using AppleScript..."
-    osascript <<EOF
-      tell application "Cursor"
-        activate
-        open POSIX file "$PROJECT_PATH"
-      end tell
-EOF
-  fi
+# Run the watcher script with command line arguments as overrides
+cd "$(dirname "$0")"
+log "Running watcher script from $(pwd)..."
+
+CLI_ARGS=""
+if [ -n "$CURSOR_AUTOPILOT_PLATFORM" ]; then
+    CLI_ARGS="$CLI_ARGS --platform $CURSOR_AUTOPILOT_PLATFORM"
+fi
+if [ -n "$CURSOR_AUTOPILOT_PROJECT_PATH" ]; then
+    CLI_ARGS="$CLI_ARGS --project-path $CURSOR_AUTOPILOT_PROJECT_PATH"
+fi
+if [ -n "$CURSOR_AUTOPILOT_INACTIVITY_DELAY" ]; then
+    CLI_ARGS="$CLI_ARGS --inactivity-delay $CURSOR_AUTOPILOT_INACTIVITY_DELAY"
+fi
+if [ "$CURSOR_AUTOPILOT_DEBUG" = "true" ]; then
+    CLI_ARGS="$CLI_ARGS --debug"
+fi
+
+log "Running with CLI arguments: $CLI_ARGS"
+if python3 -m src.cli $CLI_ARGS; then
+    if python3 -m src.watcher; then
+        log "Watcher script completed successfully"
+    else
+        error_code=$?
+        log "Error: Watcher script failed with exit code $error_code"
+        exit $error_code
+    fi
 else
-  echo "Opening project with open -a $APP_NAME ..."
-  open -a "$APP_NAME" "$PROJECT_PATH"
+    error_code=$?
+    log "Error: CLI script failed with exit code $error_code"
+    exit $error_code
 fi
 
-python3 generate_initial_prompt.py
-
-# Ensure chat window is open using OpenAI Vision
-python3 ensure_chat_window.py "$PLATFORM"
-
-# Send the initial prompt immediately after opening the chat window, starting a new chat
-if [ -f "initial_prompt.txt" ]; then
-  python3 -c 'import yaml,os; from actions.send_to_cursor import send_prompt; config=yaml.safe_load(open(os.environ["CONFIG_FILE"])); platform=os.environ.get("PLATFORM", "cursor"); p=config["platforms"][platform]; send_prompt(open("initial_prompt.txt").read().strip(), platform=platform, new_chat=True, send_message=p["options"].get("enable_auto_mode", True))'
-fi
-
-# Start Slack bot and watcher together with combined logs
-echo "Starting Slack bot and Cursor watcher... (auto mode: $auto_mode, send messages: $send_message)"
-python3 run_both.py $auto_mode "$PLATFORM"
+# Deactivate virtual environment
+log "Deactivating virtual environment..."
+deactivate

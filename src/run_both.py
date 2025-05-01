@@ -5,7 +5,8 @@ import sys
 import os
 import logging
 import yaml
-from utils.colored_logging import setup_colored_logging
+import time
+from src.utils.colored_logging import setup_colored_logging
 
 # Configure logging
 setup_colored_logging(debug=os.environ.get("CURSOR_AUTOPILOT_DEBUG") == "true")
@@ -51,7 +52,8 @@ def run_watcher():
     )
     stream_output(process, "WATCH")
 
-if __name__ == "__main__":
+def main():
+    """Main function to run both Flask server and watcher process."""
     logger.info("Starting both processes...")
     
     # Start each process in its own thread
@@ -72,3 +74,6 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         logger.info("Shutting down...")
         sys.exit(0)
+
+if __name__ == "__main__":
+    main()

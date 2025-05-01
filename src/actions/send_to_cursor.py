@@ -1,10 +1,12 @@
 import subprocess
 import os
 import time
-from actions.openai_vision import is_chat_window_open
+from src.actions.openai_vision import is_chat_window_open
 import yaml
 import logging
-from utils.colored_logging import setup_colored_logging
+from src.utils.colored_logging import setup_colored_logging
+from typing import Optional, List, Dict
+from .keystrokes import send_keystrokes, send_keystroke_sequence, activate_window
 
 # Configure logging
 setup_colored_logging(debug=os.environ.get("CURSOR_AUTOPILOT_DEBUG") == "true")
@@ -27,17 +29,15 @@ def get_project_name():
     config = get_config()
     return config.get("project_path", {}).get("name")
 
-def get_cursor_window_id(max_retries=5, delay=1, platform="cursor"):
+def get_cursor_window_id(app_name: str = "Cursor", project_name: Optional[str] = None, max_retries: int = 3, delay: float = 1.0) -> Optional[str]:
     """
-    Gets the window ID of the Cursor/Windsurf app using AppleScript.
-    Retries several times if not found, with debug info.
-    Returns the window ID as a string, or None if not found.
+    Get the window ID of the Cursor/Windsurf window.
     """
-    project_name = get_project_name()
     if not project_name:
         logger.info("No project name found in config, will try to find any window")
     
-    app_name = "Windsurf" if platform == "windsurf" else "Cursor"
+    if not project_name:
+        project_name = get_project_name()
     
     # List all windows and their properties
     windows_script = f'''
@@ -107,10 +107,9 @@ def activate_platform(platform="cursor"):
     time.sleep(3)
     logger.info("Done.")
 
-def take_cursor_screenshot(filename="cursor_window.png", platform="cursor"):
+def take_cursor_screenshot(filename: str = "cursor_window.png", platform: str = "cursor") -> Optional[str]:
     """
-    Takes a screenshot of the Cursor/Windsurf window and saves it as filename.
-    Returns the path to the screenshot, or None if failed.
+    Take a screenshot of the Cursor/Windsurf window.
     """
     project_name = get_project_name()
     if not project_name:
@@ -224,7 +223,7 @@ def take_cursor_screenshot(filename="cursor_window.png", platform="cursor"):
     
     return None
 
-def send_keys(key_sequence, platform="cursor"):
+def send_keys(key_sequence: List[str], platform: str = "cursor") -> bool:
     """
     Send a sequence of keystrokes to Cursor/Windsurf.
     key_sequence should be a list of strings, e.g. ["command down", "l", "command up"]
@@ -232,43 +231,38 @@ def send_keys(key_sequence, platform="cursor"):
     logger.info(f"Sending key sequence: {key_sequence}")
     
     # First make sure Cursor/Windsurf is properly activated
-    activate_script = f'''
-    tell application "{'Windsurf' if platform == 'windsurf' else 'Cursor'}" to activate
-    delay 1
-    tell application "System Events"
-        tell process "{'Windsurf' if platform == 'windsurf' else 'Cursor'}"
-            set frontmost to true
-        end tell
-    end tell
-    delay 1
-    '''
-    
-    logger.info("Ensuring app is active...")
-    activate_result = subprocess.run(["osascript", "-e", activate_script], capture_output=True, text=True)
-    if activate_result.returncode != 0:
-        logger.warning(f"Error activating app: {activate_result.stderr}")
+    app_name = "Windsurf" if platform == "windsurf" else "Cursor"
+    if not activate_window(app_name):
+        logger.warning(f"Error activating app: {app_name}")
+        return False
     
     # Add a delay to ensure app is ready
     logger.info("Waiting 2 seconds for app to be ready...")
     time.sleep(2)
     
-    # Now send the keystroke
-    script = f'''
-    tell application "System Events"
-        tell process "{'Windsurf' if platform == 'windsurf' else 'Cursor'}"
-            keystroke "l" using {{command down}}
-        end tell
-    end tell
-    '''
+    # Convert key sequence to pyautogui format
+    keys = []
+    modifiers = []
     
-    logger.info("Executing keystroke...")
-    result = subprocess.run(["osascript", "-e", script], capture_output=True, text=True)
-    if result.returncode == 0:
-        logger.info("Keys sent successfully")
+    for key in key_sequence:
+        if key.endswith(" down"):
+            modifiers.append(key[:-5])
+        elif key.endswith(" up"):
+            pass  # We'll handle this in the hotkey
+        else:
+            keys.append(key)
+    
+    # Send the keystrokes
+    if modifiers:
+        pyautogui.hotkey(*modifiers, *keys)
     else:
-        logger.error(f"Error sending keys: {result.stderr}")
+        for key in keys:
+            pyautogui.press(key)
+    
+    logger.info("Keys sent successfully")
+    return True
 
-def send_prompt(prompt, platform="cursor", new_chat=False, initial_delay=0, send_message=True):
+def send_prompt(prompt: str, platform: str = "cursor", new_chat: bool = False, initial_delay: int = 0, send_message: bool = True) -> bool:
     """
     Send a prompt to the specified platform with verbose logging and delays.
     """
@@ -281,68 +275,45 @@ def send_prompt(prompt, platform="cursor", new_chat=False, initial_delay=0, send
     
     # Activate the application
     logger.info(f"Activating {app_name}...")
-    activate_platform(platform)
+    if not activate_window(app_name):
+        logger.error(f"Failed to activate {app_name}")
+        return False
     
     if new_chat:
         logger.info(f"Creating new chat window in {app_name}...")
         if platform == "cursor":
             # Send Command+N to create a new chat
-            script = f'''
-            tell application "System Events"
-                tell process "{app_name}"
-                    keystroke "n" using {{command down}}
-                end tell
-            end tell
-            '''
-            logger.info("Sending Command+N to create new chat...")
-            subprocess.run(["osascript", "-e", script])
+            if not send_keystrokes("command+n"):
+                return False
             logger.info("Waiting 2 seconds for new chat to open...")
             time.sleep(2)
             
             # Open the chat window with Command+L
             logger.info("Sending Command+L to open chat window...")
-            script = f'''
-            tell application "System Events"
-                tell process "{app_name}"
-                    keystroke "l" using {{command down}}
-                end tell
-            end tell
-            '''
-            subprocess.run(["osascript", "-e", script])
+            if not send_keystrokes("command+l"):
+                return False
             logger.info("Waiting 2 seconds for chat window to fully open...")
             time.sleep(2)
         else:  # windsurf
             # Send Command+Shift+L to create a new chat
             logger.info("Sending Command+Shift+L to create new chat...")
-            script = f'''
-            tell application "System Events"
-                tell process "{app_name}"
-                    keystroke "l" using {{command down, shift down}}
-                end tell
-            end tell
-            '''
-            subprocess.run(["osascript", "-e", script])
+            if not send_keystrokes("command+shift+l"):
+                return False
             logger.info("Waiting 2 seconds for new chat to open...")
             time.sleep(2)
     
     # Clear any existing text with Command+A then backspace
     logger.info("Clearing any existing text...")
-    script = f'''
-    tell application "System Events"
-        tell process "{app_name}"
-            -- Select all text
-            keystroke "a" using {{command down}}
-            delay 0.1
-            
-            -- Press delete key multiple times to ensure text is cleared
-            repeat 10 times
-                key code 51  -- Delete/Backspace key
-                delay 0.05
-            end repeat
-        end tell
-    end tell
-    '''
-    subprocess.run(["osascript", "-e", script])
+    if not send_keystrokes("command+a"):
+        return False
+    time.sleep(0.1)
+    
+    # Press delete key multiple times to ensure text is cleared
+    for _ in range(10):
+        if not send_keystrokes("backspace"):
+            return False
+        time.sleep(0.05)
+    
     logger.info("Waiting 1 second after clearing text...")
     time.sleep(1)
     
@@ -353,41 +324,23 @@ def send_prompt(prompt, platform="cursor", new_chat=False, initial_delay=0, send
     for i, line in enumerate(lines):
         # Send the line
         logger.info(f"Sending line {i+1}/{len(lines)}: {line[:50]}{'...' if len(line) > 50 else ''}")
-        script = f'''
-        tell application "System Events"
-            tell process "{app_name}"
-                keystroke "{line.replace('"', '\\"')}"
-            end tell
-        end tell
-        '''
-        subprocess.run(["osascript", "-e", script])
+        pyautogui.write(line)
         
         if i < len(lines) - 1:
             logger.info("Sending Shift+Enter for newline...")
-            script = f'''
-            tell application "System Events"
-                tell process "{app_name}"
-                    key code 36 using {{shift down}}  -- Shift+Enter
-                end tell
-            end tell
-            '''
-            subprocess.run(["osascript", "-e", script])
+            if not send_keystrokes("shift+enter"):
+                return False
             logger.info("Waiting 0.8 seconds after newline...")
             time.sleep(0.8)
         elif send_message:
             logger.info("Sending Enter to send message...")
-            script = f'''
-            tell application "System Events"
-                tell process "{app_name}"
-                    key code 36  -- Enter
-                end tell
-            end tell
-            '''
-            subprocess.run(["osascript", "-e", script])
+            if not send_keystrokes("enter"):
+                return False
             logger.info("Waiting 1 second after sending message...")
             time.sleep(1)
     
     logger.info("Prompt sent successfully!")
+    return True
 
 def kill_cursor(platform="cursor"):
     """Kill the Cursor or Windsurf application if it's running."""
@@ -411,22 +364,22 @@ def kill_cursor(platform="cursor"):
     else:
         logger.info(f"{app_name} is not running.")
 
-def launch_platform(platform="cursor"):
+def launch_platform(platform: str = "cursor") -> bool:
     """Launch Cursor or Windsurf and wait for it to be ready."""
     app_name = "Windsurf" if platform == "windsurf" else "Cursor"
     logger.info(f"Starting {app_name}...")
-    subprocess.run(["open", "-a", app_name])
+    
+    if platform.system().lower() == 'darwin':
+        subprocess.run(["open", "-a", app_name])
+    elif platform.system().lower() == 'windows':
+        subprocess.run(["start", app_name])
+    elif platform.system().lower() == 'linux':
+        subprocess.run(["xdg-open", app_name])
     
     # Wait for process to appear
     logger.info(f"Waiting for {app_name} process...")
     for _ in range(10):  # Try for 10 seconds
-        check_script = f'''
-        tell application "System Events"
-            count (every process whose name is "{app_name}")
-        end tell
-        '''
-        result = subprocess.run(["osascript", "-e", check_script], capture_output=True, text=True)
-        if result.returncode == 0 and result.stdout.strip() != "0":
+        if activate_window(app_name):
             logger.info(f"{app_name} process detected.")
             break
         time.sleep(1)
@@ -434,14 +387,8 @@ def launch_platform(platform="cursor"):
     # For Windsurf, press Enter to clear any dialog boxes
     if platform == "windsurf":
         logger.info("Pressing Enter to clear any dialog boxes in Windsurf...")
-        script = '''
-        tell application "System Events"
-            tell process "Windsurf"
-                key code 36  -- Enter key
-            end tell
-        end tell
-        '''
-        subprocess.run(["osascript", "-e", script])
+        if not send_keystrokes("enter"):
+            return False
         logger.info("Waiting 1 second after pressing Enter...")
         time.sleep(1)
     
@@ -450,3 +397,4 @@ def launch_platform(platform="cursor"):
     time.sleep(5)
     
     logger.info("Done.")
+    return True
