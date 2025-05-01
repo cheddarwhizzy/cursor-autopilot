@@ -14,6 +14,7 @@ from typing import Dict, List, Optional, Tuple
 import base64
 import json
 import subprocess
+import argparse
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
@@ -24,11 +25,38 @@ from src.generate_initial_prompt import (
     DEFAULT_CONTINUATION_PROMPT
 )
 
+# Parse command line arguments
+def parse_args():
+    parser = argparse.ArgumentParser(description='Cursor Autopilot Watcher')
+    parser.add_argument('--auto', action='store_true', help='Enable auto mode')
+    parser.add_argument('--debug', action='store_true', help='Enable debug logging')
+    parser.add_argument('--no-send', action='store_true', help='Disable sending messages')
+    parser.add_argument('--project-path', type=str, help='Override project path from config')
+    parser.add_argument('--inactivity-delay', type=int, help='Override inactivity delay in seconds')
+    parser.add_argument('--platform', type=str, help='Override platform to use')
+    
+    return parser.parse_args()
+
+# Get command line arguments
+args = parse_args()
+
 # Configure logging first before any other imports that might use it
-setup_colored_logging(debug=True)  # Always enable debug logging
+setup_colored_logging(debug=args.debug or True)  # Always enable debug logging
 logger = logging.getLogger('watcher')
 logger.setLevel(logging.DEBUG)  # Set logger level to DEBUG
 logger.debug("Debug logging enabled")
+
+# Log command line arguments
+if args.project_path:
+    logger.info(f"Command line project path override: {args.project_path}")
+if args.auto:
+    logger.info("Auto mode enabled")
+if args.no_send:
+    logger.info("Message sending disabled")
+if args.inactivity_delay:
+    logger.info(f"Inactivity delay override: {args.inactivity_delay} seconds")
+if args.platform:
+    logger.info(f"Platform override: {args.platform}")
 
 # Import OpenAI after logger is defined
 try:
@@ -87,15 +115,24 @@ INITIAL_PROMPT_SENT_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__
 logger.debug(f"Initial prompt sent file path: {INITIAL_PROMPT_SENT_FILE}")
 
 # Exclude patterns
-EXCLUDE_DIRS = {'.git', '.idea', 'node_modules', '__pycache__', 'venv', '.env'}
+EXCLUDE_DIRS = {"node_modules", ".git", "dist", "__pycache__", ".idea", "venv", ".env"}
 EXCLUDE_FILES = {'*.pyc', '*.pyo', '*.pyd', '*.so', '*.dll', '*.exe', '*.tmp', '*.log', '*.swp', '*.swo'}
 GITIGNORE_PATTERNS = set()
 
 # Load gitignore patterns
-def load_gitignore_patterns(gitignore_path):
+def load_gitignore_patterns(project_path):
+    """
+    Find and load all .gitignore files in the project path and its parent directories
+    Returns a set of gitignore patterns
+    """
+    logger.debug(f"Loading .gitignore patterns from {project_path}")
     patterns = set()
-    if os.path.exists(gitignore_path):
-        with open(gitignore_path, "r") as f:
+    
+    # First check if there's a .gitignore in the project root
+    root_gitignore = os.path.join(project_path, ".gitignore")
+    if os.path.exists(root_gitignore):
+        logger.debug(f"Found root .gitignore at {root_gitignore}")
+        with open(root_gitignore, "r") as f:
             for line in f:
                 line = line.strip()
                 if not line or line.startswith('#'):
@@ -105,11 +142,55 @@ def load_gitignore_patterns(gitignore_path):
                     patterns.add(line.rstrip('/'))
                 else:
                     patterns.add(line)
+        logger.debug(f"Loaded {len(patterns)} patterns from root .gitignore")
+    
+    # Then find all .gitignore files in subdirectories
+    for root, dirs, files in os.walk(project_path):
+        if ".gitignore" in files:
+            gitignore_path = os.path.join(root, ".gitignore")
+            logger.debug(f"Found .gitignore at {gitignore_path}")
+            try:
+                with open(gitignore_path, "r") as f:
+                    subdir_patterns = set()
+                    for line in f:
+                        line = line.strip()
+                        if not line or line.startswith('#'):
+                            continue
+                        # Remove trailing slashes for directory patterns
+                        if line.endswith('/'):
+                            subdir_patterns.add(line.rstrip('/'))
+                        else:
+                            subdir_patterns.add(line)
+                    
+                    # Get relative path from project root to this .gitignore file's directory
+                    rel_path = os.path.relpath(root, project_path)
+                    if rel_path == ".":
+                        # This is already the root .gitignore which we handled above
+                        continue
+                    
+                    # Add patterns with path prefix for non-root .gitignore files
+                    for pattern in subdir_patterns:
+                        if pattern.startswith('/'):
+                            # Absolute path within repo - add directory prefix
+                            patterns.add(os.path.join(rel_path, pattern.lstrip('/')))
+                        elif not pattern.startswith('*') and '/' not in pattern:
+                            # Simple filename/dirname - add directory prefix
+                            patterns.add(os.path.join(rel_path, pattern))
+                        else:
+                            # Pattern with wildcards - add both with and without prefix
+                            patterns.add(pattern)
+                            patterns.add(os.path.join(rel_path, pattern))
+                    
+                    logger.debug(f"Loaded {len(subdir_patterns)} patterns from {gitignore_path}")
+            except Exception as e:
+                logger.error(f"Error loading {gitignore_path}: {e}")
+    
+    logger.info(f"Loaded a total of {len(patterns)} gitignore patterns")
     return patterns
 
 # Initialize global variables with default values
-GITIGNORE_PATH = os.path.join(os.path.dirname(__file__), ".gitignore")
-GITIGNORE_PATTERNS = load_gitignore_patterns(GITIGNORE_PATH)
+GITIGNORE_PATH = ""
+GITIGNORE_PATTERNS = set()
 
 # Set up EXCLUDE_DIRS for os.walk (directories only)
 EXCLUDE_DIRS.update({"node_modules", ".git", "dist", "__pycache__"})
@@ -138,7 +219,7 @@ def load_config():
     Returns True if successful, False otherwise
     """
     try:
-        global config, PLATFORM, WATCH_PATH, INACTIVITY_DELAY, openai_client
+        global config, PLATFORM, WATCH_PATH, INACTIVITY_DELAY, openai_client, GITIGNORE_PATTERNS
         
         logger.debug("Starting configuration load...")
         
@@ -159,15 +240,24 @@ def load_config():
             logger.error("No platforms configured")
             return False
             
-        # Initialize platforms - check general.active_platforms first
-        if config.get("general", {}).get("active_platforms"):
-            active_platforms = config["general"]["active_platforms"]
-            logger.debug(f"Using active_platforms from general section: {active_platforms}")
-            # Filter the list to only include platforms that exist in the config
-            PLATFORM = [p for p in active_platforms if p in config["platforms"]]
+        # Override platform if specified in command line
+        if args.platform:
+            if args.platform in config["platforms"]:
+                PLATFORM = [args.platform]
+                logger.info(f"Using platform override from command line: {args.platform}")
+            else:
+                logger.error(f"Platform {args.platform} not found in config")
+                return False
         else:
-            # Fallback to using all platforms
-            PLATFORM = list(config["platforms"].keys())
+            # Initialize platforms - check general.active_platforms first
+            if config.get("general", {}).get("active_platforms"):
+                active_platforms = config["general"]["active_platforms"]
+                logger.debug(f"Using active_platforms from general section: {active_platforms}")
+                # Filter the list to only include platforms that exist in the config
+                PLATFORM = [p for p in active_platforms if p in config["platforms"]]
+            else:
+                # Fallback to using all platforms
+                PLATFORM = list(config["platforms"].keys())
             
         logger.debug(f"Final active platforms: {PLATFORM}")
         
@@ -183,8 +273,13 @@ def load_config():
             logger.warning("OpenAI API key not configured")
             openai_client = None
             
-        # Set inactivity delay
-        INACTIVITY_DELAY = config.get("inactivity_delay", 120)
+        # Set inactivity delay - override from command line if provided
+        if args.inactivity_delay:
+            INACTIVITY_DELAY = args.inactivity_delay
+            logger.info(f"Using inactivity delay override from command line: {INACTIVITY_DELAY}")
+        else:
+            INACTIVITY_DELAY = config.get("inactivity_delay", 120)
+            
         logger.debug(f"Set inactivity delay to {INACTIVITY_DELAY}")
         
         # Validate platform configurations
@@ -196,8 +291,16 @@ def load_config():
                 logger.error(f"No configuration found for platform {platform}")
                 return False
                 
-            # Get project path
-            project_path = platform_config.get("project_path", "")
+            # Get project path - override from command line if provided
+            if args.project_path and platform == PLATFORM[0]:  # Apply override to first/active platform
+                project_path = args.project_path
+                logger.info(f"Using project path override from command line for {platform}: {project_path}")
+                
+                # Update the config with the override
+                config["platforms"][platform]["project_path"] = project_path
+            else:
+                project_path = platform_config.get("project_path", "")
+            
             logger.debug(f"Platform {platform} project path: {project_path}")
             
             if not project_path:
@@ -218,6 +321,9 @@ def load_config():
         WATCH_PATH = next(iter(platform_paths.values()))
         logger.debug(f"Set WATCH_PATH to {WATCH_PATH}")
         
+        # Load gitignore patterns from the watch path
+        GITIGNORE_PATTERNS = load_gitignore_patterns(WATCH_PATH)
+        
         # Log configuration
         logger.info("Configuration loaded successfully:")
         logger.info(f"Platforms: {', '.join(PLATFORM)}")
@@ -225,6 +331,7 @@ def load_config():
         logger.info(f"Active project path: {WATCH_PATH}")
         logger.info(f"Task file path: {config.get('task_file_path', 'tasks.md')}")
         logger.info(f"Inactivity delay: {INACTIVITY_DELAY} seconds")
+        logger.info(f"Loaded {len(GITIGNORE_PATTERNS)} gitignore patterns")
         
         return True
         
@@ -364,6 +471,43 @@ def send_slack_message(message: str, channel: str = "automation"):
     except Exception as e:
         logger.error(f"Error sending Slack message: {e}")
 
+def should_ignore_file(file_path, rel_path, platform_path):
+    """
+    Check if a file should be ignored based on exclude patterns and gitignore rules
+    
+    Args:
+        file_path: Absolute path to the file
+        rel_path: Path relative to the platform directory
+        platform_path: Absolute path to the platform directory
+        
+    Returns:
+        bool: True if the file should be ignored
+    """
+    # Skip files in excluded directories
+    for exclude_dir in EXCLUDE_DIRS:
+        if exclude_dir in file_path.split(os.sep):
+            return True
+    
+    # Skip excluded file types
+    for pattern in EXCLUDE_FILES:
+        if fnmatch.fnmatch(os.path.basename(file_path), pattern):
+            return True
+    
+    # Skip gitignore patterns
+    for pattern in GITIGNORE_PATTERNS:
+        # Handle patterns with directory components
+        if os.sep in pattern:
+            if fnmatch.fnmatch(rel_path, pattern):
+                return True
+            # Also try with / separator for cross-platform compatibility
+            if fnmatch.fnmatch(rel_path, pattern.replace(os.sep, '/')):
+                return True
+        # Handle filename-only patterns
+        elif fnmatch.fnmatch(os.path.basename(file_path), pattern):
+            return True
+    
+    return False
+
 def hash_folder_state():
     """
     Scan directory for changes and return:
@@ -397,7 +541,7 @@ def hash_folder_state():
     # Walk through each platform's directory
     for platform, watch_path in platform_paths.items():
         for root, dirs, files in os.walk(watch_path):
-            # Filter out excluded directories
+            # Filter out excluded directories in-place to prevent walking them
             dirs[:] = [d for d in dirs if d not in EXCLUDE_DIRS and not any(fnmatch.fnmatch(d, pat) for pat in GITIGNORE_PATTERNS)]
             
             # Process files
@@ -405,8 +549,8 @@ def hash_folder_state():
                 file_path = os.path.join(root, file)
                 rel_path = os.path.relpath(file_path, watch_path)
                 
-                # Skip excluded files
-                if any(fnmatch.fnmatch(rel_path, pat) for pat in EXCLUDE_FILES):
+                # Skip ignored files
+                if should_ignore_file(file_path, rel_path, watch_path):
                     continue
                 
                 # Get file stats
@@ -523,7 +667,7 @@ def run_watcher():
             time.sleep(1) # Give time for window activation
             
             # Send initialization keystrokes
-            if initialization:
+            if initialization and not args.no_send:
                 logger.info(f"Sending initialization keystrokes to {platform}")
                 for keystroke in initialization:
                     keys = keystroke.get("keys", "")
@@ -533,15 +677,21 @@ def run_watcher():
                         if delay_ms > 0:
                             time.sleep(delay_ms / 1000)
                         send_keystroke(keys, platform)
+            elif initialization and args.no_send:
+                logger.info(f"Skipping initialization keystrokes to {platform} (--no-send enabled)")
             
             # Send initial prompt content
             if initial_prompt_content:
-                 logger.info(f"Sending initial prompt content to {platform}...")
-                 # Activate window again just in case
-                 activate_window(window_title)
-                 time.sleep(0.5)
-                 send_keystroke_string(initial_prompt_content, platform)
-                 last_activity_time = time.time() # Reset timer after sending prompt
+                 if not args.no_send:
+                     logger.info(f"Sending initial prompt content to {platform}...")
+                     # Activate window again just in case
+                     activate_window(window_title)
+                     time.sleep(0.5)
+                     send_keystroke_string(initial_prompt_content, platform)
+                     last_activity_time = time.time() # Reset timer after sending prompt
+                 else:
+                     logger.info(f"Skipping initial prompt content to {platform} (--no-send enabled)")
+                     last_activity_time = time.time() # Reset timer anyway
 
         # Create the flag file after sending to all platforms
         try:
@@ -625,7 +775,13 @@ def run_watcher():
                         context_file = platform_config.get("additional_context_path", "context.md")
                         
                         # Resolve absolute paths relative to project path if needed
-                        project_path = os.path.expanduser(platform_config.get("project_path", "."))
+                        # Apply project path override if provided by command line
+                        if args.project_path and platform == PLATFORM[0]:  # Apply override to first/active platform
+                            project_path = args.project_path
+                            logger.info(f"Using command line project path override for continuation prompt: {project_path}")
+                        else:
+                            project_path = os.path.expanduser(platform_config.get("project_path", "."))
+                            
                         continuation_prompt_file = os.path.join(project_path, continuation_prompt_file) if continuation_prompt_file else None
                         task_file = os.path.join(project_path, task_file)
                         context_file = os.path.join(project_path, context_file)
@@ -654,13 +810,17 @@ def run_watcher():
                             
                         logger.debug(f"Sending continuation prompt content to {platform} (length: {len(continuation_prompt_content)})...")
                         
-                        # Activate window
-                        window_title = platform_config.get("window_title", platform)
-                        activate_window(window_title)
-                        time.sleep(0.5)
-                        
-                        # Type the prompt
-                        send_keystroke_string(continuation_prompt_content, platform)
+                        # Only send if not in no-send mode
+                        if not args.no_send:
+                            # Activate window
+                            window_title = platform_config.get("window_title", platform)
+                            activate_window(window_title)
+                            time.sleep(0.5)
+                            
+                            # Type the prompt
+                            send_keystroke_string(continuation_prompt_content, platform)
+                        else:
+                            logger.info(f"Skipping continuation prompt to {platform} (--no-send enabled)")
                         
                     last_activity_time = time.time() # Reset timer after sending prompt
                 else:
@@ -753,6 +913,11 @@ def send_prompt(prompt, platform=None, delay_ms=0):
         delay_ms: Delay in milliseconds before sending keystrokes
     """
     try:
+        # Check if sending is disabled via command line
+        if args.no_send:
+            logger.info(f"Sending prompt to {platform} skipped (--no-send enabled): {prompt}")
+            return
+            
         # Get platform configuration
         if not platform:
             platform = PLATFORM[0]
@@ -795,6 +960,11 @@ def send_keystroke(key, platform):
         platform: The platform to send the keystroke to
     """
     try:
+        # Check if sending is disabled via command line
+        if args.no_send:
+            logger.info(f"Sending keystroke to {platform} skipped (--no-send enabled): {key}")
+            return
+            
         logger.info(f"Sending keystroke to {platform}: {key}")
         
         # Get platform configuration
@@ -1042,6 +1212,11 @@ def send_keystroke_string(text, platform):
         platform: The platform to send the text to
     """
     try:
+        # Check if sending is disabled via command line
+        if args.no_send:
+            logger.info(f"Sending text to {platform} skipped (--no-send enabled): {text[:100]}...")
+            return
+            
         logger.info(f"Sending text to {platform}: {text}")
         
         # Get platform configuration
