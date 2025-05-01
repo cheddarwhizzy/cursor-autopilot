@@ -34,7 +34,7 @@ platforms:
   windsurf:
     os_type: osx  # or 'windows' or 'linux'
     window_title: "WindSurf"
-    project_path: "/Users/cheddarwhizzy/cheddar/cursor-autopilot"
+    project_path: "/Users/cheddarwhizzy/cheddar/guzzyworld/guzzy-world"
     task_file_path: "tasks.md"
     additional_context_path: "architecture.md"
     # initial_prompt_file_path: "initial_prompt.txt"

@@ -14,6 +14,8 @@ from typing import Dict, List, Optional, Tuple
 import base64
 import json
 import subprocess
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
 
 # Import prompt generation logic
 from src.generate_initial_prompt import (
@@ -1096,9 +1098,15 @@ def send_keystroke_string(text, platform):
                     # Run the AppleScript for this line
                     subprocess.run(['osascript', '-e', line_script], check=False)
                     
-                    # If not the last line, press Return
+                    # If not the last line, press Shift+Return for a newline
                     if i < len(lines) - 1:
-                        subprocess.run(['osascript', '-e', 'tell application "System Events" to key code 36'], check=False)
+                        # Use shift+return for newline instead of submitting
+                        shift_return_script = '''
+                        tell application "System Events"
+                            key code 36 using {shift down}
+                        end tell
+                        '''
+                        subprocess.run(['osascript', '-e', shift_return_script], check=False)
                         time.sleep(0.1)  # Small delay between lines
                 
                 # Press Return after the entire text to submit it
