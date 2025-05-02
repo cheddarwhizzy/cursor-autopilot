@@ -8,7 +8,11 @@ For a detailed quick start guide, see [Quick Start Guide](./docs/quick_start.md)
 
 Basic usage:
 ```bash
-./run.sh --platform cursor
+# Run with default project path from config.yaml
+./run.sh
+
+# Run with a specific project path override
+./run.sh --project-path /path/to/your/project --platform cursor
 ```
 
 ## Core Concepts
@@ -33,11 +37,15 @@ See [Configuration Guide](./docs/configuration/yaml_configuration.md) for detail
 
 Basic configuration in `config.yaml`:
 ```yaml
-project_path: "$(pwd)"
-platform: "cursor"
-inactivity_delay: 300
-send_message: true
-debug: false
+# Basic config.yaml structure expected by run.sh
+platforms:
+  windsurf:
+    # Set the default project path (can be overridden with --project-path flag)
+    project_path: "/path/to/your/default/project" # Or use "$(pwd)"
+# general:
+  # inactivity_delay: 300
+  # send_message: true
+  # debug: false
 ```
 
 ## Documentation
@@ -67,10 +75,12 @@ cursor-autopilot/
 
 ## Debugging
 
-Enable debug mode:
-```bash
-./run.sh --platform cursor --debug
-```
+# Enable debug mode:
+# ```bash
+# ./run.sh --platform cursor --debug # Note: --debug flag is not currently parsed by run.sh
+# ```
+
+Check the script logs for detailed information during execution.
 
 ## License
 

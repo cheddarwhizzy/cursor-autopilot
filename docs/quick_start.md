@@ -24,11 +24,15 @@ touch tasks.md context.md
 ```bash
 # Create a basic config.yaml
 cat > config.yaml << EOL
-project_path: "$(pwd)"
-platform: "cursor"
-inactivity_delay: 300
-send_message: true
-debug: false
+# Basic config.yaml structure expected by run.sh
+platforms:
+  windsurf:
+    # Set the default project path (can be overridden with --project-path flag)
+    project_path: "$(pwd)"
+# general:
+  # inactivity_delay: 300
+  # send_message: true
+  # debug: false
 EOL
 ```
 
@@ -64,19 +68,17 @@ EOL
 
 ## Running the Application
 
-1. Start with default settings:
+1. Start with the default project path (from `config.yaml`):
 ```bash
-./run.sh --platform cursor
+./run.sh
 ```
 
-2. Start with debug mode:
+2. Start and override the project path:
 ```bash
-./run.sh --platform cursor --debug
-```
-
-3. Start with custom settings:
-```bash
-./run.sh --platform cursor --project-path /path/to/project --inactivity-delay 60
+# Use --project-path=VALUE or --project-path VALUE
+./run.sh --project-path=/path/to/your/project
+# OR
+./run.sh --project-path /path/to/your/project
 ```
 
 ## Next Steps
