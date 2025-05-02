@@ -3,17 +3,26 @@
 platforms:
   cursor:
     os_type: osx  # or 'windows' or 'linux'
+    window_title: "Cursor"
     project_path: "/Users/cheddarwhizzy/cheddar/cursor-autopilot"
     task_file_path: "tasks.md"
     additional_context_path: "architecture.md"
     # initial_prompt_file_path: "initial_prompt.txt"
     continuation_prompt_file_path: "continuation_prompt.txt"
     initialization:
-      - keys: "command+shift+p"  # For Windows: "ctrl+shift+p", For Linux: "ctrl+shift+p"
+      - keys: "control+`"
+        delay_ms: 100
+      - keys: "command+l"
         delay_ms: 100
     keystrokes:
-      - keys: "command+l"  # For Windows: "ctrl+l", For Linux: "ctrl+l"
+      - keys: "command+a"  # For Windows: "ctrl+l", For Linux: "ctrl+l"
         delay_ms: 100
+      - keys: "backspace"
+        delay_ms: 100
+      - keys: "backspace"
+        delay_ms: 100
+      - keys: "command+l"
+        delay_ms: 100 
     options:
       enable_auto_mode: true
       continuation_prompt: "Continue?"

@@ -65,6 +65,56 @@ def send_keystrokes(keys: str, delay_ms: int = 100) -> bool:
         logger.error(f"Error sending keystrokes {keys}: {e}")
         return False
 
+# Add backward compatibility function
+def send_keystroke(keys: str, platform_name: str = None, delay_ms: int = 100) -> bool:
+    """
+    Backward compatibility function for send_keystrokes.
+    
+    Args:
+        keys: String of keys to press, e.g. "command+shift+p"
+        platform_name: Optional platform name for logging context
+        delay_ms: Delay in milliseconds after sending keystrokes
+    
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    platform_str = f"[{platform_name}] " if platform_name else ""
+    logger.debug(f"{platform_str}Sending keystroke: {keys}")
+    return send_keystrokes(keys, delay_ms)
+
+def send_keystroke_string(text: str, platform_name: str = None) -> bool:
+    """
+    Send a string of text by typing it out, handling newlines appropriately.
+    
+    Args:
+        text: String of text to type
+        platform_name: Optional platform name for logging context
+    
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    try:
+        platform_str = f"[{platform_name}] " if platform_name else ""
+        logger.debug(f"{platform_str}Typing string of {len(text)} characters")
+        
+        # Split text by newlines to handle multiline text
+        lines = text.split('\n')
+        
+        # Type each line, pressing Shift+Return between lines
+        for i, line in enumerate(lines):
+            # Type the line
+            pyautogui.write(line)
+            
+            # If not the last line, press Shift+Return
+            if i < len(lines) - 1:
+                pyautogui.hotkey('shift', 'return')
+                time.sleep(0.1)  # Small delay between lines
+        
+        return True
+    except Exception as e:
+        logger.error(f"Error typing string: {e}")
+        return False
+
 def send_keystroke_sequence(sequence: List[dict]) -> bool:
     """
     Send a sequence of keystrokes with delays.
