@@ -87,9 +87,11 @@ except ImportError:
 
 # Global variables
 config = {}
-PLATFORM = []
+PLATFORM = []  # List of active platform names
+PLATFORM_STATE = {} # Dict to hold state per platform: {platform_name: {'last_activity': 0.0, ...}}
 WATCH_PATH = ""
 INACTIVITY_DELAY = 0
+last_global_prompt_time = 0.0 # Track time of the last prompt sent to any platform
 
 # Try to find config file in parent directory first, then current directory
 root_config = os.path.join(os.path.dirname(__file__), "..", "config.yaml")
@@ -203,23 +205,18 @@ OS_TYPE = "darwin" if os.uname().sysname == "Darwin" else "windows" if os.uname(
 logger.debug(f"Detected OS type: {OS_TYPE}")
 
 # Initialize global variables with default values
-PLATFORM = "cursor"
 TASK_FILE_PATH = "tasks.md"
 LAST_README_MTIME = None
 TASK_COMPLETED = False
-inactivity_delay_val = 120.0
-last_activity = 0.0
-last_prompt_time = 0.0
-inactivity_timer = 0.0
 slack_client = None
 
 def load_config():
     """
-    Load configuration from YAML file and initialize global variables
+    Load configuration from YAML file and initialize global variables, including PLATFORM_STATE
     Returns True if successful, False otherwise
     """
     try:
-        global config, PLATFORM, WATCH_PATH, INACTIVITY_DELAY, openai_client, GITIGNORE_PATTERNS
+        global config, PLATFORM, PLATFORM_STATE, openai_client, GITIGNORE_PATTERNS, TASK_FILE_PATH
         
         logger.debug("Starting configuration load...")
         
@@ -240,32 +237,43 @@ def load_config():
             logger.error("No platforms configured")
             return False
             
-        # Override platform if specified in command line
+        # Determine active platforms
+        active_platforms = []
         if args.platform:
-            if args.platform in config["platforms"]:
-                PLATFORM = [args.platform]
-                logger.info(f"Using platform override from command line: {args.platform}")
-            else:
-                logger.error(f"Platform {args.platform} not found in config")
-                return False
+            requested_platforms = [p.strip() for p in args.platform.split(',') if p.strip()]
+            logger.info(f"Platform override from command line: {requested_platforms}")
+            # Validate requested platforms against config
+            valid_platforms = []
+            invalid_platforms = []
+            for p in requested_platforms:
+                if p in config["platforms"]:
+                    valid_platforms.append(p)
+                else:
+                    invalid_platforms.append(p)
+            if invalid_platforms:
+                 logger.error(f"Invalid platform(s) specified via --platform: {invalid_platforms}. Valid platforms in config: {list(config['platforms'].keys())}")
+                 return False
+            active_platforms = valid_platforms
         else:
             # Initialize platforms - check general.active_platforms first
             if config.get("general", {}).get("active_platforms"):
-                active_platforms = config["general"]["active_platforms"]
-                logger.debug(f"Using active_platforms from general section: {active_platforms}")
+                cfg_active_platforms = config["general"]["active_platforms"]
+                logger.debug(f"Using active_platforms from general section: {cfg_active_platforms}")
                 # Filter the list to only include platforms that exist in the config
-                PLATFORM = [p for p in active_platforms if p in config["platforms"]]
+                active_platforms = [p for p in cfg_active_platforms if p in config["platforms"]]
             else:
-                # Fallback to using all platforms
-                PLATFORM = list(config["platforms"].keys())
+                # Fallback to using all platforms defined
+                logger.warning("general.active_platforms not set in config, activating ALL defined platforms.")
+                active_platforms = list(config["platforms"].keys())
             
+        PLATFORM = active_platforms # Set the global list of active platform names
         logger.debug(f"Final active platforms: {PLATFORM}")
         
         if not PLATFORM:
-            logger.error("No platforms enabled")
+            logger.error("No platforms enabled or active")
             return False
             
-        # Initialize OpenAI client if configured
+        # Initialize OpenAI client if configured (remains global)
         if config.get("openai", {}).get("api_key"):
             logger.debug("Initializing OpenAI client")
             openai_client = OpenAI(api_key=config["openai"]["api_key"])
@@ -273,97 +281,121 @@ def load_config():
             logger.warning("OpenAI API key not configured")
             openai_client = None
             
-        # Set inactivity delay - override from command line if provided
-        if args.inactivity_delay:
-            INACTIVITY_DELAY = args.inactivity_delay
-            logger.info(f"Using inactivity delay override from command line: {INACTIVITY_DELAY}")
-        else:
-            INACTIVITY_DELAY = config.get("inactivity_delay", 120)
-            
-        logger.debug(f"Set inactivity delay to {INACTIVITY_DELAY}")
+        # Set global TASK_FILE_PATH (assuming it's shared or take first platform's)
+        # This might need adjustment if it's truly per-platform
+        first_platform_cfg = config["platforms"].get(PLATFORM[0], {})
+        TASK_FILE_PATH = first_platform_cfg.get("task_file_path", "tasks.md")
+        logger.debug(f"Set global TASK_FILE_PATH to: {TASK_FILE_PATH}")
+
+        # Initialize PLATFORM_STATE for each active platform
+        PLATFORM_STATE = {}
+        all_project_paths = set() # To load gitignore patterns later
         
-        # Validate platform configurations
-        platform_paths = {}
-        for platform in PLATFORM:
-            logger.debug(f"Validating platform {platform}")
-            platform_config = config["platforms"].get(platform, {})
+        for platform_name in PLATFORM:
+            logger.debug(f"Initializing state for platform: {platform_name}")
+            platform_config = config["platforms"].get(platform_name, {})
             if not platform_config:
-                logger.error(f"No configuration found for platform {platform}")
-                return False
+                logger.error(f"Configuration missing for active platform {platform_name}")
+                return False # Should not happen due to earlier checks, but safety first
                 
-            # Get project path - override from command line if provided
-            if args.project_path and platform == PLATFORM[0]:  # Apply override to first/active platform
+            # Get project path - apply command line override if specified
+            # Note: Command line --project-path applies to ALL active platforms currently
+            if args.project_path:
                 project_path = args.project_path
-                logger.info(f"Using project path override from command line for {platform}: {project_path}")
-                
-                # Update the config with the override
-                config["platforms"][platform]["project_path"] = project_path
+                logger.info(f"Using project path override from command line for {platform_name}: {project_path}")
+                # Optionally update the main config dict? Not strictly necessary if PLATFORM_STATE holds the active path
+                # config["platforms"][platform_name]["project_path"] = project_path 
             else:
                 project_path = platform_config.get("project_path", "")
             
-            logger.debug(f"Platform {platform} project path: {project_path}")
+            logger.debug(f"Raw project path for {platform_name}: {project_path}")
             
             if not project_path:
-                logger.error(f"Project path not configured for platform {platform}")
+                logger.error(f"Project path not configured for platform {platform_name}")
                 return False
                 
             # Expand user directory
             project_path = os.path.expanduser(project_path)
-            logger.debug(f"Expanded project path for {platform}: {project_path}")
+            logger.debug(f"Expanded project path for {platform_name}: {project_path}")
             
             if not os.path.exists(project_path):
-                logger.error(f"Project path does not exist for platform {platform}: {project_path}")
+                logger.error(f"Project path does not exist for platform {platform_name}: {project_path}")
+                # Optionally allow script to continue if some paths exist? For now, fail.
                 return False
                 
-            platform_paths[platform] = project_path
+            all_project_paths.add(project_path)
+
+            # Get inactivity delay - apply command line override if specified
+            # Note: Command line --inactivity-delay applies to ALL active platforms currently
+            if args.inactivity_delay:
+                inactivity_delay = args.inactivity_delay
+                logger.info(f"Using inactivity delay override from command line for {platform_name}: {inactivity_delay}")
+            else:
+                # Use platform-specific delay, fallback to general, fallback to default
+                inactivity_delay = platform_config.get("inactivity_delay", config.get("general", {}).get("inactivity_delay", 120))
+                logger.debug(f"Using inactivity delay for {platform_name}: {inactivity_delay}")
+
+            # Populate state for this platform
+            PLATFORM_STATE[platform_name] = {
+                "project_path": project_path,
+                "inactivity_delay": inactivity_delay,
+                "last_activity": time.time(), # Initialize activity time
+                "last_prompt_time": 0.0,
+                "watch_handler": None, # Placeholder for watchdog handler
+                "observer": None, # Placeholder for watchdog observer
+                # Add other per-platform state vars as needed (e.g., specific prompt files)
+                "task_file_path": platform_config.get("task_file_path", TASK_FILE_PATH), # Use platform specific or global
+                "continuation_prompt_file_path": platform_config.get("continuation_prompt_file_path", "continuation_prompt.txt"),
+                "initial_prompt_file_path": platform_config.get("initial_prompt_file_path", None), # Optional
+                "window_title": platform_config.get("window_title", None) # Important for activation
+            }
+            logger.debug(f"State for {platform_name}: {PLATFORM_STATE[platform_name]}")
             
-        # Set watch path to first platform's project path
-        WATCH_PATH = next(iter(platform_paths.values()))
-        logger.debug(f"Set WATCH_PATH to {WATCH_PATH}")
+        # Load gitignore patterns - Use patterns from *all* unique project paths?
+        # For simplicity, let's use the first platform's path for now.
+        # A more robust solution might merge patterns or handle ignores per-path.
+        first_project_path = PLATFORM_STATE[PLATFORM[0]]["project_path"]
+        logger.info(f"Loading gitignore patterns based on project path: {first_project_path}")
+        GITIGNORE_PATTERNS = load_gitignore_patterns(first_project_path)
         
-        # Load gitignore patterns from the watch path
-        GITIGNORE_PATTERNS = load_gitignore_patterns(WATCH_PATH)
-        
-        # Log configuration
-        logger.info("Configuration loaded successfully:")
-        logger.info(f"Platforms: {', '.join(PLATFORM)}")
-        logger.info(f"Platform paths: {platform_paths}")
-        logger.info(f"Active project path: {WATCH_PATH}")
-        logger.info(f"Task file path: {config.get('task_file_path', 'tasks.md')}")
-        logger.info(f"Inactivity delay: {INACTIVITY_DELAY} seconds")
-        logger.info(f"Loaded {len(GITIGNORE_PATTERNS)} gitignore patterns")
+        # Log combined configuration overview
+        logger.info("Configuration loaded successfully for multiple platforms:")
+        for platform_name in PLATFORM:
+             state = PLATFORM_STATE[platform_name]
+             logger.info(f"  Platform: {platform_name}")
+             logger.info(f"    Project Path: {state['project_path']}")
+             logger.info(f"    Inactivity Delay: {state['inactivity_delay']}s")
+             logger.info(f"    Window Title: {state.get('window_title', 'N/A')}")
+             # Add more logged state vars if helpful
+        logger.info(f"Loaded {len(GITIGNORE_PATTERNS)} gitignore patterns (from {first_project_path})")
         
         return True
         
     except Exception as e:
-        logger.error(f"Error loading configuration: {e}")
-        logger.exception("Full traceback:")
+        logger.error(f"Error loading configuration: {e}", exc_info=True) # Add traceback
         return False
 
+# Helper function to get config for a specific platform
 def get_platform_config(platform_name: str) -> Dict:
-    """Get platform-specific configuration with OS-specific keystrokes."""
-    platform_config = config["platforms"].get(platform_name, {})
-    if not platform_config:
-        return {}
-    
-    # Map OS-specific keystrokes
-    os_type = platform_config.get("os_type", "osx")
-    if os_type != OS_TYPE:
-        logger.warning(f"Platform {platform_name} configured for {os_type} but running on {OS_TYPE}")
-    
-    # Convert keystrokes based on OS
-    keystrokes = platform_config.get("keystrokes", [])
-    for keystroke in keystrokes:
-        keys = keystroke["keys"]
-        if OS_TYPE == "windows":
-            keys = keys.replace("command", "ctrl")
-        elif OS_TYPE == "linux":
-            keys = keys.replace("command", "ctrl")
-        keystroke["keys"] = keys
-    
-    return platform_config
+    """
+    Retrieve the static configuration for a given platform name.
+    """
+    if not config: # Ensure config is loaded
+         logger.warning("Accessing platform config before load_config called.")
+         return {}
+    return config.get("platforms", {}).get(platform_name, {})
 
-def check_vision_conditions(file_path, event_type, platform):
+# Helper function to get state for a specific platform
+def get_platform_state(platform_name: str) -> Dict:
+    """
+    Retrieve the dynamic state for a given platform name.
+    """
+    if not PLATFORM_STATE: # Ensure state is initialized
+         logger.warning("Accessing platform state before load_config called.")
+         return {}
+    return PLATFORM_STATE.get(platform_name, {})
+
+def check_vision_conditions(file_path, event_type, platform_name):
     """
     Check if vision analysis should be triggered for a file change
     Returns tuple of (question, keystrokes) if conditions are met, None otherwise
@@ -371,79 +403,79 @@ def check_vision_conditions(file_path, event_type, platform):
     try:
         # Skip if OpenAI is not configured
         if not openai_client:
-            logger.debug("Skipping vision analysis - OpenAI client not initialized")
+            logger.debug(f"[{platform_name}] Skipping vision analysis - OpenAI client not initialized")
             return None
-            
-        # Get platform-specific configuration
-        platform_config = config["platforms"].get(platform, {})
-        if not platform_config:
-            logger.warning(f"No configuration found for platform {platform}")
-            return None
-        
-        # Check if vision analysis is enabled for this platform
+
+        # Get platform-specific configuration and options
+        platform_config = get_platform_config(platform_name)
         options = platform_config.get("options", {})
-        if not options or not options.get("enable_vision", False):
-            logger.debug(f"Vision analysis not enabled for platform {platform}")
+        vision_options = config.get("openai", {}).get("vision", {}) # Global vision config
+
+        if not vision_options.get("enabled", False):
+             logger.debug(f"[{platform_name}] Skipping vision analysis - Global OpenAI Vision not enabled.")
+             return None
+
+        # Check platform-specific vision conditions
+        platform_vision_conditions = options.get("vision_conditions", [])
+        if not platform_vision_conditions:
+            logger.debug(f"[{platform_name}] Skipping vision analysis - No vision_conditions defined for this platform.")
             return None
-            
-        # Check if file exists
+
+        # Check if file exists (should normally exist for modify/create)
         if not os.path.exists(file_path):
-            logger.warning(f"File does not exist: {file_path}")
+            logger.warning(f"[{platform_name}] File does not exist for vision check: {file_path}")
             return None
-            
-        # Get file extension
-        _, ext = os.path.splitext(file_path)
-        if not ext:
-            logger.debug(f"File has no extension: {file_path}")
+
+        condition_met = None
+        for condition in platform_vision_conditions:
+            file_pattern = condition.get("file_type")
+            action_trigger = condition.get("action") # e.g., "save" (maps to modify/create)
+
+            # Check if action matches event type
+            action_matches = False
+            if action_trigger == "save" and event_type in ["modified", "created"]:
+                action_matches = True
+            # Add other action mappings if needed
+
+            # Check if file pattern matches
+            file_matches = False
+            if file_pattern and fnmatch.fnmatch(os.path.basename(file_path), file_pattern):
+                file_matches = True
+
+            if action_matches and file_matches:
+                condition_met = condition
+                logger.debug(f"[{platform_name}] Vision condition met for {file_path}: {condition}")
+                break # Use the first matching condition
+
+        if not condition_met:
+            logger.debug(f"[{platform_name}] No matching vision condition found for {file_path} and event {event_type}")
             return None
-        
-        # Check if file type is supported for vision analysis
-        supported_extensions = options.get("vision_extensions", [])
-        if ext.lower() not in supported_extensions:
-            logger.debug(f"File extension {ext} not in supported vision extensions: {supported_extensions}")
-            return None
-        
-        # Check if file is too large for vision analysis
-        max_size = options.get("max_vision_file_size", 10 * 1024 * 1024)  # Default 10MB
-        if os.path.getsize(file_path) > max_size:
-            logger.warning(f"File {file_path} too large for vision analysis")
-            return None
-        
-        # Get vision prompt template
-        prompt_template = options.get("vision_prompt", "")
-        if not prompt_template:
-            logger.warning(f"No vision prompt template configured for platform {platform}")
-            return None
-        
-        # Format prompt with file information
-        prompt = prompt_template.format(
-            file_path=file_path,
-            event_type=event_type,
-            platform=platform
-        )
-        logger.debug(f"Using vision prompt: {prompt}")
-        
-        # Get vision analysis result
-        vision_result = analyze_vision(file_path, prompt)
-        if not vision_result:
-            logger.debug("Vision analysis returned no result")
-            return None
-        
-        logger.debug(f"Vision result: {vision_result}")
-        
-        # Parse vision result into question and keystrokes
-        question = vision_result.get("question", "")
-        keystrokes = vision_result.get("keystrokes", [])
-        
-        if not question or not keystrokes:
-            logger.debug("Missing question or keystrokes in vision result")
-            return None
-        
-        return question, keystrokes
-        
+
+        # Get question and keystrokes from the matched condition
+        question = condition_met.get("question")
+        success_keystrokes = condition_met.get("success_keystrokes", []) # TODO: Actually use the vision result to decide success/failure
+        # failure_keystrokes = condition_met.get("failure_keystrokes", [])
+
+        if not question:
+             logger.warning(f"[{platform_name}] Vision condition matched, but no 'question' defined: {condition_met}")
+             return None # Or decide on default behavior
+
+        # --- TODO: Implement actual vision call and result processing ---
+        # 1. Take screenshot (using pyautogui or platform-specific tool)
+        # 2. Encode screenshot
+        # 3. Call OpenAI Vision API with screenshot and `question`
+        # 4. Parse response - does it indicate success or failure based on the question?
+        # 5. Return the appropriate keystrokes (success_keystrokes or failure_keystrokes)
+        logger.info(f"[{platform_name}] Vision condition met. Question: '{question}'. Sending SUCCESS keystrokes for now.")
+        # For now, assume success and return success_keystrokes
+        if not success_keystrokes:
+             logger.warning(f"[{platform_name}] Vision condition matched, but no 'success_keystrokes' defined: {condition_met}")
+             return None
+
+        return question, success_keystrokes # Returning question for logging, keystrokes for action
+
     except Exception as e:
-        logger.error(f"Error checking vision conditions: {e}")
-        logger.exception("Full traceback:")
+        logger.error(f"[{platform_name}] Error checking vision conditions: {e}", exc_info=True)
         return None
 
 def send_slack_message(message: str, channel: str = "automation"):
@@ -594,252 +626,332 @@ def hash_folder_state():
 
 def run_watcher():
     """
-    Main watcher loop that monitors file changes and triggers actions
+    Main watcher loop: Sets up observers, handles initialization,
+    and manages inactivity/staggered prompts for multiple platforms.
     """
     logger.debug("Starting run_watcher...")
-    
-    # Initialize global variables
-    global CONFIG_MTIME, LAST_HASH, FILE_MTIMES
-    
+
+    global CONFIG_MTIME, last_global_prompt_time
+
     # Load configuration
     if not load_config():
-        logger.error("Failed to load configuration")
+        logger.error("Failed to load initial configuration. Exiting.")
         return
-    
-    logger.info("Starting file watcher...")
-    
-    # Initialize time tracking variables
-    last_activity_time = time.time() # Use this to track last file change or prompt sent
-    
-    # Initialize file tracking variables
-    if LAST_HASH is None:
-        logger.debug("Initializing file state hash...")
-        current_hash, _, total_files = hash_folder_state()
-        LAST_HASH = current_hash
-        logger.debug(f"Initialized LAST_HASH to {LAST_HASH} with {total_files} files")
-    
+
+    # --- Setup Watchdog Observers ---
+    observers = []
+    if not PLATFORM_STATE:
+         logger.error("PLATFORM_STATE is empty after loading config. Exiting.")
+         return
+
+    for platform_name, state in PLATFORM_STATE.items():
+        project_path = state.get("project_path")
+        if not project_path or not os.path.isdir(project_path):
+            logger.error(f"[{platform_name}] Invalid project path: {project_path}. Skipping observer setup.")
+            continue
+
+        logger.info(f"[{platform_name}] Setting up file watcher for path: {project_path}")
+        event_handler = PlatformEventHandler(platform_name)
+        observer = Observer()
+        observer.schedule(event_handler, project_path, recursive=True)
+
+        # Store observer and handler in state
+        state["observer"] = observer
+        state["watch_handler"] = event_handler # Might not be strictly needed if handler acts directly
+
+        observers.append(observer) # Keep track for starting/stopping all
+        logger.debug(f"[{platform_name}] Observer scheduled.")
+
+    if not observers:
+        logger.error("No valid observers could be scheduled. Exiting.")
+        return
+
+    # Start all observers
+    for observer in observers:
+        observer.start()
+    logger.info(f"Started {len(observers)} file watcher observers.")
+
+
     # Initialize configuration tracking
     if os.path.exists(CONFIG_PATH):
         CONFIG_MTIME = os.path.getmtime(CONFIG_PATH)
         logger.debug(f"Initialized CONFIG_MTIME to {CONFIG_MTIME}")
-        
+
     # Check if initial prompt has already been sent
     initial_prompt_sent = os.path.exists(INITIAL_PROMPT_SENT_FILE)
     logger.debug(f"Initial prompt sent file exists: {initial_prompt_sent}")
 
-    # Send initialization keystrokes/initial prompt if needed
+    # --- Send Initialization Keystrokes/Initial Prompt ---
     if not initial_prompt_sent:
         logger.info("Initial prompt file not found. Sending initial prompts/keystrokes...")
-        for platform in PLATFORM:
-            platform_config = config["platforms"].get(platform, {})
+        for platform_name in PLATFORM: # Iterate through the active platforms
+            platform_config = get_platform_config(platform_name)
+            platform_state = get_platform_state(platform_name)
+            if not platform_config or not platform_state: continue # Should not happen
+
             initialization = platform_config.get("initialization", [])
-            options = platform_config.get("options", {})
-            
-            # Get paths for prompt generation
-            initial_prompt_file = platform_config.get("initial_prompt_file_path", None)
-            task_file = platform_config.get("task_file_path", "tasks.md")
-            context_file = platform_config.get("additional_context_path", "context.md")
-            
-            # Resolve absolute paths relative to project path if needed
-            project_path = os.path.expanduser(platform_config.get("project_path", "."))
+            options = platform_config.get("options", {}) # Platform specific options
+            general_config = config.get("general", {}) # Global options
+
+            # Get paths for prompt generation - use state for paths
+            initial_prompt_file = platform_state.get("initial_prompt_file_path") # Already resolved in load_config? Check load_config. No, need resolve here.
+            task_file = platform_state.get("task_file_path") # Already resolved in load_config? Yes.
+            context_file = platform_state.get("additional_context_path") # Needs resolving
+
+            project_path = platform_state.get("project_path")
             initial_prompt_file = os.path.join(project_path, initial_prompt_file) if initial_prompt_file else None
-            task_file = os.path.join(project_path, task_file)
-            context_file = os.path.join(project_path, context_file)
-            
-            # Try reading custom prompt, otherwise use default
-            initial_prompt_template = read_prompt_from_file(initial_prompt_file) or DEFAULT_INITIAL_PROMPT
-            logger.debug(f"Using initial prompt template (from file: {bool(initial_prompt_file)})")
-            
+            context_file = os.path.join(project_path, context_file) if context_file else None
+            task_file = os.path.join(project_path, task_file) # Ensure task_file is also absolute
+
+            # Use global initial prompt setting from general config as default base
+            # Platform-specific initial_prompt_file takes precedence
+            default_initial_prompt_template = general_config.get("initial_prompt", DEFAULT_INITIAL_PROMPT)
+            initial_prompt_template = read_prompt_from_file(initial_prompt_file) or default_initial_prompt_template
+            logger.debug(f"[{platform_name}] Using initial prompt template (from file: {bool(initial_prompt_file)})")
+
             # Format the prompt
             try:
-                initial_prompt_content = initial_prompt_template.format(task_file_path=task_file, additional_context_path=context_file)
+                # Make sure paths exist before formatting
+                task_file_content = ""
+                if task_file and os.path.exists(task_file):
+                    # task_file_content = read file content - maybe just pass path?
+                    pass # Keep path for now
+                else:
+                    logger.warning(f"[{platform_name}] Task file not found: {task_file}")
+                    task_file = "" # Avoid formatting error
+
+                context_file_content = ""
+                if context_file and os.path.exists(context_file):
+                     # context_file_content = read file content - maybe just pass path?
+                     pass # Keep path for now
+                else:
+                     logger.warning(f"[{platform_name}] Context file not found: {context_file}")
+                     context_file = "" # Avoid formatting error
+
+                # Format prompt, providing empty string if files don't exist
+                initial_prompt_content = initial_prompt_template.format(
+                    task_file_path=task_file,
+                    additional_context_path=context_file
+                )
             except KeyError as e:
-                logger.error(f"Error formatting initial prompt template (missing key {e}). Using raw template.")
+                logger.error(f"[{platform_name}] Error formatting initial prompt template (missing key {e}). Using raw template.")
                 initial_prompt_content = initial_prompt_template # Send raw template if formatting fails
-                
-            logger.debug(f"Platform {platform} initialization config: {initialization}")
-            logger.debug(f"Platform {platform} final initial_prompt content length: {len(initial_prompt_content)}")
-            
+
+            logger.debug(f"[{platform_name}] Initialization config: {initialization}")
+            logger.debug(f"[{platform_name}] Final initial_prompt content length: {len(initial_prompt_content)}")
+
             # Activate window first
-            window_title = platform_config.get("window_title", platform)
-            logger.info(f"Activating window for {platform}: {window_title}")
-            activate_window(window_title)
+            window_title = platform_state.get("window_title", platform_name)
+            logger.info(f"[{platform_name}] Activating window for initialization: {window_title}")
+            if not args.no_send: activate_window(window_title)
             time.sleep(1) # Give time for window activation
-            
+
             # Send initialization keystrokes
             if initialization and not args.no_send:
-                logger.info(f"Sending initialization keystrokes to {platform}")
+                logger.info(f"[{platform_name}] Sending initialization keystrokes...")
                 for keystroke in initialization:
                     keys = keystroke.get("keys", "")
                     delay_ms = keystroke.get("delay_ms", 0)
                     if keys:
-                        logger.info(f"Sending initialization keystroke to {platform}: {keys}")
+                        logger.debug(f"[{platform_name}] Sending init key: {keys}")
                         if delay_ms > 0:
-                            time.sleep(delay_ms / 1000)
-                        send_keystroke(keys, platform)
+                            time.sleep(delay_ms / 1000.0)
+                        send_keystroke(keys, platform_name) # Pass platform name
             elif initialization and args.no_send:
-                logger.info(f"Skipping initialization keystrokes to {platform} (--no-send enabled)")
-            
+                logger.info(f"[{platform_name}] Skipping initialization keystrokes (--no-send enabled)")
+
             # Send initial prompt content
             if initial_prompt_content:
                  if not args.no_send:
-                     logger.info(f"Sending initial prompt content to {platform}...")
+                     logger.info(f"[{platform_name}] Sending initial prompt content...")
                      # Activate window again just in case
                      activate_window(window_title)
                      time.sleep(0.5)
-                     send_keystroke_string(initial_prompt_content, platform)
-                     last_activity_time = time.time() # Reset timer after sending prompt
+                     send_keystroke_string(initial_prompt_content, platform_name) # Pass platform name
+                     platform_state["last_activity"] = time.time() # Reset timer after sending prompt
+                     platform_state["last_prompt_time"] = time.time()
+                     last_global_prompt_time = time.time() # Update global time too
                  else:
-                     logger.info(f"Skipping initial prompt content to {platform} (--no-send enabled)")
-                     last_activity_time = time.time() # Reset timer anyway
+                     logger.info(f"[{platform_name}] Skipping initial prompt content (--no-send enabled)")
+                     platform_state["last_activity"] = time.time() # Reset timer anyway
 
-        # Create the flag file after sending to all platforms
+        # Create the flag file after attempting for all platforms
         try:
             with open(INITIAL_PROMPT_SENT_FILE, 'w') as f:
-                f.write("Initial prompt sent at: " + datetime.now().isoformat())
+                f.write("Initial prompt sent attempt at: " + datetime.now().isoformat())
             logger.info(f"Created initial prompt sent file: {INITIAL_PROMPT_SENT_FILE}")
             initial_prompt_sent = True # Update state
         except Exception as e:
             logger.error(f"Failed to create initial prompt sent file: {e}")
     else:
         logger.info("Initial prompt file found. Skipping initial prompts/keystrokes.")
+        # Ensure initial activity time is set even if skipping prompts
+        current_time = time.time()
+        for state in PLATFORM_STATE.values():
+             state["last_activity"] = current_time
 
-    # Reset timer after initialization phase
-    last_activity_time = time.time()
-    
+
+    # --- Main Loop ---
     try:
         logger.info("Entering main watcher loop...")
-        last_hash_check = ""
-        
+        stagger_delay = config.get("general", {}).get("stagger_delay", 90) # Get stagger delay
+
         while True:
+            current_time = time.time()
+
             # Check for configuration changes
             if os.path.exists(CONFIG_PATH):
                 current_mtime = os.path.getmtime(CONFIG_PATH)
                 if current_mtime > CONFIG_MTIME:
                     logger.info("Configuration file changed, reloading...")
+                    # TODO: Handle observer restart/update if paths change
                     if not load_config():
                         logger.error("Failed to reload configuration, continuing with previous settings")
                     else:
                         CONFIG_MTIME = current_mtime
-            
-            # Get current state (with less logging)
-            current_hash, changed_files, total_files = hash_folder_state()
-            
-            # Only log if hash changed
-            if current_hash != last_hash_check:
-                logger.debug(f"Current hash: {current_hash}, Total files: {total_files}")
-                last_hash_check = current_hash
-            
-            # Check for changes
-            if current_hash != LAST_HASH:
-                logger.info(f"Detected changes in {len(changed_files)} files")
-                last_activity_time = time.time() # Reset timer on file change
-                
-                # Process changed files
-                for platform, rel_path in changed_files:
-                    abs_path = os.path.join(config["platforms"][platform]["project_path"], rel_path)
-                    logger.info(f"File changed: {rel_path} for platform {platform}")
-                    
-                    # Check vision conditions for changed files
-                    vision_result = check_vision_conditions(abs_path, "save", platform)
-                    if vision_result:
-                        question, keystrokes = vision_result
-                        logger.info(f"Vision analysis triggered for {rel_path} in {platform}")
-                        logger.info(f"Question: {question}")
-                        for keystroke in keystrokes:
-                            send_prompt(keystroke["keys"], platform=platform, delay_ms=keystroke["delay_ms"])
-                
-                # Update last hash
-                LAST_HASH = current_hash
-            
-            # Check for inactivity and send continuation prompt
-            current_time = time.time()
-            elapsed_time = current_time - last_activity_time
-            time_remaining = INACTIVITY_DELAY - elapsed_time
+                        stagger_delay = config.get("general", {}).get("stagger_delay", 90) # Update stagger delay
+                        # Need logic here to stop/remove/add/reschedule observers if project paths changed
+                        logger.warning("Config reloaded, but observer paths might be stale. Restart recommended for path changes.")
 
-            # Log countdown periodically (e.g., every 10 seconds or when close to 0)
-            if int(time_remaining) % 10 == 0 or time_remaining < 10:
-                 logger.debug(f"Time until next continuation prompt: {time_remaining:.1f}s")
+            # --- Inactivity Check and Staggered Prompt Sending ---
+            inactive_platforms = []
+            for platform_name, state in PLATFORM_STATE.items():
+                inactivity_delay = state.get("inactivity_delay", 120)
+                last_activity = state.get("last_activity", current_time) # Default to now if not set
+                elapsed_time = current_time - last_activity
 
-            if elapsed_time > INACTIVITY_DELAY:
-                if initial_prompt_sent:
-                    logger.info("Inactivity period elapsed, sending continuation prompt...")
-                    for platform in PLATFORM:
-                        platform_config = config["platforms"].get(platform, {})
-                        options = platform_config.get("options", {})
-                        general_config = config.get("general", {})
-                        
-                        # Get paths for prompt generation
-                        continuation_prompt_file = platform_config.get("continuation_prompt_file_path", None)
-                        task_file = platform_config.get("task_file_path", "tasks.md")
-                        context_file = platform_config.get("additional_context_path", "context.md")
-                        
-                        # Resolve absolute paths relative to project path if needed
-                        # Apply project path override if provided by command line
-                        if args.project_path and platform == PLATFORM[0]:  # Apply override to first/active platform
-                            project_path = args.project_path
-                            logger.info(f"Using command line project path override for continuation prompt: {project_path}")
-                        else:
-                            project_path = os.path.expanduser(platform_config.get("project_path", "."))
-                            
-                        continuation_prompt_file = os.path.join(project_path, continuation_prompt_file) if continuation_prompt_file else None
-                        task_file = os.path.join(project_path, task_file)
-                        context_file = os.path.join(project_path, context_file)
-                        
-                        # Try reading custom prompt file
-                        continuation_prompt_template = read_prompt_from_file(continuation_prompt_file)
-                        
-                        if continuation_prompt_template:
-                            logger.debug(f"Using continuation prompt template from file: {continuation_prompt_file}")
-                        else:
-                            # Fallback 1: general.inactivity_prompt
-                            continuation_prompt_template = general_config.get("inactivity_prompt")
-                            if continuation_prompt_template:
-                                logger.debug("Using continuation prompt template from general.inactivity_prompt")
-                            else:
-                                # Fallback 2: Default continuation prompt
-                                continuation_prompt_template = DEFAULT_CONTINUATION_PROMPT
-                                logger.debug("Using default continuation prompt template")
+                # Log countdown periodically
+                time_remaining = inactivity_delay - elapsed_time
+                if int(time_remaining) % 30 == 0 or time_remaining < 15: # Log every 30s or when close
+                    logger.debug(f"[{platform_name}] Time until inactive: {time_remaining:.1f}s")
 
-                        # Format the prompt
-                        try:
-                            continuation_prompt_content = continuation_prompt_template.format(task_file_path=task_file, additional_context_path=context_file)
-                        except KeyError as e:
-                            logger.error(f"Error formatting continuation prompt template (missing key {e}). Using raw template.")
-                            continuation_prompt_content = continuation_prompt_template
-                            
-                        logger.debug(f"Sending continuation prompt content to {platform} (length: {len(continuation_prompt_content)})...")
-                        
-                        # Only send if not in no-send mode
-                        if not args.no_send:
-                            # Activate window
-                            window_title = platform_config.get("window_title", platform)
-                            activate_window(window_title)
-                            time.sleep(0.5)
-                            
-                            # Type the prompt
-                            send_keystroke_string(continuation_prompt_content, platform)
-                        else:
-                            logger.info(f"Skipping continuation prompt to {platform} (--no-send enabled)")
-                        
-                    last_activity_time = time.time() # Reset timer after sending prompt
+                if elapsed_time > inactivity_delay:
+                    if initial_prompt_sent: # Only consider inactive if initial prompts were sent
+                        logger.debug(f"[{platform_name}] Inactivity detected (elapsed: {elapsed_time:.1f}s > delay: {inactivity_delay}s)")
+                        inactive_platforms.append({
+                            "name": platform_name,
+                            "last_activity": last_activity,
+                            "state": state,
+                            "config": get_platform_config(platform_name)
+                        })
+                    else:
+                        # Reset activity time if initial prompt wasn't sent yet but inactivity detected
+                        # This prevents sending continuation prompts before initialization is done
+                        logger.debug(f"[{platform_name}] Inactivity detected but initial prompt not sent yet. Resetting timer.")
+                        state["last_activity"] = current_time
+
+
+            # --- Staggering Logic ---
+            if inactive_platforms:
+                logger.info(f"Inactive platforms: {[p['name'] for p in inactive_platforms]}")
+
+                # Check if stagger delay has passed since the last global prompt
+                time_since_last_global_prompt = current_time - last_global_prompt_time
+                if time_since_last_global_prompt >= stagger_delay:
+                    logger.info(f"Stagger delay ({stagger_delay}s) passed. Time since last prompt: {time_since_last_global_prompt:.1f}s")
+
+                    # Select the platform that has been inactive the longest
+                    inactive_platforms.sort(key=lambda p: p["last_activity"])
+                    platform_to_prompt = inactive_platforms[0]
+                    platform_name = platform_to_prompt["name"]
+                    state = platform_to_prompt["state"]
+                    platform_config = platform_to_prompt["config"]
+                    general_config = config.get("general", {})
+
+                    logger.info(f"Selected platform '{platform_name}' for continuation prompt (inactive longest).")
+
+                    # Prepare continuation prompt for the selected platform
+                    continuation_prompt_file = state.get("continuation_prompt_file_path") # Resolved path from state? Check load_config. No.
+                    task_file = state.get("task_file_path") # Resolved path from state
+                    context_file = state.get("additional_context_path") # Needs resolving path from state? No, it's in platform_config.
+
+                    project_path = state.get("project_path")
+                    continuation_prompt_file = os.path.join(project_path, continuation_prompt_file) if continuation_prompt_file else None
+                    context_file = os.path.join(project_path, platform_config.get("additional_context_path")) if platform_config.get("additional_context_path") else None # Use config for context path name
+                    task_file = os.path.join(project_path, task_file) if task_file else None # Ensure task_file is absolute
+
+                    # Determine prompt template (File > General > Default)
+                    continuation_prompt_template = read_prompt_from_file(continuation_prompt_file)
+                    source = "file"
+                    if not continuation_prompt_template:
+                        continuation_prompt_template = general_config.get("inactivity_prompt")
+                        source = "general config"
+                    if not continuation_prompt_template:
+                        continuation_prompt_template = DEFAULT_CONTINUATION_PROMPT
+                        source = "default"
+                    logger.debug(f"[{platform_name}] Using continuation prompt template from: {source}")
+
+                    # Format the prompt
+                    try:
+                        # Ensure paths exist before formatting
+                         task_file_content = ""
+                         if task_file and os.path.exists(task_file):
+                             pass # Keep path
+                         else:
+                             logger.warning(f"[{platform_name}] Task file not found for continuation prompt: {task_file}")
+                             task_file = ""
+
+                         context_file_content = ""
+                         if context_file and os.path.exists(context_file):
+                              pass # Keep path
+                         else:
+                              logger.warning(f"[{platform_name}] Context file not found for continuation prompt: {context_file}")
+                              context_file = ""
+
+                         continuation_prompt_content = continuation_prompt_template.format(
+                             task_file_path=task_file,
+                             additional_context_path=context_file
+                         )
+                    except KeyError as e:
+                        logger.error(f"[{platform_name}] Error formatting continuation prompt template (missing key {e}). Using raw template.")
+                        continuation_prompt_content = continuation_prompt_template
+
+                    logger.debug(f"[{platform_name}] Sending continuation prompt content (length: {len(continuation_prompt_content)})...")
+
+                    # Send the prompt if not in no-send mode
+                    if not args.no_send:
+                        window_title = state.get("window_title", platform_name)
+                        activate_window(window_title)
+                        time.sleep(0.5)
+                        send_keystroke_string(continuation_prompt_content, platform_name)
+                    else:
+                        logger.info(f"[{platform_name}] Skipping continuation prompt (--no-send enabled)")
+
+                    # Update timers for the prompted platform AND the global timer
+                    current_time = time.time() # Get fresh time
+                    state["last_activity"] = current_time
+                    state["last_prompt_time"] = current_time
+                    last_global_prompt_time = current_time
+                    logger.info(f"[{platform_name}] Continuation prompt sent. Updated last_activity and last_global_prompt_time.")
+
                 else:
-                    # This case should ideally not happen if initialization logic is correct
-                    # but handles the state where the flag file wasn't created.
-                    logger.warning("Inactivity period elapsed, but initial prompt flag not found. Check initialization.")
-                    # Optionally, send initial prompt again or just wait
-                    last_activity_time = time.time() # Reset timer anyway
-            
+                    logger.debug(f"Stagger delay ({stagger_delay}s) not yet passed. Time since last global prompt: {time_since_last_global_prompt:.1f}s. Waiting.")
+
+
             # Sleep for a short interval
             time.sleep(1)
-            
+
     except KeyboardInterrupt:
-        logger.info("Watcher stopped by user")
+        logger.info("Watcher stopping due to user interrupt (Ctrl+C)")
     except Exception as e:
-        logger.error(f"Error in watcher loop: {e}")
-        logger.exception("Full traceback:")
+        logger.error(f"Unhandled error in watcher main loop: {e}", exc_info=True)
     finally:
-        logger.info("Watcher stopped")
+        logger.info("Stopping watcher observers...")
+        for observer in observers:
+            try:
+                observer.stop()
+                logger.debug(f"Observer stopped: {observer}")
+            except Exception as e:
+                 logger.error(f"Error stopping observer {observer}: {e}")
+        # Wait for observer threads to finish
+        for observer in observers:
+            try:
+                observer.join()
+                logger.debug(f"Observer joined: {observer}")
+            except Exception as e:
+                  logger.error(f"Error joining observer {observer}: {e}")
+        logger.info("All watcher observers stopped and joined.")
+        logger.info("Watcher finished.")
 
 def analyze_vision(file_path, prompt):
     """
@@ -904,399 +1016,427 @@ def analyze_vision(file_path, prompt):
         logger.error(f"Error in vision analysis: {e}")
         return None
 
-def send_prompt(prompt, platform=None, delay_ms=0):
+def send_prompt(prompt_text, platform_name=None, delay_ms=0):
     """
-    Send a prompt to the specified platform
+    Send a prompt (as a sequence of actions/keystrokes defined in config)
     Args:
-        prompt: The prompt text to send
-        platform: The platform to send the prompt to (defaults to first platform)
-        delay_ms: Delay in milliseconds before sending keystrokes
+        prompt_text: The logical name of the prompt action (e.g., "explain_code")
+                     or the raw text if no mapping is found (legacy behavior - avoid).
+                     *** THIS FUNCTION DOES NOT SEND THE TEXT DIRECTLY ***
+                     It sends the keystrokes associated with the 'prompt_text' key
+                     in the platform's 'keystrokes' config section.
+                     Use send_keystroke_string to send raw text.
+        platform_name: The platform to send the prompt action to.
+        delay_ms: Delay in milliseconds before starting actions.
     """
     try:
-        # Check if sending is disabled via command line
-        if args.no_send:
-            logger.info(f"Sending prompt to {platform} skipped (--no-send enabled): {prompt}")
-            return
-            
-        # Get platform configuration
-        if not platform:
-            platform = PLATFORM[0]
-            
-        platform_config = config["platforms"].get(platform, {})
-        if not platform_config:
-            logger.error(f"No configuration found for platform {platform}")
-            return
-            
-        # Get keystrokes for platform
-        keystrokes = platform_config.get("keystrokes", {})
-        if not keystrokes:
-            logger.error(f"No keystrokes configured for platform {platform}")
-            return
-            
-        # Map platform-specific keys
-        mapped_keys = []
-        for key in prompt:
-            if key in keystrokes:
-                mapped_keys.append(keystrokes[key])
-            else:
-                mapped_keys.append(key)
-                
-        # Send keystrokes
-        if mapped_keys:
-            logger.info(f"Sending keystrokes to {platform}: {mapped_keys}")
-            if delay_ms > 0:
-                time.sleep(delay_ms / 1000)
-            for key in mapped_keys:
-                send_keystroke(key, platform)
-                
-    except Exception as e:
-        logger.error(f"Error sending prompt to {platform}: {e}")
+        if not platform_name:
+            if not PLATFORM:
+                 logger.error("No active platforms configured to send prompt to.")
+                 return
+            platform_name = PLATFORM[0] # Default to first active platform
 
-def send_keystroke(key, platform):
+        logger.info(f"[{platform_name}] Attempting to send prompt action: '{prompt_text}'")
+
+        if args.no_send:
+            logger.info(f"[{platform_name}] Sending prompt action skipped (--no-send enabled): {prompt_text}")
+            return
+
+        platform_config = get_platform_config(platform_name)
+        if not platform_config:
+            logger.error(f"[{platform_name}] No configuration found.")
+            return
+
+        # --- IMPORTANT CHANGE: This function sends configured KEYSTROKES, not the prompt text itself ---
+        # Look for the 'prompt_text' as a key in the 'keystrokes' section of the config
+        # This allows defining complex actions like "open_chat", "submit", etc.
+        platform_keystrokes_config = platform_config.get("keystrokes", []) # Should be a list of dicts {keys:..., delay_ms:...}
+        
+        # Find the specific action definition matching 'prompt_text' if it exists
+        # This part is interpretation - assuming 'keystrokes' in config is a LIST of actions,
+        # not a simple map. If it IS a map, adjust logic. Let's assume it's a list for now.
+        # If 'prompt_text' is meant to be looked up in a dict like: keystrokes: { "explain": ["cmd+l", ...]}, adjust.
+        # Reverting to simpler assumption: platform_config["keystrokes"] is the list of actions for *this* platform.
+        # The 'prompt_text' argument seems misused here based on previous code.
+        # Let's assume send_prompt is intended to send a series of configured keystrokes.
+        # The 'prompt_text' argument seems out of place. Maybe it should be 'action_name'?
+        # --> Sticking to original logic: treat 'prompt_text' as the literal keys to send.
+        # This seems wrong, but follows the prior implementation. Refactor needed if intent differs.
+
+        logger.warning(f"[{platform_name}] 'send_prompt' function currently sends the 'prompt_text' argument ({prompt_text}) directly as keystrokes. This might not be the intended behavior if 'prompt_text' refers to a named action in config.")
+
+        # Activate window
+        window_title = get_platform_state(platform_name).get("window_title", platform_name)
+        activate_window(window_title)
+
+        if delay_ms > 0:
+            time.sleep(delay_ms / 1000.0)
+
+        # Send the prompt_text directly as keystrokes (legacy behavior)
+        send_keystroke(prompt_text, platform_name) # This might fail if prompt_text contains '+' etc.
+
+    except Exception as e:
+        logger.error(f"[{platform_name}] Error sending prompt action '{prompt_text}': {e}", exc_info=True)
+
+def send_keystroke(key_combo, platform_name):
     """
-    Send a keystroke to the specified platform
+    Send a single keystroke or a combination (e.g., "command+shift+p")
     Args:
-        key: The keystroke to send
-        platform: The platform to send the keystroke to
+        key_combo: The keystroke(s) to send.
+        platform_name: The target platform.
     """
     try:
-        # Check if sending is disabled via command line
         if args.no_send:
-            logger.info(f"Sending keystroke to {platform} skipped (--no-send enabled): {key}")
+            logger.info(f"[{platform_name}] Sending keystroke skipped (--no-send): {key_combo}")
             return
-            
-        logger.info(f"Sending keystroke to {platform}: {key}")
-        
-        # Get platform configuration
-        platform_config = config["platforms"].get(platform, {})
-        if not platform_config:
-            logger.error(f"No configuration found for platform {platform}")
+
+        logger.info(f"[{platform_name}] Sending keystroke: {key_combo}")
+
+        platform_state = get_platform_state(platform_name)
+        if not platform_state:
+            logger.error(f"[{platform_name}] Cannot send keystroke, platform state not found.")
             return
-            
-        # Get window title for platform
-        window_title = platform_config.get("window_title", platform)
+
+        window_title = platform_state.get("window_title", platform_name)
         if window_title:
             activate_window(window_title)
-            
-        # Check if it's a keyboard shortcut (contains +)
-        if "+" in key:
-            key_parts = key.split("+")
-            
-            if platform == "cursor":
-                # Cursor uses pyautogui for keyboard shortcuts
-                if pyautogui:
-                    logger.info(f"Sending hotkey to {platform}: {key_parts}")
-                    pyautogui.hotkey(*key_parts)
-                else:
-                    logger.error("pyautogui not available")
-            elif platform == "windsurf":
-                # Windsurf uses AppleScript for keyboard shortcuts
-                modifiers = []
-                for mod in key_parts[:-1]:
-                    if mod == "command":
-                        modifiers.append("command down")
-                    elif mod == "shift":
-                        modifiers.append("shift down")
-                    elif mod == "option" or mod == "alt":
-                        modifiers.append("option down")
-                    elif mod == "control" or mod == "ctrl":
-                        modifiers.append("control down")
-                
-                # Get the key (last part after splitting by +)
-                key_char = key_parts[-1]
-                
-                # Special case for function keys and other special keys
-                if key_char.startswith("f") and key_char[1:].isdigit():
-                    # Function keys use key code
-                    fn_num = int(key_char[1:])
-                    # F1-F12 key codes (F1=122, F2=120, etc.)
-                    fn_codes = {1: 122, 2: 120, 3: 99, 4: 118, 5: 96, 6: 97, 
-                               7: 98, 8: 100, 9: 101, 10: 109, 11: 103, 12: 111}
-                    if fn_num in fn_codes:
-                        code = fn_codes[fn_num]
-                        applescript = f'tell application "System Events" to key code {code}'
-                        if modifiers:
-                            applescript = f'tell application "System Events" to key code {code} using {{{", ".join(modifiers)}}}'
-                        logger.info(f"Sending AppleScript: {applescript}")
-                        subprocess.run(['osascript', '-e', applescript])
-                elif len(key_char) == 1:
-                    # Single character
-                    applescript = f'tell application "System Events" to keystroke "{key_char}"'
-                    if modifiers:
-                        applescript = f'tell application "System Events" to keystroke "{key_char}" using {{{", ".join(modifiers)}}}'
-                    logger.info(f"Sending AppleScript: {applescript}")
-                    subprocess.run(['osascript', '-e', applescript])
-                else:
-                    # Special keys like return, space, etc.
-                    special_keys = {
-                        "return": 36, "enter": 36, "tab": 48, "space": 49,
-                        "delete": 51, "escape": 53, "esc": 53,
-                        "left": 123, "right": 124, "up": 126, "down": 125
-                    }
-                    if key_char.lower() in special_keys:
-                        code = special_keys[key_char.lower()]
-                        applescript = f'tell application "System Events" to key code {code}'
-                        if modifiers:
-                            applescript = f'tell application "System Events" to key code {code} using {{{", ".join(modifiers)}}}'
-                        logger.info(f"Sending AppleScript: {applescript}")
-                        subprocess.run(['osascript', '-e', applescript])
-                    else:
-                        # Try to send as text
-                        applescript = f'tell application "System Events" to keystroke "{key_char}"'
-                        if modifiers:
-                            applescript = f'tell application "System Events" to keystroke "{key_char}" using {{{", ".join(modifiers)}}}'
-                        logger.info(f"Sending AppleScript: {applescript}")
-                        subprocess.run(['osascript', '-e', applescript])
-                
-                # Release modifiers
-                for mod in reversed(key_parts[:-1]):
-                    if mod in ["command", "shift", "option", "alt", "control", "ctrl"]:
-                        mod_name = mod
-                        if mod == "alt": mod_name = "option"
-                        if mod == "ctrl": mod_name = "control"
-                        subprocess.run(['osascript', '-e', f'tell application "System Events" to key up {mod_name}'])
+            # Add a small delay after activation, especially important before typing
+            time.sleep(0.2)
         else:
-            # Regular single keystroke
-            if platform == "cursor":
-                # Cursor uses pyautogui
-                if pyautogui:
-                    logger.info(f"Sending key press to {platform}: {key}")
-                    pyautogui.press(key)
-                else:
-                    logger.error("pyautogui not available")
-            elif platform == "windsurf":
-                # Windsurf uses applescript
-                # Check if it's a special key
-                special_keys = {
-                    "return": 36, "enter": 36, "tab": 48, "space": 49,
-                    "delete": 51, "escape": 53, "esc": 53,
-                    "left": 123, "right": 124, "up": 126, "down": 125
-                }
-                if key.lower() in special_keys:
-                    code = special_keys[key.lower()]
-                    applescript = f'tell application "System Events" to key code {code}'
-                    logger.info(f"Sending AppleScript key code: {applescript}")
-                    subprocess.run(['osascript', '-e', applescript])
-                else:
-                    applescript = f'tell application "System Events" to keystroke "{key}"'
-                    logger.info(f"Sending AppleScript keystroke: {applescript}")
-                    subprocess.run(['osascript', '-e', applescript])
+             logger.warning(f"[{platform_name}] No window title found in state, sending keystroke without activation.")
+
+        # --- Platform-specific sending logic ---
+        current_os = platform.system() # Get OS ('Darwin', 'Windows', 'Linux')
+
+        if current_os == "Darwin":
+             # Use AppleScript for macOS
+             # Handle combinations first
+             if "+" in key_combo:
+                 parts = key_combo.split('+')
+                 key = parts[-1].strip()
+                 modifiers = [mod.strip().lower() for mod in parts[:-1]]
+
+                 apple_modifiers = []
+                 for mod in modifiers:
+                     if mod in ["command", "cmd"]: apple_modifiers.append("command down")
+                     elif mod == "shift": apple_modifiers.append("shift down")
+                     elif mod in ["option", "opt", "alt"]: apple_modifiers.append("option down")
+                     elif mod in ["control", "ctrl"]: apple_modifiers.append("control down")
+                     else: logger.warning(f"[{platform_name}] Unknown modifier '{mod}' in combo '{key_combo}'")
+
+                 using_clause = ""
+                 if apple_modifiers:
+                     using_clause = f' using {{{", ".join(apple_modifiers)}}}'
+
+                 # Determine if it's a key code or keystroke
+                 special_key_codes = {
+                     "return": 36, "enter": 36, "tab": 48, "space": 49,
+                     "delete": 51, "backspace": 51, # Added backspace alias
+                     "escape": 53, "esc": 53,
+                     "f1": 122, "f2": 120, "f3": 99, "f4": 118, "f5": 96, "f6": 97,
+                     "f7": 98, "f8": 100, "f9": 101, "f10": 109, "f11": 103, "f12": 111,
+                     "left": 123, "right": 124, "down": 125, "up": 126,
+                     # Add more key codes as needed
+                 }
+
+                 if key.lower() in special_key_codes:
+                     code = special_key_codes[key.lower()]
+                     applescript = f'tell application "System Events" to key code {code}{using_clause}'
+                 elif len(key) == 1:
+                     # Need to escape special characters for keystroke command
+                     key_escaped = key.replace('\\', '\\\\').replace('"', '\\"')
+                     applescript = f'tell application "System Events" to keystroke "{key_escaped}"{using_clause}'
+                 else:
+                      logger.error(f"[{platform_name}] Cannot send complex key '{key}' via AppleScript keystroke. Use key code if possible.")
+                      return
+
+                 logger.debug(f"[{platform_name}] Running AppleScript: {applescript}")
+                 subprocess.run(['osascript', '-e', applescript], check=False, capture_output=True)
+
+             else:
+                 # Single key press
+                 key = key_combo.strip().lower()
+                 special_key_codes = {
+                     "return": 36, "enter": 36, "tab": 48, "space": 49,
+                     "delete": 51, "backspace": 51, # Added backspace alias
+                     "escape": 53, "esc": 53,
+                     "f1": 122, "f2": 120, "f3": 99, "f4": 118, "f5": 96, "f6": 97,
+                     "f7": 98, "f8": 100, "f9": 101, "f10": 109, "f11": 103, "f12": 111,
+                     "left": 123, "right": 124, "down": 125, "up": 126,
+                 }
+                 if key in special_key_codes:
+                     code = special_key_codes[key]
+                     applescript = f'tell application "System Events" to key code {code}'
+                     logger.debug(f"[{platform_name}] Running AppleScript: {applescript}")
+                     subprocess.run(['osascript', '-e', applescript], check=False, capture_output=True)
+                 elif len(key) == 1:
+                      key_escaped = key.replace('\\', '\\\\').replace('"', '\\"')
+                      applescript = f'tell application "System Events" to keystroke "{key_escaped}"'
+                      logger.debug(f"[{platform_name}] Running AppleScript: {applescript}")
+                      subprocess.run(['osascript', '-e', applescript], check=False, capture_output=True)
+                 else:
+                      logger.error(f"[{platform_name}] Cannot send single complex key '{key}' via AppleScript. Use key code or standard characters.")
+                      return
+
+        elif current_os in ["Windows", "Linux"]:
+            # Use pyautogui for Windows/Linux
+            if not pyautogui:
+                 logger.error(f"[{platform_name}] pyautogui not available, cannot send keystroke on {current_os}")
+                 return
+
+            if "+" in key_combo:
+                parts = [p.strip().lower() for p in key_combo.split('+')]
+                 # Map common cross-platform modifiers
+                pyautogui_keys = []
+                for part in parts:
+                     if part in ["command", "cmd"] and current_os == "Windows": pyautogui_keys.append("ctrl")
+                     elif part == "command" and current_os == "Linux": pyautogui_keys.append("ctrl") # Usually Ctrl on Linux too
+                     elif part in ["option", "opt", "alt"]: pyautogui_keys.append("alt")
+                     elif part == "control": pyautogui_keys.append("ctrl")
+                     else: pyautogui_keys.append(part) # Includes shift, letters, numbers, f-keys etc.
+                logger.debug(f"[{platform_name}] Sending pyautogui hotkey: {pyautogui_keys}")
+                pyautogui.hotkey(*pyautogui_keys)
             else:
-                logger.error(f"Unsupported platform: {platform}")
-                
+                 # Single key press
+                 key = key_combo.strip().lower()
+                 # Map common keys if needed (pyautogui uses lowercase names)
+                 key_map = {"return": "enter", "esc": "escape", "backspace": "backspace", "delete": "delete"}
+                 pyautogui_key = key_map.get(key, key)
+                 logger.debug(f"[{platform_name}] Sending pyautogui press: {pyautogui_key}")
+                 pyautogui.press(pyautogui_key)
+        else:
+             logger.error(f"[{platform_name}] Unsupported OS for sending keystrokes: {current_os}")
+
     except Exception as e:
-        logger.error(f"Error sending keystroke to {platform}: {e}")
-        logger.exception("Full traceback:")
-        
+        logger.error(f"[{platform_name}] Error sending keystroke '{key_combo}': {e}", exc_info=True)
+
 def activate_window(title):
     """
-    Activate a window by its title
-    Args:
-        title: The window title to activate
+    Activate a window by its title (or part of it).
     """
+    if not title:
+        logger.warning("activate_window called with empty title.")
+        return
     try:
-        logger.debug(f"Activating window: {title}")
-        
-        # Special case for Windsurf - check both capitalizations
-        if title.lower() == "windsurf":
-            windsurf_variants = ["Windsurf", "WindSurf", "windsurf", "WINDSURF"]
-            logger.debug(f"Using multiple variants for Windsurf: {windsurf_variants}")
-            
-            # Try each variant
-            for variant in windsurf_variants:
-                try:
-                    if OS_TYPE == "darwin":
-                        activate_script = f'''
-                        tell application "{variant}"
-                            activate
-                        end tell
-                        '''
-                        result = subprocess.run(['osascript', '-e', activate_script], 
-                                            capture_output=True, check=False)
-                        logger.debug(f"Tried to activate {variant}, result: {result.returncode}")
-                        if result.returncode == 0:
-                            logger.debug(f"Successfully activated {variant}")
-                            title = variant
-                            time.sleep(0.5)
-                            break
-                except Exception as e:
-                    logger.debug(f"Failed to activate {variant}: {str(e)}")
-                    continue
-                    
-        if OS_TYPE == "darwin":
-            # On macOS, first activate the application directly
-            activate_script = f'''
-            tell application "{title}"
-                activate
-            end tell
-            '''
-            
-            try:
-                # Try to activate by exact application name
-                logger.debug(f"Trying to activate application directly: {title}")
-                subprocess.run(['osascript', '-e', activate_script], check=False)
-                
-                # Wait for application to come to foreground
-                time.sleep(0.5)
-                
-                # Additional check if application is running
-                is_running_script = f'''
-                tell application "System Events"
-                    set isRunning to (exists (processes where name is "{title}"))
-                end tell
-                '''
-                result = subprocess.run(['osascript', '-e', is_running_script], 
-                                       capture_output=True, text=True, check=False)
-                
-                # If application is running, we're good
-                if "true" in result.stdout.lower():
-                    logger.debug(f"Application {title} is running")
-                else:
-                    # Try to find by partial name match
-                    logger.debug(f"Application not found by exact name, trying alternative approaches")
-                    
-                    # Try different variations of the name
-                    possible_names = [title, title.lower(), title.upper(), title.title()]
-                    for name in possible_names:
-                        alt_script = f'''
-                        tell application "System Events"
-                            set appList to name of every application process
-                            repeat with appName in appList
-                                if appName contains "{name}" then
-                                    tell process appName to set frontmost to true
-                                    return appName
-                                end if
-                            end repeat
-                            return ""
-                        end tell
-                        '''
-                        result = subprocess.run(['osascript', '-e', alt_script], 
-                                             capture_output=True, text=True, check=False)
-                        found_app = result.stdout.strip()
-                        if found_app:
-                            logger.debug(f"Found and activated application: {found_app}")
-                            break
-            except Exception as e:
-                logger.warning(f"Failed to activate {title}: {e}")
-                # Continue with the basic approach as a fallback
-                
-            logger.debug(f"Application {title} should now be active")
-        elif OS_TYPE == "windows":
-            # On Windows, use win32gui to activate the window
-            if win32gui and win32con:
-                hwnd = win32gui.FindWindow(None, title)
-                if hwnd:
-                    win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
-                    win32gui.SetForegroundWindow(hwnd)
-                    logger.debug(f"Activated {title} window on Windows")
-                else:
-                    logger.warning(f"Window '{title}' not found on Windows")
-            else:
-                logger.warning("win32gui not available")
-        else:
-            # On Linux, use xdotool if available
-            try:
-                subprocess.run(['xdotool', 'search', '--name', title, 'windowactivate'], check=False)
-                logger.debug(f"Activated {title} window on Linux")
-            except FileNotFoundError:
-                logger.warning("xdotool not available")
-    except Exception as e:
-        logger.error(f"Error activating window: {e}")
-        logger.exception("Full traceback:")
+        logger.debug(f"Attempting to activate window containing title: '{title}'")
+        current_os = platform.system()
 
-def send_keystroke_string(text, platform):
+        if current_os == "Darwin":
+             # Try activating by finding a process containing the title
+             script = f'''
+             set targetTitle to "{title}"
+             try
+                 tell application "System Events"
+                     set matchingProcesses to (processes whose name contains targetTitle or title contains targetTitle)
+                     if (count of matchingProcesses) > 0 then
+                         set targetProcess to item 1 of matchingProcesses
+                         set frontmost of targetProcess to true
+                         log "Activated process: " & name of targetProcess
+                         return true -- Indicate success
+                     else
+                         log "No process found containing title: " & targetTitle
+                         -- Fallback: Try activating app by name if title matches app name
+                         try
+                            tell application targetTitle to activate
+                            log "Activated application by name: " & targetTitle
+                            return true
+                         on error errMsg number errNum
+                             log "Fallback activation by name failed: " & errMsg
+                             return false
+                         end try
+                     end if
+                 end tell
+             on error errMsg number errNum
+                  log "Error activating window: " & errMsg
+                  return false
+             end try
+             '''
+             # Use capture_output=True to get logs from AppleScript
+             result = subprocess.run(['osascript', '-e', script], check=False, capture_output=True, text=True)
+             if result.returncode == 0 and "Activated" in result.stdout:
+                  logger.debug(f"Successfully activated window/process containing '{title}'. Output: {result.stdout.strip()}")
+             else:
+                  logger.warning(f"Could not activate window/process containing '{title}'. Error: {result.stderr.strip()} Output: {result.stdout.strip()}")
+
+        elif current_os == "Windows":
+            if win32gui and win32con:
+                try:
+                    # Find window - potentially partial match needed? FindWindow is exact match.
+                    # EnumWindows might be needed for partial match. Sticking to exact for now.
+                    hwnd = win32gui.FindWindow(None, title)
+                    if hwnd:
+                        # Restore if minimized, then bring to front
+                        win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
+                        win32gui.SetForegroundWindow(hwnd)
+                        logger.debug(f"Activated window '{title}' on Windows (HWND: {hwnd})")
+                    else:
+                        logger.warning(f"Window '{title}' not found on Windows using exact match.")
+                        # TODO: Implement EnumWindows fallback for partial title match if needed
+                except Exception as e:
+                     logger.error(f"Error activating window '{title}' on Windows: {e}")
+            else:
+                logger.warning("win32gui not available for window activation on Windows.")
+        elif current_os == "Linux":
+            try:
+                # Use wmctrl or xdotool - prefer wmctrl as it's often more reliable
+                # Activate by bringing window containing title to current desktop and raising
+                cmd = ['wmctrl', '-a', title]
+                result = subprocess.run(cmd, check=False, capture_output=True, text=True)
+                if result.returncode == 0:
+                     logger.debug(f"Activated window containing '{title}' on Linux using wmctrl.")
+                else:
+                     logger.warning(f"wmctrl activation failed (is wmctrl installed?). Error: {result.stderr.strip()}")
+                     # Fallback to xdotool?
+                     try:
+                          cmd_xdo = ['xdotool', 'search', '--name', title, 'windowactivate', '%@']
+                          result_xdo = subprocess.run(cmd_xdo, check=False, capture_output=True, text=True)
+                          if result_xdo.returncode == 0:
+                               logger.debug(f"Activated window containing '{title}' on Linux using xdotool.")
+                          else:
+                               logger.warning(f"xdotool activation also failed. Error: {result_xdo.stderr.strip()}")
+                     except FileNotFoundError:
+                          logger.warning("xdotool not found for Linux window activation fallback.")
+            except FileNotFoundError:
+                logger.warning("wmctrl not found. Cannot activate window on Linux.")
+            except Exception as e:
+                 logger.error(f"Error activating window '{title}' on Linux: {e}")
+        else:
+            logger.error(f"Unsupported OS for window activation: {current_os}")
+
+    except Exception as e:
+        logger.error(f"Error activating window with title '{title}': {e}", exc_info=True)
+
+def send_keystroke_string(text, platform_name):
     """
-    Send a string of text to the specified platform by typing it
+    Send a string of text to the specified platform by typing it.
     Args:
-        text: The text to send
-        platform: The platform to send the text to
+        text: The text to send.
+        platform_name: The target platform.
     """
     try:
-        # Check if sending is disabled via command line
         if args.no_send:
-            logger.info(f"Sending text to {platform} skipped (--no-send enabled): {text[:100]}...")
+            logger.info(f"[{platform_name}] Sending text skipped (--no-send): {text[:50]}...")
             return
-            
-        logger.info(f"Sending text to {platform}: {text}")
-        
-        # Get platform configuration
-        platform_config = config["platforms"].get(platform, {})
-        if not platform_config:
-            logger.error(f"No configuration found for platform {platform}")
+
+        logger.info(f"[{platform_name}] Sending text: {text[:50]}...")
+
+        platform_state = get_platform_state(platform_name)
+        if not platform_state:
+            logger.error(f"[{platform_name}] Cannot send text, platform state not found.")
             return
-        
-        # Get the window title from configuration, or use default
-        window_title = platform_config.get("window_title", platform)
-        
-        # First try to activate the window
-        try:
-            activate_window(window_title)
-            # Small delay to ensure window is active
-            time.sleep(0.5)
-        except Exception as e:
-            logger.warning(f"Failed to activate window, but will try to send keystrokes anyway: {e}")
-        
-        # Send the keystrokes
-        if platform == "cursor":
-            # Cursor uses pyautogui
-            if pyautogui:
-                # Split text by newlines and type each line with Enter after
-                lines = text.split('\n')
-                for i, line in enumerate(lines):
-                    pyautogui.write(line)
-                    if i < len(lines) - 1:  # Don't press Enter after the last line
-                        pyautogui.press('return')
-                
-                # Press Enter after the entire text
-                time.sleep(0.2)
-                pyautogui.press('return')
-                logger.info("Pressed Enter after typing text")
-            else:
-                logger.error("pyautogui not available")
-        elif platform == "windsurf":
-            # For macOS, we need to handle newlines specially
-            if OS_TYPE == "darwin":
-                # Split text by newlines to handle them properly
-                lines = text.split('\n')
-                
-                for i, line in enumerate(lines):
-                    # Escape double quotes in the line
-                    escaped_line = line.replace('"', '\\"')
-                    
-                    # Build the AppleScript for the current line
-                    line_script = f'''
-                    tell application "System Events"
-                        keystroke "{escaped_line}"
-                    end tell
-                    '''
-                    
-                    # Run the AppleScript for this line
-                    subprocess.run(['osascript', '-e', line_script], check=False)
-                    
-                    # If not the last line, press Shift+Return for a newline
-                    if i < len(lines) - 1:
-                        # Use shift+return for newline instead of submitting
-                        shift_return_script = '''
-                        tell application "System Events"
-                            key code 36 using {shift down}
-                        end tell
-                        '''
-                        subprocess.run(['osascript', '-e', shift_return_script], check=False)
-                        time.sleep(0.1)  # Small delay between lines
-                
-                # Press Return after the entire text to submit it
-                time.sleep(0.3)  # Slightly longer delay before final Enter
-                subprocess.run(['osascript', '-e', 'tell application "System Events" to key code 36'], check=False)
-                logger.info("Pressed Enter after typing text")
-            else:
-                # Non-macOS platforms may handle this differently
-                logger.warning("Newline handling for non-macOS platforms not fully implemented")
+
+        window_title = platform_state.get("window_title", platform_name)
+        activate_window(window_title)
+        time.sleep(0.5) # Crucial delay after activation before typing
+
+        current_os = platform.system()
+
+        if current_os == "Darwin":
+             # Escape backslashes and double quotes for AppleScript `keystroke`
+             escaped_text = text.replace('\\', '\\\\').replace('"', '\\"')
+             script = f'tell application "System Events" to keystroke "{escaped_text}"'
+             logger.debug(f"[{platform_name}] Running AppleScript for text: {script[:100]}...")
+             subprocess.run(['osascript', '-e', script], check=False)
+             # Send a final 'Return' keystroke after typing the text? Assumed yes based on prev logic.
+             time.sleep(0.2)
+             # Use key code 36 for Return
+             subprocess.run(['osascript', '-e', 'tell application "System Events" to key code 36'], check=False)
+             logger.debug(f"[{platform_name}] Sent final Return key code after text.")
+
+        elif current_os in ["Windows", "Linux"]:
+            if not pyautogui:
+                 logger.error(f"[{platform_name}] pyautogui not available, cannot send text on {current_os}")
+                 return
+            # pyautogui.write handles typing the string. Interval adds slight delay between chars.
+            logger.debug(f"[{platform_name}] Sending text via pyautogui.write: {text[:50]}...")
+            pyautogui.write(text, interval=0.01) # Small interval for reliability
+            # Send final 'Enter' keystroke
+            time.sleep(0.2)
+            pyautogui.press('enter')
+            logger.debug(f"[{platform_name}] Sent final Enter key press after text.")
         else:
-            logger.error(f"Unsupported platform: {platform}")
-    
+            logger.error(f"[{platform_name}] Unsupported OS for sending text: {current_os}")
+
     except Exception as e:
-        logger.error(f"Error sending text to {platform}: {e}")
-        logger.exception("Full traceback:")
+        logger.error(f"[{platform_name}] Error sending text: {e}", exc_info=True)
+
+# --- Watchdog Event Handler ---
+class PlatformEventHandler(FileSystemEventHandler):
+    """Handles file system events for a specific platform."""
+    def __init__(self, platform_name):
+        self.platform_name = platform_name
+        logger.debug(f"Initialized event handler for platform: {self.platform_name}")
+
+    def on_any_event(self, event):
+        # Ignore directory events for simplicity, focus on file changes
+        if event.is_directory:
+            return
+
+        src_path = event.src_path
+        event_type = event.event_type # 'modified', 'created', 'deleted', 'moved'
+        platform_state = get_platform_state(self.platform_name)
+        platform_config = get_platform_config(self.platform_name)
+
+        if not platform_state or not platform_config:
+            logger.warning(f"[{self.platform_name}] State or config not found for event: {src_path}")
+            return
+
+        project_path = platform_state.get("project_path")
+        if not project_path:
+            logger.warning(f"[{self.platform_name}] Project path not found in state for event: {src_path}")
+            return
+
+        # Calculate relative path - ensure it's within the project path
+        try:
+            # Ensure src_path is absolute for relpath calculation if it isn't already
+            abs_src_path = os.path.abspath(src_path)
+            if not abs_src_path.startswith(os.path.abspath(project_path)):
+                 logger.debug(f"[{self.platform_name}] Event path {abs_src_path} outside project path {project_path}")
+                 return # Event is outside this platform's project directory
+            rel_path = os.path.relpath(abs_src_path, project_path)
+        except ValueError:
+            logger.warning(f"[{self.platform_name}] Could not determine relative path for {src_path} against {project_path}")
+            return
+
+        # Check if the file should be ignored
+        # TODO: Pass platform_name to should_ignore_file if ignores become platform-specific
+        if should_ignore_file(abs_src_path, rel_path, project_path):
+            logger.debug(f"[{self.platform_name}] Ignoring event for file: {rel_path}")
+            return
+
+        logger.info(f"[{self.platform_name}] File event {event_type}: {rel_path}")
+
+        # Update last activity time for this platform
+        current_time = time.time()
+        platform_state["last_activity"] = current_time
+        logger.debug(f"[{self.platform_name}] Updated last_activity to {current_time}")
+
+        # Check vision conditions if file was modified or created
+        if event_type in ['modified', 'created']:
+            # TODO: Pass platform_name to check_vision_conditions
+            vision_result = check_vision_conditions(abs_src_path, event_type, self.platform_name)
+            if vision_result:
+                question, keystrokes = vision_result
+                logger.info(f"[{self.platform_name}] Vision analysis triggered for {rel_path}")
+                logger.info(f"[{self.platform_name}] Vision Question: {question}") # Assuming question is just for logging/potential future use
+                
+                # Activate window before sending vision keystrokes
+                window_title = platform_config.get("window_title", self.platform_name)
+                logger.info(f"[{self.platform_name}] Activating window for vision keystrokes: {window_title}")
+                activate_window(window_title)
+                time.sleep(0.5) # Give time for activation
+
+                logger.info(f"[{self.platform_name}] Sending vision result keystrokes...")
+                for keystroke in keystrokes:
+                     keys = keystroke.get("keys", "")
+                     delay_ms = keystroke.get("delay_ms", 0)
+                     if keys:
+                         if delay_ms > 0:
+                             time.sleep(delay_ms / 1000.0)
+                         # Send keystroke needs platform context
+                         send_keystroke(keys, self.platform_name)
+                     else:
+                          logger.warning(f"[{self.platform_name}] Vision keystroke entry missing 'keys': {keystroke}")
 
 if __name__ == "__main__":
     run_watcher()
