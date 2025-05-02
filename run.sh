@@ -152,17 +152,103 @@ if [[ " $platform_to_run " =~ " cursor " ]]; then
     log "Terminating Cursor (platform 'cursor' is active)..."
     # Add commands to terminate Cursor here if needed
     # Example using killall:
-    # killall -9 Cursor 2>/dev/null || true
+    killall -9 Cursor 2>/dev/null || true
     # Example using osascript:
-    # osascript -e 'tell application "Cursor" to quit' 2>/dev/null || true
-    # sleep 2 # Optional wait
-    log "(Cursor termination commands currently commented out)"
+    osascript -e 'tell application "Cursor" to quit' 2>/dev/null || true
+    sleep 2 # Wait for Cursor to close
+    # log "(Cursor termination commands currently commented out)"
 else
      log "Skipping Cursor termination (platform 'cursor' is not active)"
 fi
 
 log "Application termination attempts completed"
 # --- End Moved Termination Block ---
+
+# --- Launch Application Block ---
+log "Launching applications based on active platforms..."
+
+# Check if windsurf is one of the platforms to run
+if [[ " $platform_to_run " =~ " windsurf " ]]; then
+    log "Launching WindSurf (platform 'windsurf' is active)..."
+    if [[ -n "$PROJECT_PATH_OVERRIDE" ]]; then
+        # Launch WindSurf with project path
+        log "Launching WindSurf with project path: '$PROJECT_PATH_OVERRIDE'"
+        
+        # Method 1: Using open command
+        open -a WindSurf "$PROJECT_PATH_OVERRIDE" || true
+        
+        # Wait a moment for the app to launch
+        sleep 3
+        
+        # Check if WindSurf is running
+        if pgrep -i "[Ww]ind[Ss]urf" > /dev/null; then
+            log "WindSurf started successfully with open command"
+        else
+            # Method 2: Try with AppleScript if open command failed
+            log "Trying to launch WindSurf with AppleScript..."
+            PROJECT_PATH_ESCAPED="${PROJECT_PATH_OVERRIDE//\"/\\\"}"
+            APPLESCRIPT="tell application \"WindSurf\" to open \"$PROJECT_PATH_ESCAPED\""
+            log "Running AppleScript: $APPLESCRIPT"
+            osascript -e "$APPLESCRIPT" || true
+            sleep 3
+            
+            # Check one more time
+            if pgrep -i "[Ww]ind[Ss]urf" > /dev/null; then
+                log "WindSurf started successfully with AppleScript"
+            else
+                log "Warning: Failed to start WindSurf with both methods"
+            fi
+        fi
+    else
+        log "Warning: No project path provided for WindSurf"
+        open -a WindSurf || true
+    fi
+else
+    log "Skipping WindSurf launch (platform 'windsurf' is not active)"
+fi
+
+# Check if cursor is one of the platforms to run
+if [[ " $platform_to_run " =~ " cursor " ]]; then
+    log "Launching Cursor (platform 'cursor' is active)..."
+    if [[ -n "$PROJECT_PATH_OVERRIDE" ]]; then
+        # Launch Cursor with project path
+        log "Launching Cursor with project path: '$PROJECT_PATH_OVERRIDE'"
+        
+        # Method 1: Using open command
+        open -a Cursor "$PROJECT_PATH_OVERRIDE" || true
+        
+        # Wait a moment for the app to launch
+        sleep 3
+        
+        # Check if Cursor is running
+        if pgrep -i "Cursor" > /dev/null; then
+            log "Cursor started successfully with open command"
+        else
+            # Method 2: Try with AppleScript if open command failed
+            log "Trying to launch Cursor with AppleScript..."
+            PROJECT_PATH_ESCAPED="${PROJECT_PATH_OVERRIDE//\"/\\\"}"
+            APPLESCRIPT="tell application \"Cursor\" to open \"$PROJECT_PATH_ESCAPED\""
+            log "Running AppleScript: $APPLESCRIPT"
+            osascript -e "$APPLESCRIPT" || true
+            sleep 3
+            
+            # Check one more time
+            if pgrep -i "Cursor" > /dev/null; then
+                log "Cursor started successfully with AppleScript"
+            else
+                log "Warning: Failed to start Cursor with both methods"
+            fi
+        fi
+    else
+        log "Warning: No project path provided for Cursor"
+        open -a Cursor || true
+    fi
+else
+    log "Skipping Cursor launch (platform 'cursor' is not active)"
+fi
+
+log "Application launch attempts completed"
+# --- End Launch Application Block ---
 
 # Always delete the initial prompt sent file to ensure initial prompt is sent
 rm -f "$SCRIPT_DIR/.initial_prompt_sent"

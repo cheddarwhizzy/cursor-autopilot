@@ -3,6 +3,7 @@ import os
 import time
 import logging
 from typing import Dict, List, Optional, Any
+from src.config.loader import load_gitignore_patterns
 
 logger = logging.getLogger('watcher.platforms')
 
@@ -96,7 +97,7 @@ class PlatformManager:
             # A more robust solution might merge patterns or handle ignores per-path
             first_project_path = self.platform_states[self.platform_names[0]]["project_path"]
             logger.info(f"Loading gitignore patterns based on project path: {first_project_path}")
-            self.config_manager.gitignore_patterns = self.config_manager.load_gitignore_patterns(first_project_path)
+            self.config_manager.gitignore_patterns = load_gitignore_patterns(first_project_path)
             
             # Log combined configuration overview
             logger.info("Configuration loaded successfully for multiple platforms:")
