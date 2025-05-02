@@ -10,6 +10,7 @@ log() {
 
 # Parse arguments
 PROJECT_PATH_OVERRIDE=""
+PLATFORM_OVERRIDE=""
 log "Raw arguments: $@"
 for i in "$@"; do
     log "Processing argument: $i"
@@ -48,10 +49,65 @@ if [[ -z "$PROJECT_PATH_OVERRIDE" ]]; then
     done
 fi
 
+# First, check for --platform=VALUE format
+for arg in "$@"; do
+    if [[ "$arg" == "--platform="* ]]; then
+        log "Found --platform= format: $arg"
+        PLATFORM_OVERRIDE="${arg#--platform=}"
+        log "Extracted platform (equals format): '$PLATFORM_OVERRIDE'"
+        break
+    fi
+done
+
+# If not found in first format, check for --platform VALUE format
+if [[ -z "$PLATFORM_OVERRIDE" ]]; then
+    log "Checking for --platform VALUE format"
+    for ((i=1; i<=$#; i++)); do
+        if [[ "${!i}" == "--platform" ]]; then
+            log "Found --platform at position $i, checking next argument"
+            NEXT_IDX=$((i+1))
+            if [[ $NEXT_IDX -le $# ]]; then
+                NEXT_ARG="${!NEXT_IDX}"
+                if [[ "$NEXT_ARG" != --* ]]; then
+                    PLATFORM_OVERRIDE="$NEXT_ARG"
+                    log "Extracted platform (space format): '$PLATFORM_OVERRIDE'"
+                else
+                    log "Next argument is a flag, not a value: $NEXT_ARG"
+                fi
+            else
+                log "No value after --platform"
+            fi
+            break
+        fi
+    done
+fi
+
 if [[ -n "$PROJECT_PATH_OVERRIDE" ]]; then
     log "Final project path override: '$PROJECT_PATH_OVERRIDE'"
 else
     log "No project path override detected in arguments"
+fi
+
+if [[ -n "$PLATFORM_OVERRIDE" ]]; then
+    log "Final platform override: '$PLATFORM_OVERRIDE'"
+else
+    log "No platform override detected in arguments"
+fi
+
+# Determine the platform to run
+local platform_to_run=""
+if [ -n "$PLATFORM_OVERRIDE" ]; then
+    platform_to_run="$PLATFORM_OVERRIDE"
+    log "Using platform specified via --platform: $platform_to_run"
+else
+    # Read the first active platform from config.yaml if CLI platform not specified
+    platform_to_run=$(yq e '.platforms.active_platforms[0]' "$SCRIPT_DIR/config.yaml")
+    # Check if yq returned null or empty string
+    if [ -z "$platform_to_run" ] || [ "$platform_to_run" == "null" ]; then
+        echo "Error: No active platforms specified in config.yaml and --platform not provided." >&2
+        exit 1
+    fi
+    log "No --platform specified, using the first active platform from config: $platform_to_run"
 fi
 
 # Get the directory of the script
@@ -196,6 +252,22 @@ if [[ -f "$SCRIPT_DIR/config.yaml" ]]; then
                     log "Project path for WindSurf: '$PROJECT_PATH' (exists: $(test -d "$PROJECT_PATH" && echo Yes || echo No))"
                     log "Project path dir listing:"
                     ls -la "$PROJECT_PATH" | head -10 || true
+                    
+                    # Determine the platform to run
+                    local platform_to_run=""
+                    if [[ -n "$PLATFORM_OVERRIDE" ]]; then
+                        platform_to_run="$PLATFORM_OVERRIDE"
+                        log "Using platform specified via --platform: $platform_to_run"
+                    else
+                        # Read the first active platform from config.yaml if CLI platform not specified
+                        platform_to_run=$(yq e '.platforms.active_platforms[0]' "$SCRIPT_DIR/config.yaml")
+                        # Check if yq returned null or empty string
+                        if [ -z "$platform_to_run" ] || [ "$platform_to_run" == "null" ]; then
+                            echo "Error: No active platforms specified in config.yaml and --platform not provided." >&2
+                            exit 1
+                        fi
+                        log "No --platform specified, using the first active platform from config: $platform_to_run"
+                    fi
                     
                     # Kill existing WindSurf instances to ensure clean launch
                     log "Terminating any existing WindSurf instances..."
