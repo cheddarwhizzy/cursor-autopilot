@@ -7,6 +7,9 @@ A powerful automation tool for Cursor and Windsurf IDEs that helps manage tasks 
 For a detailed quick start guide, see [Quick Start Guide](./docs/quick_start.md).
 
 Basic usage:
+
+Note: Use the Thinking LLMs, you'll get better results.
+
 ```bash
 # Run with default project path from config.yaml
 ./run.sh
