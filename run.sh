@@ -3,10 +3,16 @@
 # Exit on error
 set -e
 
+# Get the directory of the script
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
+cd "$SCRIPT_DIR" || exit 1
+
 # Function to log messages
 log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
 }
+
+log "Script directory: $SCRIPT_DIR"
 
 # Parse arguments
 PROJECT_PATH_OVERRIDE=""
@@ -123,18 +129,12 @@ else
     log "No --platform specified, using active platforms from config: $platform_to_run"
 fi
 
-# Get the directory of the script
-SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
-cd "$SCRIPT_DIR" || exit 1
-
-log "Script directory: $SCRIPT_DIR"
-
 # --- Moved Termination Block Here ---
 log "Terminating relevant applications before restart..."
 
 # Check if windsurf is one of the platforms to run
-if [[ " $platform_to_run " =~ " windsurf " ]]; then
-    log "Terminating WindSurf (platform 'windsurf' is active)..."
+if echo " $platform_to_run " | grep -q "windsurf"; then
+    log "Terminating WindSurf (windsurf platform is active)..."
     # Try multiple app names and methods
     killall -9 WindSurf 2>/dev/null || true
     killall -9 Windsurf 2>/dev/null || true
@@ -144,111 +144,21 @@ if [[ " $platform_to_run " =~ " windsurf " ]]; then
     # Wait a moment
     sleep 2
 else
-    log "Skipping WindSurf termination (platform 'windsurf' is not active)"
+    log "Skipping WindSurf termination (windsurf platform is not active)"
 fi
 
 # Check if cursor is one of the platforms to run
-if [[ " $platform_to_run " =~ " cursor " ]]; then
-    log "Terminating Cursor (platform 'cursor' is active)..."
-    # Add commands to terminate Cursor here if needed
-    # Example using killall:
+if echo " $platform_to_run " | grep -q "cursor"; then
+    log "Terminating Cursor (cursor platform is active)..."
     killall -9 Cursor 2>/dev/null || true
-    # Example using osascript:
     osascript -e 'tell application "Cursor" to quit' 2>/dev/null || true
     sleep 2 # Wait for Cursor to close
-    # log "(Cursor termination commands currently commented out)"
 else
-     log "Skipping Cursor termination (platform 'cursor' is not active)"
+     log "Skipping Cursor termination (cursor platform is not active)"
 fi
 
 log "Application termination attempts completed"
 # --- End Moved Termination Block ---
-
-# --- Launch Application Block ---
-log "Launching applications based on active platforms..."
-
-# Check if windsurf is one of the platforms to run
-if [[ " $platform_to_run " =~ " windsurf " ]]; then
-    log "Launching WindSurf (platform 'windsurf' is active)..."
-    if [[ -n "$PROJECT_PATH_OVERRIDE" ]]; then
-        # Launch WindSurf with project path
-        log "Launching WindSurf with project path: '$PROJECT_PATH_OVERRIDE'"
-        
-        # Method 1: Using open command
-        open -a WindSurf "$PROJECT_PATH_OVERRIDE" || true
-        
-        # Wait a moment for the app to launch
-        sleep 3
-        
-        # Check if WindSurf is running
-        if pgrep -i "[Ww]ind[Ss]urf" > /dev/null; then
-            log "WindSurf started successfully with open command"
-        else
-            # Method 2: Try with AppleScript if open command failed
-            log "Trying to launch WindSurf with AppleScript..."
-            PROJECT_PATH_ESCAPED="${PROJECT_PATH_OVERRIDE//\"/\\\"}"
-            APPLESCRIPT="tell application \"WindSurf\" to open \"$PROJECT_PATH_ESCAPED\""
-            log "Running AppleScript: $APPLESCRIPT"
-            osascript -e "$APPLESCRIPT" || true
-            sleep 3
-            
-            # Check one more time
-            if pgrep -i "[Ww]ind[Ss]urf" > /dev/null; then
-                log "WindSurf started successfully with AppleScript"
-            else
-                log "Warning: Failed to start WindSurf with both methods"
-            fi
-        fi
-    else
-        log "Warning: No project path provided for WindSurf"
-        open -a WindSurf || true
-    fi
-else
-    log "Skipping WindSurf launch (platform 'windsurf' is not active)"
-fi
-
-# Check if cursor is one of the platforms to run
-if [[ " $platform_to_run " =~ " cursor " ]]; then
-    log "Launching Cursor (platform 'cursor' is active)..."
-    if [[ -n "$PROJECT_PATH_OVERRIDE" ]]; then
-        # Launch Cursor with project path
-        log "Launching Cursor with project path: '$PROJECT_PATH_OVERRIDE'"
-        
-        # Method 1: Using open command
-        open -a Cursor "$PROJECT_PATH_OVERRIDE" || true
-        
-        # Wait a moment for the app to launch
-        sleep 3
-        
-        # Check if Cursor is running
-        if pgrep -i "Cursor" > /dev/null; then
-            log "Cursor started successfully with open command"
-        else
-            # Method 2: Try with AppleScript if open command failed
-            log "Trying to launch Cursor with AppleScript..."
-            PROJECT_PATH_ESCAPED="${PROJECT_PATH_OVERRIDE//\"/\\\"}"
-            APPLESCRIPT="tell application \"Cursor\" to open \"$PROJECT_PATH_ESCAPED\""
-            log "Running AppleScript: $APPLESCRIPT"
-            osascript -e "$APPLESCRIPT" || true
-            sleep 3
-            
-            # Check one more time
-            if pgrep -i "Cursor" > /dev/null; then
-                log "Cursor started successfully with AppleScript"
-            else
-                log "Warning: Failed to start Cursor with both methods"
-            fi
-        fi
-    else
-        log "Warning: No project path provided for Cursor"
-        open -a Cursor || true
-    fi
-else
-    log "Skipping Cursor launch (platform 'cursor' is not active)"
-fi
-
-log "Application launch attempts completed"
-# --- End Launch Application Block ---
 
 # Always delete the initial prompt sent file to ensure initial prompt is sent
 rm -f "$SCRIPT_DIR/.initial_prompt_sent"
@@ -284,199 +194,107 @@ source "$VENV_DIR/bin/activate"
 # Install/Update required packages quietly
 log "Ensuring required packages are installed..."
 pip install -r requirements.txt -q
-# Optionally add pyautogui here if needed for cross-platform
-# pip install pyautogui -q 
 
-# Launch the application based on config.yaml
-# if [[ -f "$SCRIPT_DIR/config.yaml" ]]; then
-#     log "Loading platform information from config.yaml..."
-#     # Show the first few lines of the config file for debugging
-#     log "Config file (first 10 lines):"
-#     head -n 10 "$SCRIPT_DIR/config.yaml"
+# --- First launch platforms using specialized launchers ---
+log "Starting platforms launch phase..."
+
+# Read active platforms from config if not overridden
+if [ -z "$PLATFORM_OVERRIDE" ]; then
+    # First check if yq is installed
+    if ! command -v yq &> /dev/null; then
+        log "yq tool not found, installing with brew..."
+        brew install yq
+    fi
     
-#     # For cross-platform compatibility, check OS before launching app
-#     if [[ "$OSTYPE" == "darwin"* ]]; then
-#         # macOS
-#         if grep -q "windsurf" "$SCRIPT_DIR/config.yaml"; then
-#             # Prioritize command line project path override over config
-#             log "About to decide which project path to use for launch"
-#             log "PROJECT_PATH_OVERRIDE='$PROJECT_PATH_OVERRIDE'"
-            
-#             if [[ -n "$PROJECT_PATH_OVERRIDE" ]]; then
-#                 PROJECT_PATH="$PROJECT_PATH_OVERRIDE"
-#                 log "Using command line project path override: '$PROJECT_PATH'"
-#             else
-#                 # Improved way to extract project path from config
-#                 # First find the windsurf section
-#                 CONFIG_PROJECT_PATH=""
-                
-#                 # Read the config file and extract the project path
-#                 SECTION_FOUND=false
-#                 while IFS= read -r line; do
-#                     # Check if we're in the windsurf section
-#                     if [[ "$line" =~ [[:space:]]+"windsurf":[[:space:]]* ]]; then
-#                         SECTION_FOUND=true
-#                         log "Found windsurf section in config.yaml"
-#                         continue
-#                     fi
-                    
-#                     # Once in the windsurf section, look for project_path
-#                     if [[ "$SECTION_FOUND" == "true" && "$line" =~ [[:space:]]+"project_path":[[:space:]]* ]]; then
-#                         # Extract the value after the colon
-#                         CONFIG_PROJECT_PATH=$(echo "$line" | sed 's/.*project_path:[[:space:]]*\(.*\)/\1/' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | tr -d "'" | tr -d '"')
-#                         log "Extracted project_path from config.yaml: '$CONFIG_PROJECT_PATH'"
-#                         break
-#                     fi
-#                 done < "$SCRIPT_DIR/config.yaml"
-                
-#                 # If project path not found yet, try with grep as fallback
-#                 if [[ -z "$CONFIG_PROJECT_PATH" ]]; then
-#                     log "Trying alternate method to find project path..."
-#                     # Extract all platforms section
-#                     PLATFORMS_SECTION=$(sed -n '/platforms:/,/general:/p' "$SCRIPT_DIR/config.yaml")
-                    
-#                     # Extract windsurf section
-#                     WINDSURF_SECTION=$(echo "$PLATFORMS_SECTION" | sed -n '/windsurf:/,/cursor:/p')
-#                     if [[ -z "$WINDSURF_SECTION" ]]; then
-#                         # If cursor: not found after windsurf, try till end of platforms section
-#                         WINDSURF_SECTION=$(echo "$PLATFORMS_SECTION" | sed -n '/windsurf:/,/general:/p')
-#                     fi
-                    
-#                     # Extract project_path line
-#                     PROJECT_PATH_LINE=$(echo "$WINDSURF_SECTION" | grep "project_path:")
-#                     if [[ -n "$PROJECT_PATH_LINE" ]]; then
-#                         CONFIG_PROJECT_PATH=$(echo "$PROJECT_PATH_LINE" | sed 's/.*project_path:[[:space:]]*\(.*\)/\1/' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | tr -d "'" | tr -d '"')
-#                         log "Extracted project_path with grep method: '$CONFIG_PROJECT_PATH'"
-#                     fi
-#                 fi
-                
-#                 PROJECT_PATH="$CONFIG_PROJECT_PATH"
-#                 log "Using config file project path: '$PROJECT_PATH'"
-#             fi
-            
-#             if [[ -n "$PROJECT_PATH" ]]; then
-#                 log "Launching WindSurf with project path: '$PROJECT_PATH'"
-                
-#                 # Expand path if it contains ~ or other shell variables
-#                 UNEXPANDED_PATH="$PROJECT_PATH"
-#                 PROJECT_PATH=$(eval echo "$PROJECT_PATH")
-#                 if [[ "$UNEXPANDED_PATH" != "$PROJECT_PATH" ]]; then
-#                     log "Expanded project path: '$UNEXPANDED_PATH' -> '$PROJECT_PATH'"
-#                 fi
-                
-#                 # Make sure path exists
-#                 if [[ ! -d "$PROJECT_PATH" ]]; then
-#                     log "Warning: Project path does not exist: '$PROJECT_PATH'"
-#                     log "Parent directory contents:"
-#                     ls -la "$(dirname "$PROJECT_PATH")" || true
-#                 else
-#                     # Log the project path for debugging
-#                     log "Project path for WindSurf: '$PROJECT_PATH' (exists: $(test -d "$PROJECT_PATH" && echo Yes || echo No))"
-#                     log "Project path dir listing:"
-#                     ls -la "$PROJECT_PATH" | head -10 || true
-                    
-#                     # Determine the platform to run
-#                     platform_to_run=""
-#                     if [[ -n "$PLATFORM_OVERRIDE" ]]; then
-#                         platform_to_run="$PLATFORM_OVERRIDE"
-#                         log "Using platform specified via --platform: $platform_to_run"
-#                     else
-#                         # Read the first active platform from config.yaml if CLI platform not specified
-#                         platform_to_run=$(yq e '.platforms.active_platforms[0]' "$SCRIPT_DIR/config.yaml")
-#                         # Check if yq returned null or empty string
-#                         if [ -z "$platform_to_run" ] || [ "$platform_to_run" == "null" ]; then
-#                             echo "Error: No active platforms specified in config.yaml and --platform not provided." >&2
-#                             exit 1
-#                         fi
-#                         log "No --platform specified, using the first active platform from config: $platform_to_run"
-#                     fi
-                    
-#                     # Kill existing WindSurf instances to ensure clean launch
-#                     log "Terminating any existing WindSurf instances..."
-#                     killall -9 WindSurf 2>/dev/null || true
-#                     sleep 1
-                    
-#                     # Try multiple app name variants
-#                     for APP_NAME in "WindSurf" "Windsurf" "windsurf"; do
-#                         log "Trying to launch $APP_NAME with path: '$PROJECT_PATH'"
-                        
-#                         # Try to launch the application with explicit project path
-#                         OPEN_CMD="open -a \"$APP_NAME\" \"$PROJECT_PATH\""
-#                         log "Running command: $OPEN_CMD"
-#                         open -a "$APP_NAME" "$PROJECT_PATH" 2>/dev/null
-#                         OPEN_RESULT=$?
-                        
-#                         if [[ $OPEN_RESULT -eq 0 ]]; then
-#                             log "Successfully launched $APP_NAME with open command"
-#                             # Wait for the app to launch
-#                             sleep 3
-                            
-#                             # Verify app is running
-#                             if pgrep -i "$APP_NAME" > /dev/null; then
-#                                 log "$APP_NAME is running"
-#                                 break
-#                             else
-#                                 log "Warning: $APP_NAME failed to start despite successful open command"
-#                             fi
-#                         else
-#                             log "Failed to launch $APP_NAME with open command (exit code: $OPEN_RESULT)"
-#                         fi
-#                     done
-                    
-#                     # Double-check that application is running
-#                     if ! pgrep -i "[Ww]ind[Ss]urf" > /dev/null; then
-#                         log "Warning: WindSurf application did not start with open command, trying direct AppleScript launch"
-                        
-#                         # Try with AppleScript as fallback (be specific about path)
-#                         PROJECT_PATH_ESCAPED="${PROJECT_PATH//\"/\\\"}"
-#                         APPLESCRIPT="tell application \"WindSurf\" to open \"$PROJECT_PATH_ESCAPED\""
-#                         log "Running AppleScript: $APPLESCRIPT"
-#                         osascript -e "$APPLESCRIPT" || true
-#                         sleep 3
-                        
-#                         # Check one more time
-#                         if pgrep -i "[Ww]ind[Ss]urf" > /dev/null; then
-#                             log "WindSurf started successfully with AppleScript"
-#                         else
-#                             log "Warning: Failed to start WindSurf with both methods"
-#                         fi
-#                     fi
-                    
-#                     # Output project directory contents count for debugging
-#                     if [[ -d "$PROJECT_PATH" ]]; then
-#                         FILE_COUNT=$(find "$PROJECT_PATH" -type f | wc -l)
-#                         DIR_COUNT=$(find "$PROJECT_PATH" -type d | wc -l)
-#                         log "Project directory contains $FILE_COUNT files and $DIR_COUNT directories"
-#                         log "Project directory contents (first level):"
-#                         ls -la "$PROJECT_PATH" | head -n 20
-#                     fi
-#                 fi
-#             else
-#                 log "Warning: Could not find project_path for WindSurf in config.yaml"
-#                 # Print config file for debugging
-#                 log "Config file contents:"
-#                 cat "$SCRIPT_DIR/config.yaml" | grep -A 20 "windsurf:"
-#             fi
-#         fi
-#     elif [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
-#         # Windows handling would go here
-#         log "Windows launching not implemented yet"
-#     elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
-#         # Linux handling would go here
-#         log "Linux launching not implemented yet"
-#     fi
-# fi
+    # Read active platforms from config
+    ACTIVE_PLATFORMS=$(yq '.general.active_platforms[]' config.yaml)
+    log "Found active platforms in config: $ACTIVE_PLATFORMS"
+else
+    ACTIVE_PLATFORMS="$PLATFORM_OVERRIDE"
+    log "Using override platforms: $ACTIVE_PLATFORMS"
+fi
 
-log "Starting Cursor Autopilot..."
+# Launch each platform
+for platform in $ACTIVE_PLATFORMS; do
+    log "Launching platform: $platform"
+    
+    # Get platform type
+    PLATFORM_TYPE=$(yq ".platforms.$platform.type" config.yaml)
+    
+    # Use specialized launcher for cursor platforms
+    if [[ "$PLATFORM_TYPE" == "cursor" ]]; then
+        log "Using specialized launcher for Cursor platform: $platform"
+        PYTHONPATH=. ./launch_cursor_only.py
+        platform_exit_code=$?
+    elif [[ "$PLATFORM_TYPE" == "windsurf" ]]; then
+        log "Using specialized launcher for WindSurf platform: $platform"
+        PYTHONPATH=. ./launch_windsurf_only.py
+        platform_exit_code=$?
+    else
+        # Use direct approach for unknown platform types
+        log "Using generic launcher for platform: $platform (type: $PLATFORM_TYPE)"
+        PYTHONPATH=. python3 -c "
+import yaml
+import os
+import sys
 
-# --- Execute Python Entry Point --- 
-# The Python script (e.g., src/cli.py or src/watcher.py) is now responsible 
-# for loading config.yaml, parsing CLI args with argparse, and overriding.
+# Load config
+with open('config.yaml', 'r') as f:
+    config = yaml.safe_load(f)
 
-# Determine the Python entry point - Assuming it's src/watcher.py based on previous edits
-# If you created a dedicated cli.py, change this.
-PYTHON_ENTRY_POINT="src/watcher.py" 
-# PYTHON_ENTRY_POINT="src/cli.py" # <<< --- Use this if you have a separate cli entrypoint
+# Get platform config directly from config file
+platform_config = config.get('platforms', {}).get('$platform')
+if not platform_config:
+    print(f'Platform $platform not found in config')
+    sys.exit(1)
+
+# Get platform type and project path
+platform_type = platform_config.get('type', '$platform')
+project_path = platform_config.get('project_path')
+
+if not project_path:
+    print(f'No project path defined for platform: $platform')
+    sys.exit(1)
+
+# Expand user directory
+project_path = os.path.expanduser(project_path)
+if not os.path.exists(project_path):
+    print(f'Project path does not exist: {project_path}')
+    sys.exit(1)
+
+# Launch platform
+print(f'Launching platform $platform (type: {platform_type}) with project path: {project_path}')
+from src.actions.send_to_cursor import launch_platform
+success = launch_platform('$platform', platform_type, project_path)
+
+if success:
+    print(f'Successfully launched $platform')
+    sys.exit(0)
+else:
+    print(f'Failed to launch $platform')
+    sys.exit(1)
+"
+        platform_exit_code=$?
+    fi
+    
+    # Check exit code
+    if [ $platform_exit_code -ne 0 ]; then
+        log "Platform $platform launch failed with exit code $platform_exit_code"
+        exit $platform_exit_code
+    else
+        log "Platform $platform launch initiated successfully"
+    fi
+    
+    # Give a pause between launching multiple platforms
+    log "Waiting 5 seconds before continuing..."
+    sleep 5
+done
+
+# --- Now start the watcher to handle prompts and monitoring ---
+log "Starting Cursor Autopilot watcher..."
+
+# Determine the Python entry point
+PYTHON_ENTRY_POINT="src/watcher.py"
 
 if [ ! -f "$PYTHON_ENTRY_POINT" ]; then
     # Fallback if watcher.py was deleted/renamed incorrectly

@@ -1,105 +1,149 @@
 # Cursor Autopilot YAML Configuration
 
 platforms:
-  cursor:
-    os_type: osx  # or 'windows' or 'linux'
-    window_title: "Cursor"
-    project_path: "/Users/cheddarwhizzy/cheddar/cursor-autopilot"
-    task_file_path: "tasks.md"
-    additional_context_path: "architecture.md"
-    # initial_prompt_file_path: "initial_prompt.txt"
-    continuation_prompt_file_path: "continuation_prompt.txt"
+  cursor_meanscoop:
+    type: "cursor"
+    window_title: "Cursor - Mean Scoop"
+    project_path: "/Users/cheddarwhizzy/cheddar/mean-scoop/mean-scoop"
+    task_file_path: "tasks.md" # Only used by default built-in prompt
+    additional_context_path: "architecture.md" # Only used by default built-in prompt
+    # initial_prompt_file_path: "initial_prompt.txt" # set prompt in a file relative to your project_path root
+    # continuation_prompt_file_path: "continuation_prompt.txt" # set continuation prompt in a file relative to your project_path root
+    initialization_delay_seconds: 5 # Wait for IDE to be ready before sending keystrokes
+    # Keystrokes to activate the Cascade/Cursor chat window
     initialization:
       - keys: "control+`"
-        delay_ms: 100
+        delay_ms: 300
       - keys: "command+l"
-        delay_ms: 100
+        delay_ms: 300
+    # Keystrokes to send to the Cursor chat window once it's open and initialized. Defaults attempt clear context (files) and any text present.
     keystrokes:
-      - keys: "command+a"  # For Windows: "ctrl+l", For Linux: "ctrl+l"
+      - keys: "command+a" # For Windows: "ctrl+l", For Linux: "ctrl+l"
         delay_ms: 100
       - keys: "backspace"
         delay_ms: 100
       - keys: "backspace"
         delay_ms: 100
       - keys: "command+l"
-        delay_ms: 100 
-    options:
-      enable_auto_mode: true
-      continuation_prompt: "Continue?"
-      initial_prompt: "Start session"
-      timeout_seconds: 30
-      vision_conditions:
-        - file_type: "*.py"
-          action: "save"
-          question: "Does this code need any improvements?"
-          success_keystrokes:
-            - keys: "command+shift+p"
-              delay_ms: 100
-            - keys: "cursor-autopilot:improve"
-              delay_ms: 100
-          failure_keystrokes:
-            - keys: "command+s"
-              delay_ms: 100
-  windsurf:
-    os_type: osx  # or 'windows' or 'linux'
-    window_title: "WindSurf"
-    project_path: "/Users/cheddarwhizzy/cheddar/guzzyworld/guzzy-world"
-    task_file_path: "tasks.md"
-    additional_context_path: "architecture.md"
-    # initial_prompt_file_path: "initial_prompt.txt"
-    continuation_prompt_file_path: "continuation_prompt.txt"
+        delay_ms: 300
+      - keys: "command+n"
+        delay_ms: 100
+    # NOT IMPLEMENTED YET
+    # options:
+    #   enable_auto_mode: true
+    #   continuation_prompt: "Continue?"
+    #   initial_prompt: "Start session"
+    #   timeout_seconds: 30
+    
+  windsurf_mushattention:
+    type: "windsurf"
+    window_title: "WindSurf - Mushattention"
+    project_path: "/Users/cheddarwhizzy/cheddar/mushattention/mushattention"
+    task_file_path: "tasks.md" # Only used by default built-in prompt
+    additional_context_path: "architecture.md" # Only used by default built-in prompt
+    # initial_prompt_file_path: "initial_prompt.txt" # set prompt in a file relative to your project_path root
+    # continuation_prompt_file_path: "continuation_prompt.txt" # set continuation prompt in a file relative to your project_path root
+    initialization_delay_seconds: 8 # Wait for IDE to be ready before sending keystrokes
+    # Keystrokes to activate the Cascade/Cursor chat window
     initialization:
       - keys: "control+`"
-        delay_ms: 100
+        delay_ms: 300
+      - keys: "control+kw"
+        delay_ms: 300
       - keys: "command+l"
-        delay_ms: 100
+        delay_ms: 300
+    # Keystrokes to send to the Cascade chat window once it's open and initialized. Defaults attempt clear context (files) and any text present.
     keystrokes:
-      - keys: "command+a"  # For Windows: "ctrl+l", For Linux: "ctrl+l"
+      - keys: "command+a" # For Windows: "ctrl+l", For Linux: "ctrl+l"
+        delay_ms: 300
+      - keys: "backspace"
+        delay_ms: 100
+      - keys: "backspace"
+        delay_ms: 100
+      - keys: "command+l"
+        delay_ms: 300
+      - keys: "command+shift+l"
+        delay_ms: 100
+    # NOT IMPLEMENTED YET
+    # options:
+    #   enable_auto_mode: false
+    #   continuation_prompt: "Continue?"
+    #   initial_prompt: "Start session"
+    #   timeout_seconds: 30
+
+  # Example of a second cursor instance
+  cursor_autopilot:
+    type: "cursor"
+    window_title: "Cursor - Autopilot"
+    project_path: "/Users/cheddarwhizzy/cheddar/cheddarwhizzy/cursor-autopilot"
+    task_file_path: "tasks.md"
+    additional_context_path: "architecture.md"
+    initialization_delay_seconds: 5
+    initialization:
+      - keys: "control+`"
+        delay_ms: 300
+      - keys: "command+l"
+        delay_ms: 300
+    keystrokes:
+      - keys: "command+a"
         delay_ms: 100
       - keys: "backspace"
         delay_ms: 100
       - keys: "backspace"
         delay_ms: 100
       - keys: "command+l"
-        delay_ms: 100        
-    options:
-      enable_auto_mode: false
-      continuation_prompt: "Continue?"
-      initial_prompt: "Start session"
-      timeout_seconds: 30
-      vision_conditions:
-        - file_type: "*.py"
-          action: "save"
-          question: "Does this code need any improvements?"
-          success_keystrokes:
-            - keys: "command+shift+p"
-              delay_ms: 100
-            - keys: "windsurf:improve"
-              delay_ms: 100
-          failure_keystrokes:
-            - keys: "command+s"
-              delay_ms: 100
+        delay_ms: 300
+      - keys: "command+n"
+        delay_ms: 100
+
+  # Example of a second windsurf instance
+  windsurf_sideproject:
+    type: "windsurf"
+    window_title: "WindSurf - Side Project"
+    project_path: "/Users/cheddarwhizzy/cheddar/side-project" # Update to your actual path
+    task_file_path: "tasks.md"
+    additional_context_path: "architecture.md"
+    initialization_delay_seconds: 8
+    initialization:
+      - keys: "control+`"
+        delay_ms: 300
+      - keys: "control+kw"
+        delay_ms: 300
+      - keys: "command+l"
+        delay_ms: 300
+    keystrokes:
+      - keys: "command+a"
+        delay_ms: 300
+      - keys: "backspace"
+        delay_ms: 100
+      - keys: "backspace"
+        delay_ms: 100
+      - keys: "command+l"
+        delay_ms: 300
+      - keys: "command+shift+l"
+        delay_ms: 100
 
 general:
-  active_platforms: ["windsurf"]
-  staggered: false
-  stagger_delay: 90
+  # Update this to control which platforms should be active
+  active_platforms: ["cursor_meanscoop", "windsurf_mushattention"] 
+  staggered: true
+  stagger_delay: 15
   initial_delay: 10
   send_message: true
   use_vision_api: false
   debug: true
   inactivity_delay: 120
-  initial_prompt: "Review tasks.md, "
-  inactivity_prompt: "Continue please"
-
+  use_gitignore: true # Toggle for using .gitignore patterns
+  # initial_prompt: "Review tasks.md, architecture.md, and docs.md - complete each task in order, test each task in order, and document the results in tasks.md"
+  # inactivity_prompt: "Continue please"
 
 slack:
   enabled: false
-  bot_token: ""  # Set your Slack bot token here
-  app_token: ""  # Set your Slack app token here
+  bot_token: "" # Set your Slack bot token here
+  app_token: "" # Set your Slack app token here
   channels:
     - name: "automation"
-      id: ""  # Set your channel ID here
+      id: "" # Set your channel ID here
   commands:
     - name: "enable_auto"
       description: "Enable automatic mode"
@@ -115,7 +159,7 @@ slack:
 openai:
   vision:
     enabled: false
-    api_key: ""  # Set your OpenAI API key here
+    api_key: "" # Set your OpenAI API key here
     model: "gpt-4o"
     max_tokens: 300
     temperature: 0.7

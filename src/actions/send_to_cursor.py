@@ -346,14 +346,14 @@ def kill_cursor(platform="cursor"):
     """Kill the Cursor or Windsurf application if it's running."""
     app_name = "Windsurf" if platform == "windsurf" else "Cursor"
     logger.info(f"Checking if {app_name} is running...")
-    
+
     # Check if app is running
     check_script = f'''
     tell application "System Events"
         count (every process whose name is "{app_name}")
     end tell
     '''
-    
+
     result = subprocess.run(["osascript", "-e", check_script], capture_output=True, text=True)
     if result.returncode == 0 and result.stdout.strip() != "0":
         logger.info(f"{app_name} is running, killing it...")
@@ -364,37 +364,301 @@ def kill_cursor(platform="cursor"):
     else:
         logger.info(f"{app_name} is not running.")
 
-def launch_platform(platform: str = "cursor") -> bool:
-    """Launch Cursor or Windsurf and wait for it to be ready."""
-    app_name = "Windsurf" if platform == "windsurf" else "Cursor"
-    logger.info(f"Starting {app_name}...")
-    
-    if platform.system().lower() == 'darwin':
-        subprocess.run(["open", "-a", app_name])
-    elif platform.system().lower() == 'windows':
-        subprocess.run(["start", app_name])
-    elif platform.system().lower() == 'linux':
-        subprocess.run(["xdg-open", app_name])
-    
-    # Wait for process to appear
-    logger.info(f"Waiting for {app_name} process...")
-    for _ in range(10):  # Try for 10 seconds
-        if activate_window(app_name):
-            logger.info(f"{app_name} process detected.")
-            break
-        time.sleep(1)
-    
-    # For Windsurf, press Enter to clear any dialog boxes
-    if platform == "windsurf":
-        logger.info("Pressing Enter to clear any dialog boxes in Windsurf...")
-        if not send_keystrokes("enter"):
+
+def launch_platform(platform_name="cursor", platform_type=None, project_path=None):
+    """
+    Launch Cursor or Windsurf and wait for it to be ready.
+
+    Args:
+        platform_name: Unique identifier for this platform instance
+        platform_type: Type of platform ("cursor" or "windsurf"). If None, uses platform_name
+        project_path: Path to the project to open
+    """
+    # If platform_type not provided, use platform_name as the type
+    if platform_type is None:
+        platform_type = platform_name
+
+    is_windsurf = platform_type.lower() == "windsurf"
+    app_name = "Windsurf" if is_windsurf else "Cursor"
+    logger.info(f"Starting {app_name} for platform {platform_name}...")
+
+    # Ensure the application is not already running (sometimes kill doesn't fully terminate)
+    kill_cursor("windsurf" if is_windsurf else "cursor")
+    time.sleep(1)  # Brief pause to ensure previous instances are terminated
+
+    # Get list of processes before launch to compare later
+    before_pids = set(_get_process_pids_by_name(app_name))
+    logger.debug(f"Processes matching '{app_name}' before launch: {before_pids}")
+
+    if project_path:
+        logger.info(f"Launching {app_name} with project path: {project_path}")
+        # Launch using open command
+        result = subprocess.run(
+            ["open", "-a", app_name, project_path], capture_output=True, text=True
+        )
+
+        if result.returncode != 0:
+            logger.warning(f"Open command failed: {result.stderr}")
+            # Method 2: Try with AppleScript if open command failed
+            logger.info(f"Trying to launch {app_name} with AppleScript...")
+            project_path_escaped = project_path.replace('"', '\\"')
+            script = f"""
+            tell application "{app_name}" to open "{project_path_escaped}"
+            """
+            result = subprocess.run(
+                ["osascript", "-e", script], capture_output=True, text=True
+            )
+            if result.returncode != 0:
+                logger.error(f"AppleScript launch failed: {result.stderr}")
+                return False
+    else:
+        logger.warning(f"No project path provided for {platform_name} ({app_name})")
+        result = subprocess.run(
+            ["open", "-a", app_name], capture_output=True, text=True
+        )
+        if result.returncode != 0:
+            logger.error(f"Failed to launch {app_name}: {result.stderr}")
             return False
+
+    # Wait for new process to appear by comparing PIDs before and after
+    logger.info(f"Waiting for {app_name} process to start...")
+    max_attempts = 30 if is_windsurf else 20  # Give more time for WindSurf
+    detected_pid = None
+
+    # Try to find the app bundle path to help with process detection
+    app_path = None
+    try:
+        app_path_result = subprocess.run(
+            ["mdfind", f"kMDItemCFBundleIdentifier == '*{app_name.lower()}*'"],
+            capture_output=True,
+            text=True,
+        )
+        if app_path_result.returncode == 0 and app_path_result.stdout.strip():
+            app_path = os.path.basename(app_path_result.stdout.strip().split("\n")[0])
+            logger.debug(f"Found potential app bundle: {app_path}")
+    except Exception as e:
+        logger.debug(f"Could not find app bundle path: {e}")
+
+    for attempt in range(max_attempts):
+        # Small delay to allow processes to start
+        time.sleep(1)
+
+        # Log progress on every 5th attempt
+        if attempt % 5 == 0:
+            logger.info(
+                f"Waiting for {app_name} process... (attempt {attempt+1}/{max_attempts})"
+            )
+
+        # Get all variations of the app name
+        app_variations = [
+            app_name,
+            app_name.lower(),
+            app_name.title(),
+            app_name.upper(),
+        ]
+        if "windsurf" in app_name.lower():
+            app_variations.extend(["WindSurf", "Windsurf", "windsurf"])
+        if app_path:
+            app_variations.append(app_path)
+
+        # Try to find PIDs for all variations
+        all_pids = set()
+        for variation in app_variations:
+            variation_pids = set(_get_process_pids_by_name(variation))
+            if variation_pids:
+                logger.debug(f"Found PIDs for {variation}: {variation_pids}")
+                all_pids.update(variation_pids)
+
+        # Alternative method using ps command directly with grep (more thorough)
+        try:
+            alt_cmd = [
+                "ps",
+                "-A",
+                "-o",
+                "pid,comm",
+                "|",
+                "grep",
+                "-i",
+                app_name.lower(),
+            ]
+            alt_result = subprocess.run(
+                " ".join(alt_cmd), shell=True, capture_output=True, text=True
+            )
+            if (
+                alt_result.returncode == 0 or alt_result.returncode == 1
+            ):  # grep returns 1 if no matches
+                for line in alt_result.stdout.splitlines():
+                    if line and not "grep" in line.lower():  # Skip grep process itself
+                        parts = line.strip().split(None, 1)
+                        if len(parts) >= 1:
+                            try:
+                                alt_pid = int(parts[0])
+                                all_pids.add(alt_pid)
+                                logger.debug(
+                                    f"Found via grep: PID={alt_pid}, line={line}"
+                                )
+                            except ValueError:
+                                pass
+        except Exception as e:
+            logger.debug(f"Alternative process detection failed: {e}")
+
+        # Find new PIDs that weren't there before
+        new_pids = all_pids - before_pids
+
+        if new_pids:
+            detected_pid = list(new_pids)[0]  # Just take the first one
+            detected_name = _get_process_name_by_pid(detected_pid)
+            logger.info(f"Detected new process: {detected_name} (PID: {detected_pid})")
+            break
+
+        if attempt == max_attempts - 1:
+            logger.error(
+                f"Failed to detect {app_name} process after {max_attempts} seconds"
+            )
+            return False
+
+    if not detected_pid:
+        logger.error(f"Could not detect a new process for {app_name}")
+        return False
+
+    # For Windsurf, try to press Enter to clear any dialog boxes
+    if is_windsurf:
+        logger.info("Pressing Enter to clear any dialog boxes in Windsurf...")
+        script = f"""
+        tell application "System Events"
+            tell process id {detected_pid}
+                key code 36  -- Enter key
+            end tell
+        end tell
+        """
+        subprocess.run(["osascript", "-e", script], capture_output=True)
         logger.info("Waiting 1 second after pressing Enter...")
         time.sleep(1)
-    
+
     # Give it extra time to fully initialize
-    logger.info(f"Waiting 5 seconds for {app_name} to fully initialize...")
-    time.sleep(5)
-    
-    logger.info("Done.")
+    extra_time = 8 if is_windsurf else 5  # Give WindSurf more initialization time
+    logger.info(f"Waiting {extra_time} seconds for application to fully initialize...")
+    time.sleep(extra_time)
+
+    # Try to activate the window using the detected process or window title
+    activation_success = False
+
+    try:
+        # Try by detected process ID first
+        if detected_pid:
+            script = f"""
+            tell application "System Events"
+                set proc to first process whose unix id is {detected_pid}
+                set frontmost of proc to true
+            end tell
+            """
+            result = subprocess.run(
+                ["osascript", "-e", script], capture_output=True, text=True
+            )
+            activation_success = result.returncode == 0
+            logger.info(
+                f"Window activation by PID {detected_pid}: {'succeeded' if activation_success else 'failed'}"
+            )
+
+        # Also try activating with the specified window title if different
+        from src.platforms.manager import PlatformManager
+
+        platform_manager = globals().get("platform_manager", None)
+        if platform_manager:
+            platform_state = platform_manager.get_platform_state(platform_name)
+            window_title = platform_state.get("window_title")
+            if window_title:
+                title_activation = activate_window(window_title)
+                logger.info(
+                    f"Window activation by title '{window_title}': {'succeeded' if title_activation else 'failed'}"
+                )
+                activation_success = activation_success or title_activation
+    except Exception as e:
+        logger.error(f"Error during window activation: {e}")
+
+    if not activation_success:
+        logger.warning(f"Could not activate window, but continuing...")
+        # Try basic app activation as last resort
+        try:
+            subprocess.run(
+                ["osascript", "-e", f'tell application "{app_name}" to activate'],
+                capture_output=True,
+            )
+        except:
+            pass
+
+    logger.info(
+        f"{platform_name} ({app_name}) launched successfully with PID {detected_pid}"
+    )
     return True
+
+
+def _get_process_pids_by_name(process_name):
+    """
+    Get PIDs of processes matching the given name
+    """
+    try:
+        # Use ps command to find matching processes
+        cmd = ["ps", "-A", "-o", "pid,comm"]
+        result = subprocess.run(cmd, capture_output=True, text=True)
+
+        if result.returncode == 0:
+            pids = []
+            for line in result.stdout.splitlines()[1:]:  # Skip header line
+                parts = line.strip().split(None, 1)
+                if len(parts) == 2:
+                    pid_str, comm = parts
+                    # More thorough check - case insensitive, handle paths containing the name
+                    if (
+                        process_name.lower() in comm.lower()
+                        or process_name.lower() in os.path.basename(comm).lower()
+                    ):
+                        try:
+                            pids.append(int(pid_str))
+                            logger.debug(
+                                f"Found matching process: PID={pid_str}, name={comm}"
+                            )
+                        except ValueError:
+                            pass
+            return pids
+    except Exception as e:
+        logger.error(f"Error getting process PIDs: {e}")
+
+    return []
+
+
+def _get_process_name_by_pid(pid):
+    """
+    Get the name of a process by its PID
+    """
+    try:
+        cmd = ["ps", "-p", str(pid), "-o", "comm="]
+        result = subprocess.run(cmd, capture_output=True, text=True)
+
+        if result.returncode == 0:
+            return result.stdout.strip()
+    except Exception as e:
+        logger.error(f"Error getting process name for PID {pid}: {e}")
+
+    return "Unknown"
+
+
+def activate_platform_window(platform_name, platform_state):
+    """
+    Activate a specific platform window by its title or platform type.
+
+    Args:
+        platform_name: The unique platform identifier
+        platform_state: The platform state dictionary
+
+    Returns:
+        bool: True if activation was successful, False otherwise
+    """
+    window_title = platform_state.get("window_title")
+    if not window_title:
+        # Fall back to platform type
+        platform_type = platform_state.get("platform_type", platform_name)
+        window_title = "Windsurf" if platform_type.lower() == "windsurf" else "Cursor"
+
+    logger.info(f"Activating window for {platform_name}: '{window_title}'")
+    return activate_window(window_title)

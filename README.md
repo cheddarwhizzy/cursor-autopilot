@@ -8,14 +8,37 @@ For a detailed quick start guide, see [Quick Start Guide](./docs/quick_start.md)
 
 Basic usage:
 
-Note: Use the Thinking LLMs, you'll get better results.
+Note: Use the Thinking mode with LLMs, you'll get better results.
+
+## Running the Application
+
+There are multiple ways to run this application:
+
+### Using the main script (recommended)
 
 ```bash
-# Run with default project path from config.yaml
 ./run.sh
+```
 
-# Run with a specific project path override
-./run.sh --project-path /path/to/your/project --platform cursor
+### Using the specialized launcher script
+
+This is useful for troubleshooting or when you want to launch just a specific platform:
+
+```bash
+# Launch all platforms defined in the config.yaml
+./run_launch.sh
+
+# Launch a specific platform
+./run_launch.sh --platform=cursor_meanscoop
+./run_launch.sh --platform=windsurf_mushattention
+```
+
+### Using the dedicated Cursor launcher
+
+For cases where only Cursor needs to be launched:
+
+```bash
+PYTHONPATH=. ./launch_cursor_only.py
 ```
 
 ## Core Concepts
@@ -84,6 +107,44 @@ cursor-autopilot/
 # ```
 
 Check the script logs for detailed information during execution.
+
+## Troubleshooting
+
+If you experience issues with platforms not launching:
+
+1. Try using the specialized launcher scripts mentioned above
+2. Check the logs for specific error messages
+3. Ensure the project paths in `config.yaml` are correct and accessible
+4. Kill any existing instances of Cursor or Windsurf manually before running
+5. Verify your window titles match what's in the config
+
+## Configuration
+
+To set up multiple instances of platforms:
+
+1. In `config.yaml`, define each platform with a unique name:
+
+```yaml
+platforms:
+  cursor_meanscoop:
+    type: "cursor"
+    window_title: "Cursor - Mean Scoop"
+    project_path: "/path/to/meanscoop/project"
+    # other settings...
+    
+  windsurf_mushattention:
+    type: "windsurf"
+    window_title: "WindSurf - Mushattention"
+    project_path: "/path/to/mushattention/project"
+    # other settings...
+```
+
+2. Specify which platforms should be active:
+
+```yaml
+general:
+  active_platforms: ["cursor_meanscoop", "windsurf_mushattention"]
+```
 
 ## License
 
