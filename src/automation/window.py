@@ -44,37 +44,92 @@ def activate_window(title):
 
 def _activate_window_macos(title):
     """
-    Activate a window on macOS using AppleScript
+    Activate a window on macOS using AppleScript with improved case-insensitive matching
     """
-    # Try activating by finding a process containing the title
-    script = f'''
+    # Try with better case-insensitive matching and process enumeration
+    script = f"""
     set targetTitle to "{title}"
     try
         tell application "System Events"
-            set matchingProcesses to (processes whose name contains targetTitle or title contains targetTitle)
+            -- Try multiple variations of case-insensitive matching
+            set matchingProcesses to (processes whose (name contains targetTitle or title of windows contains targetTitle))
+            
             if (count of matchingProcesses) > 0 then
                 set targetProcess to item 1 of matchingProcesses
                 set frontmost of targetProcess to true
-                log "Activated process: " & name of targetProcess
+                log "Activated process by name match: " & name of targetProcess
+                
+                -- Try to focus on the specific window within the process if possible
+                try
+                    tell targetProcess
+                        set winList to windows whose title contains targetTitle
+                        if (count of winList) > 0 then
+                            set index of item 1 of winList to 1
+                            log "Successfully focused specific window within application"
+                        end if
+                    end tell
+                end try
+                
                 return true -- Indicate success
             else
-                log "No process found containing title: " & targetTitle
-                -- Fallback: Try activating app by name if title matches app name
-                try
-                    tell application targetTitle to activate
-                    log "Activated application by name: " & targetTitle
+                -- If no match by name, try a broader search with windows
+                log "No direct process match, trying windows containing title"
+                
+                set anyMatches to false
+                repeat with theProcess in processes
+                    try
+                        tell theProcess
+                            set winList to windows whose title contains targetTitle
+                            if (count of winList) > 0 then
+                                set frontmost of theProcess to true
+                                set index of item 1 of winList to 1
+                                log "Found and activated window with matching title in: " & name of theProcess
+                                set anyMatches to true
+                                exit repeat -- Exit after first match
+                            end if
+                        end tell
+                    end try
+                end repeat
+                
+                if anyMatches then
                     return true
-                on error errMsg number errNum
-                    log "Fallback activation by name failed: " & errMsg
-                    return false
-                end try
+                else
+                    log "No window found containing title: " & targetTitle
+                    -- Final fallback: Try activating app by name (multiple case variations)
+                    try
+                        tell application targetTitle to activate
+                        log "Activated application by exact name: " & targetTitle
+                        return true
+                    on error
+                        try
+                            set titleLower to do shell script "echo " & quoted form of targetTitle & " | tr '[:upper:]' '[:lower:]'"
+                            tell application titleLower to activate
+                            log "Activated application by lowercase name: " & titleLower
+                            return true
+                        on error
+                            -- Simpler approach without AWK
+                            try
+                                set firstChar to (text 1 thru 1 of targetTitle)
+                                set restChars to (text 2 thru (length of targetTitle) of targetTitle)
+                                set titleProper to (do shell script "echo " & quoted form of firstChar & " | tr '[:lower:]' '[:upper:]'") & restChars
+                                tell application titleProper to activate
+                                log "Activated application with capitalized first letter: " & titleProper
+                                return true
+                            on error errMsg3 number errNum3
+                                log "All activation methods failed: " & errMsg3
+                                return false
+                            end try
+                        end try
+                    end try
+                end if
             end if
         end tell
     on error errMsg number errNum
-        log "Error activating window: " & errMsg
+        log "Error in window activation script: " & errMsg
         return false
     end try
-    '''
+    """
+
     # Use capture_output=True to get logs from AppleScript
     result = subprocess.run(['osascript', '-e', script], check=False, capture_output=True, text=True)
     if result.returncode == 0 and "Activated" in result.stdout:
@@ -82,6 +137,36 @@ def _activate_window_macos(title):
         return True
     else:
         logger.warning(f"Could not activate window/process containing '{title}'. Error: {result.stderr.strip()} Output: {result.stdout.strip()}")
+
+        # Add a final fallback for common variations
+        variations = [title, title.lower(), title.upper(), title.title()]
+        # Add a version where "WindSurf" becomes "Windsurf"
+        if "WindSurf" in title:
+            variations.append(title.replace("WindSurf", "Windsurf"))
+        if "Windsurf" in title:
+            variations.append(title.replace("Windsurf", "WindSurf"))
+
+        for variation in variations:
+            if variation == title:
+                continue  # Skip the original title we already tried
+
+            logger.debug(
+                f"Trying fallback activation with title variation: '{variation}'"
+            )
+            simple_script = f'tell application "{variation}" to activate'
+            result = subprocess.run(
+                ["osascript", "-e", simple_script],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode == 0:
+                logger.debug(
+                    f"Successfully activated using title variation: '{variation}'"
+                )
+                return True
+
+        logger.warning(f"All activation attempts failed for window title: '{title}'")
         return False
 
 def _activate_window_windows(title):
