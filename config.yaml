@@ -1,10 +1,10 @@
 # Cursor Autopilot YAML Configuration
 
 platforms:
-  cursor_meanscoop:
+  cursor:
     type: "cursor"
-    window_title: "Cursor - Mean Scoop"
-    project_path: "/Users/cheddarwhizzy/cheddar/mean-scoop/mean-scoop"
+    window_title: "Cursor - Mushattention"
+    project_path: "/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention"
     task_file_path: "tasks.md" # Only used by default built-in prompt
     additional_context_path: "architecture.md" # Only used by default built-in prompt
     # initial_prompt_file_path: "initial_prompt.txt" # set prompt in a file relative to your project_path root
@@ -38,7 +38,7 @@ platforms:
   windsurf_mushattention:
     type: "windsurf"
     window_title: "WindSurf - Mushattention"
-    project_path: "/Users/cheddarwhizzy/cheddar/mushattention/mushattention"
+    project_path: "/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention"
     task_file_path: "tasks.md" # Only used by default built-in prompt
     additional_context_path: "architecture.md" # Only used by default built-in prompt
     # initial_prompt_file_path: "initial_prompt.txt" # set prompt in a file relative to your project_path root
@@ -125,7 +125,7 @@ platforms:
 
 general:
   # Update this to control which platforms should be active
-  active_platforms: ["cursor_meanscoop", "windsurf_mushattention"] 
+  active_platforms: ["cursor", "windsurf_mushattention"] 
   staggered: true
   stagger_delay: 15
   initial_delay: 10

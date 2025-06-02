@@ -81,6 +81,34 @@ class PlatformManager:
                     )
                     logger.debug(f"Using inactivity delay for {platform_name}: {inactivity_delay}")
 
+                # Get task file path - apply command line override if specified
+                if hasattr(args, 'task_file_path') and args.task_file_path:
+                    task_file_path = args.task_file_path
+                    logger.info(f"Using task file path override from command line for {platform_name}: {task_file_path}")
+                else:
+                    task_file_path = platform_config.get("task_file_path", "tasks.md")
+
+                # Get additional context path - apply command line override if specified
+                if hasattr(args, 'additional_context_path') and args.additional_context_path:
+                    additional_context_path = args.additional_context_path
+                    logger.info(f"Using additional context path override from command line for {platform_name}: {additional_context_path}")
+                else:
+                    additional_context_path = platform_config.get("additional_context_path", "")
+
+                # Get continuation prompt - apply command line override if specified
+                if hasattr(args, 'continuation_prompt') and args.continuation_prompt:
+                    continuation_prompt = args.continuation_prompt
+                    logger.info(f"Using continuation prompt override from command line for {platform_name}")
+                else:
+                    continuation_prompt = None
+
+                # Get initial prompt - apply command line override if specified
+                if hasattr(args, 'initial_prompt') and args.initial_prompt:
+                    initial_prompt = args.initial_prompt
+                    logger.info(f"Using initial prompt override from command line for {platform_name}")
+                else:
+                    initial_prompt = None
+
                 # Populate state for this platform
                 self.platform_states[platform_name] = {
                     "platform_type": platform_type,
@@ -91,7 +119,8 @@ class PlatformManager:
                     "watch_handler": None,  # Placeholder for watchdog handler
                     "observer": None,  # Placeholder for watchdog observer
                     # Add other per-platform state vars as needed
-                    "task_file_path": platform_config.get("task_file_path", "tasks.md"),
+                    "task_file_path": task_file_path,
+                    "additional_context_path": additional_context_path,
                     "continuation_prompt_file_path": platform_config.get(
                         "continuation_prompt_file_path", "continuation_prompt.txt"
                     ),
@@ -101,6 +130,8 @@ class PlatformManager:
                     "window_title": platform_config.get(
                         "window_title", None
                     ),  # Important for activation
+                    "continuation_prompt_override": continuation_prompt,
+                    "initial_prompt_override": initial_prompt
                 }
                 logger.debug(f"State for {platform_name}: {self.platform_states[platform_name]}")
 

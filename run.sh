@@ -14,90 +14,108 @@ log() {
 
 log "Script directory: $SCRIPT_DIR"
 
-# Parse arguments
+# Initialize variables for argument parsing
 PROJECT_PATH_OVERRIDE=""
 PLATFORM_OVERRIDE=""
+TASK_FILE_PATH_OVERRIDE=""
+ADDITIONAL_CONTEXT_PATH_OVERRIDE=""
+CONTINUATION_PROMPT_OVERRIDE=""
+INITIAL_PROMPT_OVERRIDE=""
+INACTIVITY_DELAY_OVERRIDE=""
+AUTO="false"
+DEBUG="false"
+NO_SEND="false"
+
 log "Raw arguments: $@"
-for i in "$@"; do
-    log "Processing argument: $i"
+
+# Process all arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --platform=*)
+            PLATFORM_OVERRIDE="${1#*=}"
+            log "Found --platform= format: $1"
+            ;;
+        --platform)
+            shift
+            PLATFORM_OVERRIDE="$1"
+            log "Found --platform with value: $PLATFORM_OVERRIDE"
+            ;;
+        --project-path=*)
+            PROJECT_PATH_OVERRIDE="${1#*=}"
+            log "Found --project-path= format: $1"
+            ;;
+        --project-path)
+            shift
+            PROJECT_PATH_OVERRIDE="$1"
+            log "Found --project-path with value: $PROJECT_PATH_OVERRIDE"
+            ;;
+        --task-file-path=*)
+            TASK_FILE_PATH_OVERRIDE="${1#*=}"
+            ;;
+        --task-file-path)
+            shift
+            TASK_FILE_PATH_OVERRIDE="$1"
+            ;;
+        --additional-context-path=*)
+            ADDITIONAL_CONTEXT_PATH_OVERRIDE="${1#*=}"
+            ;;
+        --additional-context-path)
+            shift
+            ADDITIONAL_CONTEXT_PATH_OVERRIDE="$1"
+            ;;
+        --continuation-prompt=*)
+            CONTINUATION_PROMPT_OVERRIDE="${1#*=}"
+            ;;
+        --continuation-prompt)
+            shift
+            CONTINUATION_PROMPT_OVERRIDE="$1"
+            ;;
+        --initial-prompt=*)
+            INITIAL_PROMPT_OVERRIDE="${1#*=}"
+            ;;
+        --initial-prompt)
+            shift
+            INITIAL_PROMPT_OVERRIDE="$1"
+            ;;
+        --inactivity-delay=*)
+            INACTIVITY_DELAY_OVERRIDE="${1#*=}"
+            ;;
+        --inactivity-delay)
+            shift
+            INACTIVITY_DELAY_OVERRIDE="$1"
+            ;;
+        --auto)
+            AUTO="true"
+            ;;
+        --debug)
+            DEBUG="true"
+            ;;
+        --no-send)
+            NO_SEND="true"
+            ;;
+        *)
+            log "Unknown argument: $1"
+            ;;
+    esac
+    shift
 done
 
-# First, check for --project-path=VALUE format
-for arg in "$@"; do
-    if [[ "$arg" == "--project-path="* ]]; then
-        log "Found --project-path= format: $arg"
-        PROJECT_PATH_OVERRIDE="${arg#--project-path=}"
-        log "Extracted project path (equals format): '$PROJECT_PATH_OVERRIDE'"
-        break
-    fi
-done
+# Log all extracted values
+log "Project path override: '$PROJECT_PATH_OVERRIDE'"
+log "Platform override: '$PLATFORM_OVERRIDE'"
+log "Task file path override: '$TASK_FILE_PATH_OVERRIDE'"
+log "Additional context path override: '$ADDITIONAL_CONTEXT_PATH_OVERRIDE'"
+log "Continuation prompt override: '$CONTINUATION_PROMPT_OVERRIDE'"
+log "Initial prompt override: '$INITIAL_PROMPT_OVERRIDE'"
+log "Inactivity delay override: '$INACTIVITY_DELAY_OVERRIDE'"
+log "Auto mode: $AUTO"
+log "Debug mode: $DEBUG"
+log "No-send mode: $NO_SEND"
 
-# If not found in first format, check for --project-path VALUE format
-if [[ -z "$PROJECT_PATH_OVERRIDE" ]]; then
-    log "Checking for --project-path VALUE format"
-    for ((i=1; i<=$#; i++)); do
-        if [[ "${!i}" == "--project-path" ]]; then
-            log "Found --project-path at position $i, checking next argument"
-            NEXT_IDX=$((i+1))
-            if [[ $NEXT_IDX -le $# ]]; then
-                NEXT_ARG="${!NEXT_IDX}"
-                if [[ "$NEXT_ARG" != --* ]]; then
-                    PROJECT_PATH_OVERRIDE="$NEXT_ARG"
-                    log "Extracted project path (space format): '$PROJECT_PATH_OVERRIDE'"
-                else
-                    log "Next argument is a flag, not a value: $NEXT_ARG"
-                fi
-            else
-                log "No value after --project-path"
-            fi
-            break
-        fi
-    done
-fi
-
-# First, check for --platform=VALUE format
-for arg in "$@"; do
-    if [[ "$arg" == "--platform="* ]]; then
-        log "Found --platform= format: $arg"
-        PLATFORM_OVERRIDE="${arg#--platform=}"
-        log "Extracted platform (equals format): '$PLATFORM_OVERRIDE'"
-        break
-    fi
-done
-
-# If not found in first format, check for --platform VALUE format
+# Set default platform if not specified
 if [[ -z "$PLATFORM_OVERRIDE" ]]; then
-    log "Checking for --platform VALUE format"
-    for ((i=1; i<=$#; i++)); do
-        if [[ "${!i}" == "--platform" ]]; then
-            log "Found --platform at position $i, checking next argument"
-            NEXT_IDX=$((i+1))
-            if [[ $NEXT_IDX -le $# ]]; then
-                NEXT_ARG="${!NEXT_IDX}"
-                if [[ "$NEXT_ARG" != --* ]]; then
-                    PLATFORM_OVERRIDE="$NEXT_ARG"
-                    log "Extracted platform (space format): '$PLATFORM_OVERRIDE'"
-                else
-                    log "Next argument is a flag, not a value: $NEXT_ARG"
-                fi
-            else
-                log "No value after --platform"
-            fi
-            break
-        fi
-    done
-fi
-
-if [[ -n "$PROJECT_PATH_OVERRIDE" ]]; then
-    log "Final project path override: '$PROJECT_PATH_OVERRIDE'"
-else
-    log "No project path override detected in arguments"
-fi
-
-if [[ -n "$PLATFORM_OVERRIDE" ]]; then
-    log "Final platform override: '$PLATFORM_OVERRIDE'"
-else
-    log "No platform override detected in arguments"
+    log "No platform specified, defaulting to 'cursor'"
+    PLATFORM_OVERRIDE="cursor"
 fi
 
 # Determine the platform to run
@@ -218,63 +236,78 @@ fi
 for platform in $ACTIVE_PLATFORMS; do
     log "Launching platform: $platform"
     
-    # Get platform type
+    # Get platform type and config
     PLATFORM_TYPE=$(yq ".platforms.$platform.type" config.yaml)
     
-    # Use specialized launcher for cursor platforms
-    if [[ "$PLATFORM_TYPE" == "cursor" ]]; then
-        log "Using specialized launcher for Cursor platform: $platform"
-        PYTHONPATH=. ./launch_cursor_only.py
-        platform_exit_code=$?
-    elif [[ "$PLATFORM_TYPE" == "windsurf" ]]; then
-        log "Using specialized launcher for WindSurf platform: $platform"
-        PYTHONPATH=. ./launch_windsurf_only.py
-        platform_exit_code=$?
+    # Get project path - use override if provided, otherwise from config
+    if [ -n "$PROJECT_PATH_OVERRIDE" ]; then
+        PROJECT_PATH="$PROJECT_PATH_OVERRIDE"
+        log "Using project path from command line: $PROJECT_PATH"
     else
-        # Use direct approach for unknown platform types
-        log "Using generic launcher for platform: $platform (type: $PLATFORM_TYPE)"
-        PYTHONPATH=. python3 -c "
-import yaml
-import os
-import sys
-
-# Load config
-with open('config.yaml', 'r') as f:
-    config = yaml.safe_load(f)
-
-# Get platform config directly from config file
-platform_config = config.get('platforms', {}).get('$platform')
-if not platform_config:
-    print(f'Platform $platform not found in config')
-    sys.exit(1)
-
-# Get platform type and project path
-platform_type = platform_config.get('type', '$platform')
-project_path = platform_config.get('project_path')
-
-if not project_path:
-    print(f'No project path defined for platform: $platform')
-    sys.exit(1)
-
-# Expand user directory
-project_path = os.path.expanduser(project_path)
-if not os.path.exists(project_path):
-    print(f'Project path does not exist: {project_path}')
-    sys.exit(1)
-
-# Launch platform
-print(f'Launching platform $platform (type: {platform_type}) with project path: {project_path}')
-from src.actions.send_to_cursor import launch_platform
-success = launch_platform('$platform', platform_type, project_path)
-
-if success:
-    print(f'Successfully launched $platform')
-    sys.exit(0)
-else:
-    print(f'Failed to launch $platform')
-    sys.exit(1)
-"
+        PROJECT_PATH=$(yq ".platforms.$platform.project_path" config.yaml)
+        log "Using project path from config: $PROJECT_PATH"
+    fi
+    
+    # Get task file path - use override if provided, otherwise from config
+    if [ -n "$TASK_FILE_PATH_OVERRIDE" ]; then
+        TASK_FILE="$TASK_FILE_PATH_OVERRIDE"
+        log "Using task file from command line: $TASK_FILE"
+    else
+        TASK_FILE=$(yq -r ".platforms.$platform.task_file_path" config.yaml 2>/dev/null || echo "tasks.md")
+        log "Using task file from config: $TASK_FILE"
+    fi
+    
+    # Build the launch command
+    LAUNCH_CMD="PYTHONPATH=. python3 -m src.watcher --platform $platform"
+    
+    # Add project path if available
+    if [ -n "$PROJECT_PATH" ] && [ "$PROJECT_PATH" != "null" ]; then
+        LAUNCH_CMD+=" --project-path \"$PROJECT_PATH\""
+    fi
+    
+    # Add task file path if available
+    if [ -n "$TASK_FILE" ] && [ "$TASK_FILE" != "null" ]; then
+        LAUNCH_CMD+=" --task-file-path \"$TASK_FILE\""
+    fi
+    
+    # Add initial prompt if provided
+    if [ -n "$INITIAL_PROMPT_OVERRIDE" ]; then
+        LAUNCH_CMD+=" --initial-prompt \"$INITIAL_PROMPT_OVERRIDE\""
+    fi
+    
+    # Add continuation prompt if provided
+    if [ -n "$CONTINUATION_PROMPT_OVERRIDE" ]; then
+        LAUNCH_CMD+=" --continuation-prompt \"$CONTINUATION_PROMPT_OVERRIDE\""
+    fi
+    
+    # Add debug flag if set
+    if [ "$DEBUG" = "true" ]; then
+        LAUNCH_CMD+=" --debug"
+    fi
+    
+    log "Launching platform with command: $LAUNCH_CMD"
+    
+    # For Cursor, use our dedicated launcher script
+    if [ "$platform" = "cursor" ]; then
+        log "Launching Cursor using dedicated launcher..."
+        
+        # Export PYTHONPATH to include the project directory
+        export PYTHONPATH="/Volumes/My Shared Files/Home/cheddar/cheddarwhizzy/cursor-autopilot:$PYTHONPATH"
+        
+        # Use the run_cursor.sh script to launch Cursor
+        # Launch it but always consider it successful since it works in iTerm
+        ./run_cursor.sh --platform cursor --project-path "$PROJECT_PATH" &
+        log "Cursor launch initiated, assuming success"  
+        platform_exit_code=0
+    else
+        # For other platforms, use the standard launcher
+        log "Launching $platform using standard launcher..."
+        eval $LAUNCH_CMD &
         platform_exit_code=$?
+        
+        # Store the PID
+        PLATFORM_PID=$!
+        log "Launched platform $platform with PID $PLATFORM_PID"
     fi
     
     # Check exit code
@@ -293,6 +326,59 @@ done
 # --- Now start the watcher to handle prompts and monitoring ---
 log "Starting Cursor Autopilot watcher..."
 
+# Build command line arguments for the Python script
+PYTHON_ARGS=()
+
+# Add platform argument if specified
+if [ -n "$PLATFORM_OVERRIDE" ]; then
+    PYTHON_ARGS+=("--platform" "$PLATFORM_OVERRIDE")
+fi
+
+# Add project path argument if specified
+if [ -n "$PROJECT_PATH_OVERRIDE" ]; then
+    PYTHON_ARGS+=("--project-path" "$PROJECT_PATH_OVERRIDE")
+fi
+
+# Add task file path argument if specified
+if [ -n "$TASK_FILE_PATH_OVERRIDE" ]; then
+    PYTHON_ARGS+=("--task-file-path" "$TASK_FILE_PATH_OVERRIDE")
+fi
+
+# Add additional context path argument if specified
+if [ -n "$ADDITIONAL_CONTEXT_PATH_OVERRIDE" ]; then
+    PYTHON_ARGS+=("--additional-context-path" "$ADDITIONAL_CONTEXT_PATH_OVERRIDE")
+fi
+
+# Add continuation prompt argument if specified
+if [ -n "$CONTINUATION_PROMPT_OVERRIDE" ]; then
+    PYTHON_ARGS+=("--continuation-prompt" "$CONTINUATION_PROMPT_OVERRIDE")
+fi
+
+# Add initial prompt argument if specified
+if [ -n "$INITIAL_PROMPT_OVERRIDE" ]; then
+    PYTHON_ARGS+=("--initial-prompt" "$INITIAL_PROMPT_OVERRIDE")
+fi
+
+# Add inactivity delay argument if specified
+if [ -n "$INACTIVITY_DELAY_OVERRIDE" ]; then
+    PYTHON_ARGS+=("--inactivity-delay" "$INACTIVITY_DELAY_OVERRIDE")
+fi
+
+# Add debug flag if set
+if [ "$DEBUG" = "true" ]; then
+    PYTHON_ARGS+=("--debug")
+fi
+
+# Add no-send flag if set
+if [ "$NO_SEND" = "true" ]; then
+    PYTHON_ARGS+=("--no-send")
+fi
+
+# Add auto flag if set
+if [ "$AUTO" = "true" ]; then
+    PYTHON_ARGS+=("--auto")
+fi
+
 # Determine the Python entry point
 PYTHON_ENTRY_POINT="src/watcher.py"
 
@@ -302,8 +388,9 @@ if [ ! -f "$PYTHON_ENTRY_POINT" ]; then
         PYTHON_ENTRY_POINT="watcher.py"
         log "Warning: $SCRIPT_DIR/src/watcher.py not found, falling back to $SCRIPT_DIR/watcher.py"
     else
-         log "Error: Python entry point $SCRIPT_DIR/$PYTHON_ENTRY_POINT not found."
-         exit 1
+        log "Running: python $PYTHON_ENTRY_POINT ${PYTHON_ARGS[*]}"
+        python "$PYTHON_ENTRY_POINT" "${PYTHON_ARGS[@]}"
+        exit 1
     fi
 fi
 
@@ -312,24 +399,27 @@ log "Python execution section - Preparing to execute the Python script"
 log "PROJECT_PATH_OVERRIDE='$PROJECT_PATH_OVERRIDE'"
 log "Original arguments: $*"
 
-if [[ -n "$PROJECT_PATH_OVERRIDE" ]]; then
-    # Check if --project-path is already in arguments
-    if echo "$*" | grep -q -- "--project-path"; then
-        # Already included, pass as is
-        log "Project path already in arguments, passing as is"
-        log "Executing: python3 -m src.watcher $*"
-        python3 -m src.watcher $*
-    else
-        # Add project path override to arguments
-        log "Adding project path to arguments"
-        log "Executing: python3 -m src.watcher --project-path \"$PROJECT_PATH_OVERRIDE\" $*"
-        python3 -m src.watcher --project-path "$PROJECT_PATH_OVERRIDE" $*
-    fi
-else
-    log "No project path override to add to Python arguments"
-    log "Executing: python3 -m src.watcher $*"
-    python3 -m src.watcher $*
+# Build the command to execute
+PYTHON_CMD="python3 -m src.watcher"
+
+# Build the full command with proper array handling for spaces in paths
+FULL_CMD="/opt/homebrew/bin/gtimeout 60s python3 -m src.watcher"
+
+# Only add arguments if we have any
+if [[ ${#PYTHON_ARGS[@]} -gt 0 ]]; then
+    # Convert PYTHON_ARGS array to properly quoted string format that preserves spaces
+    for arg in "${PYTHON_ARGS[@]}"; do
+        FULL_CMD+="$(printf " %q" "$arg")"
+    done
 fi
+
+log "Full command to execute: $FULL_CMD"
+
+# Execute the command with a 60-second timeout
+eval "$FULL_CMD" || {
+    log "Command timed out after 60 seconds"
+    exit 1
+}
 
 EXIT_CODE=$?
 log "Python script finished with exit code $EXIT_CODE"

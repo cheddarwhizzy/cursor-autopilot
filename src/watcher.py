@@ -1,4 +1,5 @@
 #!/usr/bin/env python3.13
+import sys
 import time
 import os
 import hashlib
@@ -32,6 +33,10 @@ def parse_args():
     parser.add_argument('--project-path', type=str, help='Override project path from config')
     parser.add_argument('--inactivity-delay', type=int, help='Override inactivity delay in seconds')
     parser.add_argument('--platform', type=str, help='Override platform to use (comma separated for multiple)')
+    parser.add_argument('--task-file-path', type=str, help='Override task file path from config')
+    parser.add_argument('--additional-context-path', type=str, help='Override additional context path from config')
+    parser.add_argument('--continuation-prompt', type=str, help='Override continuation prompt text')
+    parser.add_argument('--initial-prompt', type=str, help='Override initial prompt text')
     
     return parser.parse_args()
 
@@ -211,34 +216,55 @@ class CursorAutopilot:
             general_config = self.config_manager.config.get("general", {})
             if not platform_to_prompt:
                 # Initial prompt
-                default_template = general_config.get(
-                    "initial_prompt", DEFAULT_INITIAL_PROMPT
-                )
-                prompt_template = read_prompt_from_file(prompt_file) or default_template
+                if hasattr(self.args, 'initial_prompt') and self.args.initial_prompt:
+                    # Use command line override if provided
+                    prompt_template = self.args.initial_prompt
+                    self.logger.info("Using initial prompt from command line argument")
+                else:
+                    # Otherwise use the one from config file or default
+                    default_template = general_config.get(
+                        "initial_prompt", DEFAULT_INITIAL_PROMPT
+                    )
+                    prompt_template = read_prompt_from_file(prompt_file) or default_template
             else:
                 # Continuation prompt
-                default_template = general_config.get(
-                    "inactivity_prompt", DEFAULT_CONTINUATION_PROMPT
-                )
-                prompt_template = read_prompt_from_file(prompt_file) or default_template
+                if hasattr(self.args, 'continuation_prompt') and self.args.continuation_prompt:
+                    # Use command line override if provided
+                    prompt_template = self.args.continuation_prompt
+                    self.logger.info("Using continuation prompt from command line argument")
+                else:
+                    # Otherwise use the one from config file or default
+                    default_template = general_config.get(
+                        "inactivity_prompt", DEFAULT_CONTINUATION_PROMPT
+                    )
+                    prompt_template = read_prompt_from_file(prompt_file) or default_template
 
             # Format the prompt
             try:
-                if task_file and not os.path.exists(task_file):
+                # Check if we're using overrides for task file and context file
+                platform_state = self.platform_manager.get_platform_state(platform_name)
+                
+                # Use overridden paths if available, otherwise use the ones from the template
+                task_file_to_use = platform_state.get("task_file_path") or task_file
+                context_file_to_use = platform_state.get("additional_context_path") or context_file
+                
+                # Check if files exist and log warnings if they don't
+                if task_file_to_use and not os.path.exists(task_file_to_use):
                     self.logger.warning(
-                        f"[{platform_name}] Task file not found: {task_file}"
+                        f"[{platform_name}] Task file not found: {task_file_to_use}"
                     )
-                    task_file = ""
+                    task_file_to_use = ""
 
-                if context_file and not os.path.exists(context_file):
+                if context_file_to_use and not os.path.exists(context_file_to_use):
                     self.logger.warning(
-                        f"[{platform_name}] Context file not found: {context_file}"
+                        f"[{platform_name}] Context file not found: {context_file_to_use}"
                     )
-                    context_file = ""
+                    context_file_to_use = ""
 
+                # Format the prompt with the appropriate file paths
                 prompt_content = prompt_template.format(
-                    task_file_path=task_file or "",
-                    additional_context_path=context_file or "",
+                    task_file_path=task_file_to_use or "",
+                    additional_context_path=context_file_to_use or "",
                 )
             except KeyError as e:
                 self.logger.error(
@@ -371,48 +397,39 @@ class CursorAutopilot:
                 platform_to_prompt = self.platform_manager.should_send_prompt(stagger_delay)
                 if platform_to_prompt:
                     self.logger.info(
-                        f"Sending continuation prompt to {platform_to_prompt['name']} after {inactivity_delay}s of inactivity"
+                        f"Sending continuation prompt to platforms: {platform_to_prompt}"
                     )
-                    self.send_prompt(platform_to_prompt)
-                else:
-                    # Log inactivity countdown for each platform every 15 seconds
-                    if current_time - last_countdown_log >= 15:
-                        for platform_name in self.platform_manager.platform_names:
-                            platform_state = self.platform_manager.get_platform_state(
-                                platform_name
-                            )
-                            time_since_activity = current_time - platform_state.get(
-                                "last_activity", 0
-                            )
-                            time_until_prompt = max(
-                                0, inactivity_delay - time_since_activity
-                            )
-                            if time_until_prompt > 0:
-                                self.logger.info(
-                                    f"[{platform_name}] Inactivity countdown: {int(time_until_prompt)} seconds until next prompt"
-                                )
-                        last_countdown_log = current_time
-
-                # Sleep for a short interval
+                
+                # Sleep for a short while to prevent high CPU usage
                 time.sleep(1)
-
+                
         except KeyboardInterrupt:
-            self.logger.info("Watcher stopping due to user interrupt (Ctrl+C)")
+            self.logger.info("Shutting down...")
+            return
         except Exception as e:
-            self.logger.error(f"Unhandled error in watcher main loop: {e}", exc_info=True)
-        finally:
-            # Clean up
-            if 'file_watcher' in locals():
-                file_watcher.stop_all_watchers()
-            self.logger.info("Watcher finished.")
+            self.logger.error(f"Error in main loop: {e}", exc_info=True)
+            return
+
 
 def main():
-    # Parse command line arguments
+    """Main entry point for the script."""
     args = parse_args()
-    
-    # Create and run the autopilot
     autopilot = CursorAutopilot(args)
-    autopilot.run()
+    
+    if not autopilot.initialize():
+        autopilot.logger.error("Failed to initialize CursorAutopilot")
+        return 1
+    
+    try:
+        autopilot.run()
+    except KeyboardInterrupt:
+        autopilot.logger.info("Shutdown requested by user")
+    except Exception as e:
+        autopilot.logger.error(f"Unexpected error: {e}", exc_info=True)
+        return 1
+    
+    return 0
+
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

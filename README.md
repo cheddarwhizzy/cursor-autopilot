@@ -12,34 +12,61 @@ Note: Use the Thinking mode with LLMs, you'll get better results.
 
 ## Running the Application
 
-There are multiple ways to run this application:
-
 ### Using the main script (recommended)
 
+The main `run.sh` script provides a unified way to run the autopilot with various configuration options:
+
 ```bash
+# Basic usage - uses all settings from config.yaml
 ./run.sh
+
+# Run with a specific platform (comma-separated for multiple)
+./run.sh --platform=cursor_meanscoop
+./run.sh --platform=cursor_meanscoop,windsurf_mushattention
+
+# Override project path
+./run.sh --platform=cursor --project-path=/path/to/your/project
+
+# Override task file and additional context paths
+./run.sh --platform=cursor --task-file-path=MY_TASKS.md --additional-context-path=ARCHITECTURE.md
+
+# Set custom prompts
+./run.sh --platform=cursor --initial-prompt="Review the tasks and start working on them" --continuation-prompt="Continue with the next task"
+
+# Set inactivity delay (in seconds)
+./run.sh --platform=cursor --inactivity-delay=300
+
+# Enable debug mode for more verbose output
+./run.sh --debug
+
+# Run in no-send mode (don't send keystrokes to the IDE)
+./run.sh --no-send
+
+# Run in auto mode
+./run.sh --auto
+
+# Combine multiple options
+./run.sh --platform=cursor --project-path=/path/to/project --task-file-path=TASKS.md --continuation-prompt="Continue with the next task" --debug
 ```
 
-### Using the specialized launcher script
+### Command Line Arguments
 
-This is useful for troubleshooting or when you want to launch just a specific platform:
+| Argument | Description | Example |
+|----------|-------------|---------|
+| `--platform` | Comma-separated list of platforms to run | `--platform=cursor_meanscoop,windsurf_mushattention` |
+| `--project-path` | Override the project path from config | `--project-path=/path/to/project` |
+| `--task-file-path` | Override the task file path | `--task-file-path=TASKS.md` |
+| `--additional-context-path` | Override the additional context file path | `--additional-context-path=ARCHITECTURE.md` |
+| `--initial-prompt` | Set a custom initial prompt | `--initial-prompt="Review the tasks and start working"` |
+| `--continuation-prompt` | Set a custom continuation prompt | `--continuation-prompt="Continue with the next task"` |
+| `--inactivity-delay` | Set the inactivity delay in seconds | `--inactivity-delay=300` |
+| `--debug` | Enable debug logging | `--debug` |
+| `--no-send` | Don't send keystrokes to the IDE | `--no-send` |
+| `--auto` | Enable auto mode | `--auto` |
 
-```bash
-# Launch all platforms defined in the config.yaml
-./run_launch.sh
+### Configuration File
 
-# Launch a specific platform
-./run_launch.sh --platform=cursor_meanscoop
-./run_launch.sh --platform=windsurf_mushattention
-```
-
-### Using the dedicated Cursor launcher
-
-For cases where only Cursor needs to be launched:
-
-```bash
-PYTHONPATH=. ./launch_cursor_only.py
-```
+You can also configure these settings in the `config.yaml` file. Command line arguments will override the configuration file settings.
 
 ## Core Concepts
 
@@ -101,12 +128,13 @@ cursor-autopilot/
 
 ## Debugging
 
-# Enable debug mode:
-# ```bash
-# ./run.sh --platform cursor --debug # Note: --debug flag is not currently parsed by run.sh
-# ```
+To enable debug mode and get more detailed logs:
 
-Check the script logs for detailed information during execution.
+```bash
+./run.sh --platform=cursor --debug
+```
+
+Check the script logs for detailed information during execution. The logs will show you which configuration values are being used and any warnings or errors that occur.
 
 ## Troubleshooting
 
@@ -120,6 +148,8 @@ If you experience issues with platforms not launching:
 
 ## Configuration
 
+### Platform Configuration
+
 To set up multiple instances of platforms:
 
 1. In `config.yaml`, define each platform with a unique name:
@@ -130,21 +160,67 @@ platforms:
     type: "cursor"
     window_title: "Cursor - Mean Scoop"
     project_path: "/path/to/meanscoop/project"
-    # other settings...
+    task_file_path: "TASKS.md"  # Relative to project_path
+    additional_context_path: "ARCHITECTURE.md"  # Relative to project_path
+    initialization_delay_seconds: 5  # Wait for IDE to be ready
     
   windsurf_mushattention:
     type: "windsurf"
     window_title: "WindSurf - Mushattention"
     project_path: "/path/to/mushattention/project"
-    # other settings...
+    task_file_path: "TASKS.md"
+    additional_context_path: "docs/ARCHITECTURE.md"
+    initialization_delay_seconds: 8
 ```
 
-2. Specify which platforms should be active:
+2. Specify which platforms should be active by default:
 
 ```yaml
 general:
   active_platforms: ["cursor_meanscoop", "windsurf_mushattention"]
+  inactivity_delay: 300  # Default inactivity delay in seconds
+  debug: false  # Enable debug logging
+  send_message: true  # Enable sending messages to the IDE
+  use_gitignore: true  # Respect .gitignore files
 ```
+
+### Prompt Configuration
+
+You can configure prompts in the config file or override them via command line:
+
+```yaml
+general:
+  # Default initial prompt (used when no file is specified)
+  initial_prompt: |
+    Review the tasks in {task_file_path} and additional context in {additional_context_path}.
+    Start working on the first task.
+    
+  # Default continuation prompt (used when no file is specified)
+  inactivity_prompt: |
+    Continue with the next task from {task_file_path}.
+    Focus on completing one task at a time.
+
+# Platform-specific prompt overrides
+platforms:
+  cursor_meanscoop:
+    # Path to a file containing the initial prompt (relative to project_path)
+    initial_prompt_file_path: "prompts/initial_prompt.txt"
+    
+    # Path to a file containing the continuation prompt (relative to project_path)
+    continuation_prompt_file_path: "prompts/continuation_prompt.txt"
+```
+
+### Environment Variables
+
+You can also use environment variables to override configuration:
+
+```bash
+export CURSOR_AUTOPILOT_PROJECT_PATH="/path/to/project"
+export CURSOR_AUTOPILOT_PLATFORM="cursor_meanscoop"
+./run.sh
+```
+
+Environment variables take precedence over config file settings but are overridden by command line arguments.
 
 ## License
 
