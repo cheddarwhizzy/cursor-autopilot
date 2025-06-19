@@ -56,13 +56,15 @@ def test_ensure_chat_window_with_vision(
     mock_get_config.return_value = mock_config
     mock_take_screenshot.return_value = "/tmp/screenshot.png"
     mock_is_chat_window_open.return_value = True
-    
+
     # Call function
     ensure_chat_window()
-    
+
     # Verify function calls
     mock_kill_cursor.assert_called_once_with("cursor")
-    mock_launch_platform.assert_called_once_with("cursor")
+    mock_launch_platform.assert_called_once_with(
+        "cursor", mock_config.get("project_path")
+    )
     mock_take_screenshot.assert_called_once_with(platform="cursor")
     mock_is_chat_window_open.assert_called_once_with("/tmp/screenshot.png")
     mock_send_keys.assert_called_once_with(["command down", "l", "command up"], platform="cursor")
@@ -109,16 +111,20 @@ def test_ensure_chat_window_with_windsurf(
     mock_get_config
 ):
     # Setup mocks
-    mock_get_config.return_value = {"platform": "windsurf", "use_vision_api": True}
+    mock_get_config.return_value = {
+        "platform": "windsurf",
+        "use_vision_api": True,
+        "project_path": "/test/path",
+    }
     mock_take_screenshot.return_value = "/tmp/screenshot.png"
     mock_is_chat_window_open.return_value = False
-    
+
     # Call function
     ensure_chat_window()
-    
+
     # Verify function calls
     mock_kill_cursor.assert_called_once_with("windsurf")
-    mock_launch_platform.assert_called_once_with("windsurf")
+    mock_launch_platform.assert_called_once_with("windsurf", "/test/path")
     mock_take_screenshot.assert_called_once_with(platform="windsurf")
     mock_is_chat_window_open.assert_called_once_with("/tmp/screenshot.png")
     mock_send_keys.assert_called_once_with(["command down", "l", "command up"], platform="windsurf")
@@ -171,13 +177,15 @@ def test_ensure_chat_window_explicit_platform(
     mock_get_config.return_value = mock_config
     mock_take_screenshot.return_value = "/tmp/screenshot.png"
     mock_is_chat_window_open.return_value = True
-    
+
     # Call function with explicit platform
     ensure_chat_window(platform="windsurf")
-    
+
     # Verify function calls use explicit platform
     mock_kill_cursor.assert_called_once_with("windsurf")
-    mock_launch_platform.assert_called_once_with("windsurf")
+    mock_launch_platform.assert_called_once_with(
+        "windsurf", mock_config.get("project_path")
+    )
     mock_take_screenshot.assert_called_once_with(platform="windsurf")
     mock_is_chat_window_open.assert_called_once_with("/tmp/screenshot.png")
     mock_send_keys.assert_called_once_with(["command down", "l", "command up"], platform="windsurf") 

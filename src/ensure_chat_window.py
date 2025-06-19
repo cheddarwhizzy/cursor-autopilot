@@ -30,43 +30,62 @@ def ensure_chat_window(platform=None):
     """
     config = get_config()
     use_vision_api = config.get("use_vision_api", False)
-    
+
     # Use platform from config if not explicitly provided
     if platform is None:
         platform = config.get("platform", "cursor")
-    
+
     app_name = "Windsurf" if platform == "windsurf" else "Cursor"
     logger.info(f"Using configured IDE: {app_name}")
     logger.info(f"Starting {app_name} chat window check...")
-    
+
     # First kill any existing process
     kill_cursor(platform)
-    
+
+    # Get project path from config
+    project_path = None
+    if platform in config.get("platforms", {}):
+        project_path = config["platforms"][platform].get("project_path")
+        if project_path:
+            project_path = os.path.expanduser(project_path)
+            if not os.path.exists(project_path):
+                logger.error(f"Project path does not exist: {project_path}")
+                return False
+        else:
+            logger.warning(f"No project path found in config for {platform}")
+    else:
+        logger.warning(f"Platform {platform} not found in config")
+
     # Launch app and wait for it to be ready
-    launch_platform(platform)
-    
+    if not launch_platform(platform, project_path):
+        logger.error(f"Failed to launch {app_name}")
+        return False
+
     if use_vision_api:
         # Take screenshot of window
         logger.info(f"Taking screenshot of {app_name} window...")
         screenshot_path = take_cursor_screenshot(platform=platform)
         if not screenshot_path:
             logger.info(f"Could not take screenshot. Skipping vision check.")
-            return
-        
+            return False
+
         # Check if chat window is open using Vision API
         logger.info("[ensure_chat_window] Sending screenshot to OpenAI Vision...")
         chat_window_open = is_chat_window_open(screenshot_path)
         logger.info(f"[ensure_chat_window] OpenAI Vision detected chat window state: {chat_window_open}")
-        
+
         # If chat window is open, we want to close it
         # If chat window is closed, we want to open it
         # In either case, one Command+L will do the job
         logger.info(f"[ensure_chat_window] Chat window is {'open' if chat_window_open else 'closed'}, sending Command+L to toggle state...")
-        send_keys(["command down", "l", "command up"], platform=platform)
+        if not send_keys(["command down", "l", "command up"], platform=platform):
+            logger.error("Failed to send Command+L")
+            return False
     else:
         logger.info("[ensure_chat_window] Vision API disabled, skipping chat window check.")
-    
+
     logger.info("[ensure_chat_window] Done.")
+    return True
 
 if __name__ == "__main__":
     import sys
