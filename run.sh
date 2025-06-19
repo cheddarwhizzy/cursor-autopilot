@@ -3,6 +3,15 @@
 # Exit on error
 set -e
 
+# Cleanup function to kill watcher processes on Ctrl+C
+cleanup() {
+    echo "Caught interrupt. Killing any running watcher processes..."
+    pkill -f "python3 -m src.watcher" || true
+    exit 1
+}
+
+trap cleanup SIGINT
+
 # Get the directory of the script
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
 cd "$SCRIPT_DIR" || exit 1
@@ -25,6 +34,7 @@ INACTIVITY_DELAY_OVERRIDE=""
 AUTO="false"
 DEBUG="false"
 NO_SEND="false"
+RUN_API="false"
 
 log "Raw arguments: $@"
 
@@ -93,6 +103,9 @@ while [[ $# -gt 0 ]]; do
         --no-send)
             NO_SEND="true"
             ;;
+        --api)
+            RUN_API="true"
+            ;;
         *)
             log "Unknown argument: $1"
             ;;
@@ -111,6 +124,7 @@ log "Inactivity delay override: '$INACTIVITY_DELAY_OVERRIDE'"
 log "Auto mode: $AUTO"
 log "Debug mode: $DEBUG"
 log "No-send mode: $NO_SEND"
+log "Run API server: $RUN_API"
 
 # Set default platform if not specified
 if [[ -z "$PLATFORM_OVERRIDE" ]]; then
@@ -213,117 +227,9 @@ source "$VENV_DIR/bin/activate"
 log "Ensuring required packages are installed..."
 pip install -r requirements.txt -q
 
-# --- First launch platforms using specialized launchers ---
-log "Starting platforms launch phase..."
+# The watcher will handle platform launching, so we skip the separate launch phase
 
-# Read active platforms from config if not overridden
-if [ -z "$PLATFORM_OVERRIDE" ]; then
-    # First check if yq is installed
-    if ! command -v yq &> /dev/null; then
-        log "yq tool not found, installing with brew..."
-        brew install yq
-    fi
-    
-    # Read active platforms from config
-    ACTIVE_PLATFORMS=$(yq '.general.active_platforms[]' config.yaml)
-    log "Found active platforms in config: $ACTIVE_PLATFORMS"
-else
-    ACTIVE_PLATFORMS="$PLATFORM_OVERRIDE"
-    log "Using override platforms: $ACTIVE_PLATFORMS"
-fi
-
-# Launch each platform
-for platform in $ACTIVE_PLATFORMS; do
-    log "Launching platform: $platform"
-    
-    # Get platform type and config
-    PLATFORM_TYPE=$(yq ".platforms.$platform.type" config.yaml)
-    
-    # Get project path - use override if provided, otherwise from config
-    if [ -n "$PROJECT_PATH_OVERRIDE" ]; then
-        PROJECT_PATH="$PROJECT_PATH_OVERRIDE"
-        log "Using project path from command line: $PROJECT_PATH"
-    else
-        PROJECT_PATH=$(yq ".platforms.$platform.project_path" config.yaml)
-        log "Using project path from config: $PROJECT_PATH"
-    fi
-    
-    # Get task file path - use override if provided, otherwise from config
-    if [ -n "$TASK_FILE_PATH_OVERRIDE" ]; then
-        TASK_FILE="$TASK_FILE_PATH_OVERRIDE"
-        log "Using task file from command line: $TASK_FILE"
-    else
-        TASK_FILE=$(yq -r ".platforms.$platform.task_file_path" config.yaml 2>/dev/null || echo "tasks.md")
-        log "Using task file from config: $TASK_FILE"
-    fi
-    
-    # Build the launch command
-    LAUNCH_CMD="PYTHONPATH=. python3 -m src.watcher --platform $platform"
-    
-    # Add project path if available
-    if [ -n "$PROJECT_PATH" ] && [ "$PROJECT_PATH" != "null" ]; then
-        LAUNCH_CMD+=" --project-path \"$PROJECT_PATH\""
-    fi
-    
-    # Add task file path if available
-    if [ -n "$TASK_FILE" ] && [ "$TASK_FILE" != "null" ]; then
-        LAUNCH_CMD+=" --task-file-path \"$TASK_FILE\""
-    fi
-    
-    # Add initial prompt if provided
-    if [ -n "$INITIAL_PROMPT_OVERRIDE" ]; then
-        LAUNCH_CMD+=" --initial-prompt \"$INITIAL_PROMPT_OVERRIDE\""
-    fi
-    
-    # Add continuation prompt if provided
-    if [ -n "$CONTINUATION_PROMPT_OVERRIDE" ]; then
-        LAUNCH_CMD+=" --continuation-prompt \"$CONTINUATION_PROMPT_OVERRIDE\""
-    fi
-    
-    # Add debug flag if set
-    if [ "$DEBUG" = "true" ]; then
-        LAUNCH_CMD+=" --debug"
-    fi
-    
-    log "Launching platform with command: $LAUNCH_CMD"
-    
-    # For Cursor, use our dedicated launcher script
-    if [ "$platform" = "cursor" ]; then
-        log "Launching Cursor using dedicated launcher..."
-        
-        # Export PYTHONPATH to include the project directory
-        export PYTHONPATH="/Volumes/My Shared Files/Home/cheddar/cheddarwhizzy/cursor-autopilot:$PYTHONPATH"
-        
-        # Use the run_cursor.sh script to launch Cursor
-        # Launch it but always consider it successful since it works in iTerm
-        ./run_cursor.sh --platform cursor --project-path "$PROJECT_PATH" &
-        log "Cursor launch initiated, assuming success"  
-        platform_exit_code=0
-    else
-        # For other platforms, use the standard launcher
-        log "Launching $platform using standard launcher..."
-        eval $LAUNCH_CMD &
-        platform_exit_code=$?
-        
-        # Store the PID
-        PLATFORM_PID=$!
-        log "Launched platform $platform with PID $PLATFORM_PID"
-    fi
-    
-    # Check exit code
-    if [ $platform_exit_code -ne 0 ]; then
-        log "Platform $platform launch failed with exit code $platform_exit_code"
-        exit $platform_exit_code
-    else
-        log "Platform $platform launch initiated successfully"
-    fi
-    
-    # Give a pause between launching multiple platforms
-    log "Waiting 5 seconds before continuing..."
-    sleep 5
-done
-
-# --- Now start the watcher to handle prompts and monitoring ---
+# --- Start the watcher to handle platform launching, prompts and monitoring ---
 log "Starting Cursor Autopilot watcher..."
 
 # Build command line arguments for the Python script
@@ -380,18 +286,17 @@ if [ "$AUTO" = "true" ]; then
 fi
 
 # Determine the Python entry point
-PYTHON_ENTRY_POINT="src/watcher.py"
+if [ "$RUN_API" = "true" ]; then
+    PYTHON_ENTRY_POINT="src/run_both.py"
+    log "API mode enabled - will start both watcher and configuration API server"
+else
+    PYTHON_ENTRY_POINT="src/watcher.py"
+    log "Watcher-only mode - will start file watcher only"
+fi
 
 if [ ! -f "$PYTHON_ENTRY_POINT" ]; then
-    # Fallback if watcher.py was deleted/renamed incorrectly
-    if [ -f "watcher.py" ]; then
-        PYTHON_ENTRY_POINT="watcher.py"
-        log "Warning: $SCRIPT_DIR/src/watcher.py not found, falling back to $SCRIPT_DIR/watcher.py"
-    else
-        log "Running: python $PYTHON_ENTRY_POINT ${PYTHON_ARGS[*]}"
-        python "$PYTHON_ENTRY_POINT" "${PYTHON_ARGS[@]}"
-        exit 1
-    fi
+    log "Error: Python entry point not found: $PYTHON_ENTRY_POINT"
+    exit 1
 fi
 
 # Pass all arguments, along with project path override if provided
@@ -400,24 +305,48 @@ log "PROJECT_PATH_OVERRIDE='$PROJECT_PATH_OVERRIDE'"
 log "Original arguments: $*"
 
 # Build the command to execute
-PYTHON_CMD="python3 -m src.watcher"
-
-# Build the full command with proper array handling for spaces in paths
-FULL_CMD="/opt/homebrew/bin/gtimeout 60s python3 -m src.watcher"
-
-# Only add arguments if we have any
-if [[ ${#PYTHON_ARGS[@]} -gt 0 ]]; then
-    # Convert PYTHON_ARGS array to properly quoted string format that preserves spaces
-    for arg in "${PYTHON_ARGS[@]}"; do
-        FULL_CMD+="$(printf " %q" "$arg")"
-    done
+if [ "$RUN_API" = "true" ]; then
+    # When running both API and watcher, use run_both.py and pass arguments
+    FULL_CMD="python3 src/run_both.py"
+    
+    # Add arguments if we have any (run_both.py will forward them to the watcher)
+    if [[ ${#PYTHON_ARGS[@]} -gt 0 ]]; then
+        # Convert PYTHON_ARGS array to properly quoted string format that preserves spaces
+        for arg in "${PYTHON_ARGS[@]}"; do
+            FULL_CMD+="$(printf " %q" "$arg")"
+        done
+    fi
+    log "Running both API server and watcher..."
+else
+    # When running watcher only, use the module approach with arguments
+    FULL_CMD="python3 -m src.watcher"
+    
+    # Only add arguments if we have any
+    if [[ ${#PYTHON_ARGS[@]} -gt 0 ]]; then
+        # Convert PYTHON_ARGS array to properly quoted string format that preserves spaces
+        for arg in "${PYTHON_ARGS[@]}"; do
+            FULL_CMD+="$(printf " %q" "$arg")"
+        done
+    fi
+    log "Running watcher only..."
 fi
 
 log "Full command to execute: $FULL_CMD"
 
-# Execute the command with a 60-second timeout
-eval "$FULL_CMD" || {
-    log "Command timed out after 60 seconds"
+# Create logs directory if it doesn't exist
+mkdir -p logs
+
+# Generate log filename with timestamp
+LOG_FILE="logs/autopilot_$(date '+%Y%m%d_%H%M%S').log"
+
+log "Logging output to: $LOG_FILE"
+
+# Execute the command without timeout (watcher runs indefinitely)
+# Use tee to write to both stdout and log file
+# Note: When running in API mode (--api flag), countdown messages are prefixed with "WATCHER |"
+# To see only countdown messages, you can use: tail -f logs/autopilot_*.log | grep "countdown"
+eval "$FULL_CMD" 2>&1 | tee "$LOG_FILE" || {
+    log "Watcher process failed"
     exit 1
 }
 

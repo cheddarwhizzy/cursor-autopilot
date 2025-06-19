@@ -1,0 +1,537 @@
+2025-06-19 00:31:36 - INFO - [37mStarting both processes...[0m
+2025-06-19 00:31:36 - INFO - [37mStarting Configuration API server on port 5005...[0m
+2025-06-19 00:31:36 - INFO - [37mStarting file watcher and platform manager...[0m
+2025-06-19 00:31:36 - INFO - [37mAPI | 2025-06-19 00:31:36 - WARNING - [37mNo API keys configured. API endpoints will be unprotected![0m[0m
+2025-06-19 00:31:36 - INFO - [37mWATCHER | 2025-06-19 00:31:36 - INFO - [33mInfo logging enabled[0m[0m
+2025-06-19 00:31:36 - INFO - [37mWATCHER | 2025-06-19 00:31:36 - DEBUG - [35mCursorAutopilot initialization started[0m[0m
+2025-06-19 00:31:36 - INFO - [37mWATCHER | 2025-06-19 00:31:36 - DEBUG - [35mUsing root config file: /Users/cheddarwhizzy/cheddar/cursor-autopilot/config.yaml[0m[0m
+2025-06-19 00:31:36 - INFO - [37mWATCHER | 2025-06-19 00:31:36 - DEBUG - [35mLoaded 6 patterns from /Users/cheddarwhizzy/cheddar/cursor-autopilot/src/../.gitignore[0m[0m
+2025-06-19 00:31:36 - INFO - [37mWATCHER | 2025-06-19 00:31:36 - DEBUG - [35mLoaded 6 gitignore patterns[0m[0m
+2025-06-19 00:31:36 - INFO - [37mWATCHER | 2025-06-19 00:31:36 - DEBUG - [35mUsing active_platforms from general section: ['cursor', 'windsurf_mushattention'][0m[0m
+2025-06-19 00:31:36 - INFO - [37mWATCHER | 2025-06-19 00:31:36 - DEBUG - [35mFinal active platforms: ['cursor', 'windsurf_mushattention'][0m[0m
+2025-06-19 00:31:36 - INFO - [37mWATCHER | 2025-06-19 00:31:36 - DEBUG - [35mInitializing state for platform: cursor[0m[0m
+2025-06-19 00:31:36 - INFO - [37mWATCHER | 2025-06-19 00:31:36 - DEBUG - [35mPlatform type for cursor: cursor[0m[0m
+2025-06-19 00:31:36 - INFO - [37mWATCHER | 2025-06-19 00:31:36 - DEBUG - [35mRaw project path for cursor: /Volumes/My Shared Files/Home/cheddar/mushattention/mushattention[0m[0m
+2025-06-19 00:31:36 - INFO - [37mWATCHER | 2025-06-19 00:31:36 - DEBUG - [35mExpanded project path for cursor: /Volumes/My Shared Files/Home/cheddar/mushattention/mushattention[0m[0m
+2025-06-19 00:31:36 - INFO - [37mWATCHER | 2025-06-19 00:31:36 - DEBUG - [35mUsing inactivity delay for cursor: 120[0m[0m
+2025-06-19 00:31:36 - INFO - [37mWATCHER | 2025-06-19 00:31:36 - DEBUG - [35mState for cursor: {'platform_type': 'cursor', 'project_path': '/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention', 'inactivity_delay': 120, 'last_activity': 1750318296.7793138, 'last_prompt_time': 0.0, 'watch_handler': None, 'observer': None, 'task_file_path': 'tasks.md', 'additional_context_path': 'architecture.md', 'continuation_prompt_file_path': 'continuation_prompt.txt', 'initial_prompt_file_path': None, 'window_title': 'Cursor - Mushattention', 'continuation_prompt_override': None, 'initial_prompt_override': None}[0m[0m
+2025-06-19 00:31:36 - INFO - [37mWATCHER | 2025-06-19 00:31:36 - DEBUG - [35mInitializing state for platform: windsurf_mushattention[0m[0m
+2025-06-19 00:31:36 - INFO - [37mWATCHER | 2025-06-19 00:31:36 - DEBUG - [35mPlatform type for windsurf_mushattention: windsurf[0m[0m
+2025-06-19 00:31:36 - INFO - [37mWATCHER | 2025-06-19 00:31:36 - DEBUG - [35mRaw project path for windsurf_mushattention: /Volumes/My Shared Files/Home/cheddar/mushattention/mushattention[0m[0m
+2025-06-19 00:31:36 - INFO - [37mWATCHER | 2025-06-19 00:31:36 - DEBUG - [35mExpanded project path for windsurf_mushattention: /Volumes/My Shared Files/Home/cheddar/mushattention/mushattention[0m[0m
+2025-06-19 00:31:36 - INFO - [37mWATCHER | 2025-06-19 00:31:36 - DEBUG - [35mUsing inactivity delay for windsurf_mushattention: 120[0m[0m
+2025-06-19 00:31:36 - INFO - [37mWATCHER | 2025-06-19 00:31:36 - DEBUG - [35mState for windsurf_mushattention: {'platform_type': 'windsurf', 'project_path': '/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention', 'inactivity_delay': 120, 'last_activity': 1750318296.7794182, 'last_prompt_time': 0.0, 'watch_handler': None, 'observer': None, 'task_file_path': 'tasks.md', 'additional_context_path': 'architecture.md', 'continuation_prompt_file_path': 'continuation_prompt.txt', 'initial_prompt_file_path': None, 'window_title': 'WindSurf - Mushattention', 'continuation_prompt_override': None, 'initial_prompt_override': None}[0m[0m
+2025-06-19 00:31:36 - INFO - [37mWATCHER | 2025-06-19 00:31:36 - INFO - [35mLoading gitignore patterns based on project path: /Volumes/My Shared Files/Home/cheddar/mushattention/mushattention[0m[0m
+2025-06-19 00:31:36 - INFO - [37mWATCHER | 2025-06-19 00:31:36 - DEBUG - [35mLoading .gitignore patterns from /Volumes/My Shared Files/Home/cheddar/mushattention/mushattention[0m[0m
+2025-06-19 00:31:36 - INFO - [37mWATCHER | 2025-06-19 00:31:36 - DEBUG - [35mFound root .gitignore at /Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/.gitignore[0m[0m
+2025-06-19 00:31:36 - INFO - [37mWATCHER | 2025-06-19 00:31:36 - DEBUG - [35mLoaded 14 patterns from root .gitignore[0m[0m
+2025-06-19 00:31:36 - INFO - [37mWATCHER | 2025-06-19 00:31:36 - DEBUG - [35mFound .gitignore at /Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/.gitignore[0m[0m
+2025-06-19 00:31:36 - INFO - [37mAPI | 2025-06-19 00:31:36 - INFO - [33mInfo logging enabled[0m[0m
+2025-06-19 00:31:36 - INFO - [37mAPI |  * Serving Flask app 'src.api.app:create_production_app'[0m
+2025-06-19 00:31:36 - INFO - [37mAPI |  * Debug mode: off[0m
+2025-06-19 00:31:36 - INFO - [37mAPI | 2025-06-19 00:31:36 - INFO - [37m[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m[0m
+2025-06-19 00:31:36 - INFO - [37mAPI |  * Running on http://127.0.0.1:5005[0m[0m
+2025-06-19 00:31:36 - INFO - [37mAPI | 2025-06-19 00:31:36 - INFO - [37m[33mPress CTRL+C to quit[0m[0m[0m
+2025-06-19 00:31:45 - INFO - [37mWATCHER | 2025-06-19 00:31:45 - DEBUG - [35mFound .gitignore at /Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/node_modules/.pnpm/tailwindcss@3.4.17_ts-node@10.9.2_@types+node@22.5.4_typescript@5.7.2_/node_modules/tailwindcss/stubs/.gitignore[0m[0m
+2025-06-19 00:31:45 - INFO - [37mWATCHER | 2025-06-19 00:31:45 - DEBUG - [35mLoaded 1 patterns from /Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/node_modules/.pnpm/tailwindcss@3.4.17_ts-node@10.9.2_@types+node@22.5.4_typescript@5.7.2_/node_modules/tailwindcss/stubs/.gitignore[0m[0m
+2025-06-19 00:31:48 - INFO - [37mAPI | 2025-06-19 00:31:48 - INFO - [37mRequest started[0m[0m
+2025-06-19 00:31:48 - INFO - [37mAPI | 2025-06-19 00:31:48 - INFO - [37mRequest completed[0m[0m
+2025-06-19 00:31:48 - INFO - [37mAPI | 2025-06-19 00:31:48 - INFO - [37m127.0.0.1 - - [19/Jun/2025 00:31:48] "GET /health HTTP/1.1" 200 -[0m[0m
+2025-06-19 00:31:48 - INFO - [37mAPI | 2025-06-19 00:31:48 - INFO - [37mRequest started[0m[0m
+2025-06-19 00:31:48 - INFO - [37mAPI | 2025-06-19 00:31:48 - INFO - [37mRequest completed[0m[0m
+2025-06-19 00:31:48 - INFO - [37mAPI | 2025-06-19 00:31:48 - INFO - [37m127.0.0.1 - - [19/Jun/2025 00:31:48] "GET /api/info HTTP/1.1" 200 -[0m[0m
+2025-06-19 00:31:51 - INFO - [37mWATCHER | 2025-06-19 00:31:51 - INFO - [35mLoaded a total of 15 gitignore patterns[0m[0m
+2025-06-19 00:31:51 - INFO - [37mWATCHER | 2025-06-19 00:31:51 - INFO - [35mConfiguration loaded successfully for multiple platforms:[0m[0m
+2025-06-19 00:31:51 - INFO - [37mWATCHER | 2025-06-19 00:31:51 - INFO - [35m  Platform: cursor (Type: cursor)[0m[0m
+2025-06-19 00:31:51 - INFO - [37mWATCHER | 2025-06-19 00:31:51 - INFO - [35m    Project Path: /Volumes/My Shared Files/Home/cheddar/mushattention/mushattention[0m[0m
+2025-06-19 00:31:51 - INFO - [37mWATCHER | 2025-06-19 00:31:51 - INFO - [35m    Inactivity Delay: 120s[0m[0m
+2025-06-19 00:31:51 - INFO - [37mWATCHER | 2025-06-19 00:31:51 - INFO - [35m    Window Title: Cursor - Mushattention[0m[0m
+2025-06-19 00:31:51 - INFO - [37mWATCHER | 2025-06-19 00:31:51 - INFO - [35m  Platform: windsurf_mushattention (Type: windsurf)[0m[0m
+2025-06-19 00:31:51 - INFO - [37mWATCHER | 2025-06-19 00:31:51 - INFO - [35m    Project Path: /Volumes/My Shared Files/Home/cheddar/mushattention/mushattention[0m[0m
+2025-06-19 00:31:51 - INFO - [37mWATCHER | 2025-06-19 00:31:51 - INFO - [35m    Inactivity Delay: 120s[0m[0m
+2025-06-19 00:31:51 - INFO - [37mWATCHER | 2025-06-19 00:31:51 - INFO - [35m    Window Title: WindSurf - Mushattention[0m[0m
+2025-06-19 00:31:51 - INFO - [37mWATCHER | 2025-06-19 00:31:51 - INFO - [35mLoaded 15 gitignore patterns (from /Volumes/My Shared Files/Home/cheddar/mushattention/mushattention)[0m[0m
+2025-06-19 00:31:51 - INFO - [37mWATCHER | 2025-06-19 00:31:51 - DEBUG - [35mFileFilter initialized with use_gitignore=True[0m[0m
+2025-06-19 00:31:51 - INFO - [37mWATCHER | 2025-06-19 00:31:51 - DEBUG - [35mFound .initial_prompt_sent in project directory: /Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/.initial_prompt_sent[0m[0m
+2025-06-19 00:31:51 - INFO - [37mWATCHER | 2025-06-19 00:31:51 - DEBUG - [35mInitial prompt sent file exists: True (workspace: False, project: True)[0m[0m
+2025-06-19 00:31:51 - INFO - [37mWATCHER | 2025-06-19 00:31:51 - DEBUG - [35mLoaded 6 patterns from /Users/cheddarwhizzy/cheddar/cursor-autopilot/src/../.gitignore[0m[0m
+2025-06-19 00:31:51 - INFO - [37mWATCHER | 2025-06-19 00:31:51 - DEBUG - [35mLoaded 6 gitignore patterns[0m[0m
+2025-06-19 00:31:51 - INFO - [37mWATCHER | 2025-06-19 00:31:51 - DEBUG - [35mUsing active_platforms from general section: ['cursor', 'windsurf_mushattention'][0m[0m
+2025-06-19 00:31:51 - INFO - [37mWATCHER | 2025-06-19 00:31:51 - DEBUG - [35mFinal active platforms: ['cursor', 'windsurf_mushattention'][0m[0m
+2025-06-19 00:31:51 - INFO - [37mWATCHER | 2025-06-19 00:31:51 - DEBUG - [35mInitializing state for platform: cursor[0m[0m
+2025-06-19 00:31:51 - INFO - [37mWATCHER | 2025-06-19 00:31:51 - DEBUG - [35mPlatform type for cursor: cursor[0m[0m
+2025-06-19 00:31:51 - INFO - [37mWATCHER | 2025-06-19 00:31:51 - DEBUG - [35mRaw project path for cursor: /Volumes/My Shared Files/Home/cheddar/mushattention/mushattention[0m[0m
+2025-06-19 00:31:51 - INFO - [37mWATCHER | 2025-06-19 00:31:51 - DEBUG - [35mExpanded project path for cursor: /Volumes/My Shared Files/Home/cheddar/mushattention/mushattention[0m[0m
+2025-06-19 00:31:51 - INFO - [37mWATCHER | 2025-06-19 00:31:51 - DEBUG - [35mUsing inactivity delay for cursor: 120[0m[0m
+2025-06-19 00:31:51 - INFO - [37mWATCHER | 2025-06-19 00:31:51 - DEBUG - [35mState for cursor: {'platform_type': 'cursor', 'project_path': '/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention', 'inactivity_delay': 120, 'last_activity': 1750318311.4045591, 'last_prompt_time': 0.0, 'watch_handler': None, 'observer': None, 'task_file_path': 'tasks.md', 'additional_context_path': 'architecture.md', 'continuation_prompt_file_path': 'continuation_prompt.txt', 'initial_prompt_file_path': None, 'window_title': 'Cursor - Mushattention', 'continuation_prompt_override': None, 'initial_prompt_override': None}[0m[0m
+2025-06-19 00:31:51 - INFO - [37mWATCHER | 2025-06-19 00:31:51 - DEBUG - [35mInitializing state for platform: windsurf_mushattention[0m[0m
+2025-06-19 00:31:51 - INFO - [37mWATCHER | 2025-06-19 00:31:51 - DEBUG - [35mPlatform type for windsurf_mushattention: windsurf[0m[0m
+2025-06-19 00:31:51 - INFO - [37mWATCHER | 2025-06-19 00:31:51 - DEBUG - [35mRaw project path for windsurf_mushattention: /Volumes/My Shared Files/Home/cheddar/mushattention/mushattention[0m[0m
+2025-06-19 00:31:51 - INFO - [37mWATCHER | 2025-06-19 00:31:51 - DEBUG - [35mExpanded project path for windsurf_mushattention: /Volumes/My Shared Files/Home/cheddar/mushattention/mushattention[0m[0m
+2025-06-19 00:31:51 - INFO - [37mWATCHER | 2025-06-19 00:31:51 - DEBUG - [35mUsing inactivity delay for windsurf_mushattention: 120[0m[0m
+2025-06-19 00:31:51 - INFO - [37mWATCHER | 2025-06-19 00:31:51 - DEBUG - [35mState for windsurf_mushattention: {'platform_type': 'windsurf', 'project_path': '/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention', 'inactivity_delay': 120, 'last_activity': 1750318311.404663, 'last_prompt_time': 0.0, 'watch_handler': None, 'observer': None, 'task_file_path': 'tasks.md', 'additional_context_path': 'architecture.md', 'continuation_prompt_file_path': 'continuation_prompt.txt', 'initial_prompt_file_path': None, 'window_title': 'WindSurf - Mushattention', 'continuation_prompt_override': None, 'initial_prompt_override': None}[0m[0m
+2025-06-19 00:31:51 - INFO - [37mWATCHER | 2025-06-19 00:31:51 - INFO - [35mLoading gitignore patterns based on project path: /Volumes/My Shared Files/Home/cheddar/mushattention/mushattention[0m[0m
+2025-06-19 00:31:51 - INFO - [37mWATCHER | 2025-06-19 00:31:51 - DEBUG - [35mLoading .gitignore patterns from /Volumes/My Shared Files/Home/cheddar/mushattention/mushattention[0m[0m
+2025-06-19 00:31:51 - INFO - [37mWATCHER | 2025-06-19 00:31:51 - DEBUG - [35mFound root .gitignore at /Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/.gitignore[0m[0m
+2025-06-19 00:31:51 - INFO - [37mWATCHER | 2025-06-19 00:31:51 - DEBUG - [35mLoaded 14 patterns from root .gitignore[0m[0m
+2025-06-19 00:31:51 - INFO - [37mWATCHER | 2025-06-19 00:31:51 - DEBUG - [35mFound .gitignore at /Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/.gitignore[0m[0m
+2025-06-19 00:31:59 - INFO - [37mWATCHER | 2025-06-19 00:31:59 - DEBUG - [35mFound .gitignore at /Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/node_modules/.pnpm/tailwindcss@3.4.17_ts-node@10.9.2_@types+node@22.5.4_typescript@5.7.2_/node_modules/tailwindcss/stubs/.gitignore[0m[0m
+2025-06-19 00:31:59 - INFO - [37mWATCHER | 2025-06-19 00:31:59 - DEBUG - [35mLoaded 1 patterns from /Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/node_modules/.pnpm/tailwindcss@3.4.17_ts-node@10.9.2_@types+node@22.5.4_typescript@5.7.2_/node_modules/tailwindcss/stubs/.gitignore[0m[0m
+2025-06-19 00:32:06 - INFO - [37mWATCHER | 2025-06-19 00:32:06 - INFO - [35mLoaded a total of 15 gitignore patterns[0m[0m
+2025-06-19 00:32:06 - INFO - [37mWATCHER | 2025-06-19 00:32:06 - INFO - [35mConfiguration loaded successfully for multiple platforms:[0m[0m
+2025-06-19 00:32:06 - INFO - [37mWATCHER | 2025-06-19 00:32:06 - INFO - [35m  Platform: cursor (Type: cursor)[0m[0m
+2025-06-19 00:32:06 - INFO - [37mWATCHER | 2025-06-19 00:32:06 - INFO - [35m    Project Path: /Volumes/My Shared Files/Home/cheddar/mushattention/mushattention[0m[0m
+2025-06-19 00:32:06 - INFO - [37mWATCHER | 2025-06-19 00:32:06 - INFO - [35m    Inactivity Delay: 120s[0m[0m
+2025-06-19 00:32:06 - INFO - [37mWATCHER | 2025-06-19 00:32:06 - INFO - [35m    Window Title: Cursor - Mushattention[0m[0m
+2025-06-19 00:32:06 - INFO - [37mWATCHER | 2025-06-19 00:32:06 - INFO - [35m  Platform: windsurf_mushattention (Type: windsurf)[0m[0m
+2025-06-19 00:32:06 - INFO - [37mWATCHER | 2025-06-19 00:32:06 - INFO - [35m    Project Path: /Volumes/My Shared Files/Home/cheddar/mushattention/mushattention[0m[0m
+2025-06-19 00:32:06 - INFO - [37mWATCHER | 2025-06-19 00:32:06 - INFO - [35m    Inactivity Delay: 120s[0m[0m
+2025-06-19 00:32:06 - INFO - [37mWATCHER | 2025-06-19 00:32:06 - INFO - [35m    Window Title: WindSurf - Mushattention[0m[0m
+2025-06-19 00:32:06 - INFO - [37mWATCHER | 2025-06-19 00:32:06 - INFO - [35mLoaded 15 gitignore patterns (from /Volumes/My Shared Files/Home/cheddar/mushattention/mushattention)[0m[0m
+2025-06-19 00:32:06 - INFO - [37mWATCHER | 2025-06-19 00:32:06 - DEBUG - [35mFileFilter initialized with use_gitignore=True[0m[0m
+2025-06-19 00:32:06 - INFO - [37mWATCHER | 2025-06-19 00:32:06 - DEBUG - [35mFound .initial_prompt_sent in project directory: /Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/.initial_prompt_sent[0m[0m
+2025-06-19 00:32:06 - INFO - [37mWATCHER | 2025-06-19 00:32:06 - DEBUG - [35mInitial prompt sent file exists: True (workspace: False, project: True)[0m[0m
+2025-06-19 00:32:06 - INFO - [37mWATCHER | 2025-06-19 00:32:06 - DEBUG - [35mFileFilter initialized with use_gitignore=True[0m[0m
+2025-06-19 00:32:06 - INFO - [37mWATCHER | 2025-06-19 00:32:06 - INFO - [35m[cursor] Setting up file watcher for path: /Volumes/My Shared Files/Home/cheddar/mushattention/mushattention[0m[0m
+2025-06-19 00:32:06 - INFO - [37mWATCHER | 2025-06-19 00:32:06 - DEBUG - [35mInitialized event handler for platform: cursor[0m[0m
+2025-06-19 00:32:06 - INFO - [37mWATCHER | 2025-06-19 00:32:06 - DEBUG - [35m[cursor] Observer scheduled.[0m[0m
+2025-06-19 00:32:06 - INFO - [37mWATCHER | 2025-06-19 00:32:06 - INFO - [35m[windsurf_mushattention] Setting up file watcher for path: /Volumes/My Shared Files/Home/cheddar/mushattention/mushattention[0m[0m
+2025-06-19 00:32:06 - INFO - [37mWATCHER | 2025-06-19 00:32:06 - DEBUG - [35mInitialized event handler for platform: windsurf_mushattention[0m[0m
+2025-06-19 00:32:06 - INFO - [37mWATCHER | 2025-06-19 00:32:06 - DEBUG - [35m[windsurf_mushattention] Observer scheduled.[0m[0m
+2025-06-19 00:32:06 - INFO - [37mWATCHER | 2025-06-19 00:32:06 - ERROR - [37mUnhandled exception in FSEventsEmitter[0m[0m
+2025-06-19 00:32:06 - INFO - [37mWATCHER | Traceback (most recent call last):[0m
+2025-06-19 00:32:06 - INFO - [37mWATCHER |   File "/Users/cheddarwhizzy/cheddar/cursor-autopilot/.venv/lib/python3.13/site-packages/watchdog/observers/fsevents.py", line 307, in run[0m
+2025-06-19 00:32:06 - INFO - [37mWATCHER |     _fsevents.add_watch(self, self.watch, self.events_callback, self.pathnames)[0m
+2025-06-19 00:32:06 - INFO - [37mWATCHER |     ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+2025-06-19 00:32:06 - INFO - [37mWATCHER | RuntimeError: Cannot add watch <ObservedWatch: path='/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention', is_recursive=True> - it is already scheduled[0m
+2025-06-19 00:32:06 - INFO - [37mWATCHER | 2025-06-19 00:32:06 - INFO - [35mStarted 2 file watcher observers[0m[0m
+2025-06-19 00:32:06 - INFO - [37mWATCHER | 2025-06-19 00:32:06 - INFO - [35mLaunching cursor (type: cursor) with project path: /Volumes/My Shared Files/Home/cheddar/mushattention/mushattention[0m[0m
+2025-06-19 00:32:06 - INFO - [37mWATCHER | 2025-06-19 00:32:06 - INFO - [33mStarting Cursor for platform cursor...[0m[0m
+2025-06-19 00:32:06 - INFO - [37mWATCHER | 2025-06-19 00:32:06 - INFO - [33mChecking if Cursor is running...[0m[0m
+2025-06-19 00:32:06 - INFO - [37mWATCHER | 2025-06-19 00:32:06 - INFO - [33mCursor is running, killing it...[0m[0m
+2025-06-19 00:32:06 - INFO - [37mWATCHER | 2025-06-19 00:32:06 - INFO - [33mWaiting 2 seconds for process to fully terminate...[0m[0m
+2025-06-19 00:32:08 - INFO - [37mWATCHER | 2025-06-19 00:32:08 - INFO - [33mDone.[0m[0m
+2025-06-19 00:32:09 - INFO - [37mAPI | 2025-06-19 00:32:09 - INFO - [37mRequest started[0m[0m
+2025-06-19 00:32:09 - INFO - [37mAPI | 2025-06-19 00:32:09 - WARNING - [37mAPI endpoint accessed without authentication (no keys configured)[0m[0m
+2025-06-19 00:32:09 - INFO - [37mAPI | 2025-06-19 00:32:09 - INFO - [37mRequest completed[0m[0m
+2025-06-19 00:32:09 - INFO - [37mAPI | 2025-06-19 00:32:09 - INFO - [37m127.0.0.1 - - [19/Jun/2025 00:32:09] "GET /api/config HTTP/1.1" 200 -[0m[0m
+2025-06-19 00:32:09 - INFO - [37mWATCHER | 2025-06-19 00:32:09 - DEBUG - [33mFound matching process: PID=726, name=/System/Library/PrivateFrameworks/TextInputUIMacHelper.framework/Versions/A/XPCServices/CursorUIViewService.xpc/Contents/MacOS/CursorUIViewService[0m[0m
+2025-06-19 00:32:09 - INFO - [37mWATCHER | 2025-06-19 00:32:09 - DEBUG - [33mFound matching process: PID=21681, name=/Applications/Cursor.app/Contents/Frameworks/Cursor Helper (Plugin).app/Contents/MacOS/Cursor Helper (Plugin)[0m[0m
+2025-06-19 00:32:09 - INFO - [37mWATCHER | 2025-06-19 00:32:09 - DEBUG - [33mFound matching process: PID=24914, name=/Applications/Cursor.app/Contents/MacOS/Cursor[0m[0m
+2025-06-19 00:32:09 - INFO - [37mWATCHER | 2025-06-19 00:32:09 - DEBUG - [33mFound matching process: PID=24916, name=/Applications/Cursor.app/Contents/Frameworks/Electron Framework.framework/Helpers/chrome_crashpad_handler[0m[0m
+2025-06-19 00:32:09 - INFO - [37mWATCHER | 2025-06-19 00:32:09 - DEBUG - [33mFound matching process: PID=24918, name=/Applications/Cursor.app/Contents/Frameworks/Cursor Helper (GPU).app/Contents/MacOS/Cursor Helper (GPU)[0m[0m
+2025-06-19 00:32:09 - INFO - [37mWATCHER | 2025-06-19 00:32:09 - DEBUG - [33mFound matching process: PID=24919, name=/Applications/Cursor.app/Contents/Frameworks/Cursor Helper.app/Contents/MacOS/Cursor Helper[0m[0m
+2025-06-19 00:32:09 - INFO - [37mWATCHER | 2025-06-19 00:32:09 - DEBUG - [33mFound matching process: PID=24922, name=/Applications/Cursor.app/Contents/Frameworks/Cursor Helper (Renderer).app/Contents/MacOS/Cursor Helper (Renderer)[0m[0m
+2025-06-19 00:32:09 - INFO - [37mWATCHER | 2025-06-19 00:32:09 - DEBUG - [33mFound matching process: PID=25488, name=Cursor Helper: shared-process[0m[0m
+2025-06-19 00:32:09 - INFO - [37mWATCHER | 2025-06-19 00:32:09 - DEBUG - [33mFound matching process: PID=25489, name=Cursor Helper: fileWatcher [1][0m[0m
+2025-06-19 00:32:09 - INFO - [37mWATCHER | 2025-06-19 00:32:09 - DEBUG - [33mFound matching process: PID=25626, name=Cursor Helper (Plugin): extension-host [1-1][0m[0m
+2025-06-19 00:32:09 - INFO - [37mWATCHER | 2025-06-19 00:32:09 - DEBUG - [33mFound matching process: PID=26375, name=Cursor Helper: terminal pty-host[0m[0m
+2025-06-19 00:32:09 - INFO - [37mWATCHER | 2025-06-19 00:32:09 - DEBUG - [33mFound matching process: PID=53267, name=/Applications/Cursor.app/Contents/Frameworks/Cursor Helper (Plugin).app/Contents/MacOS/Cursor Helper (Plugin)[0m[0m
+2025-06-19 00:32:09 - INFO - [37mWATCHER | 2025-06-19 00:32:09 - DEBUG - [33mFound matching process: PID=37226, name=/Users/cheddarwhizzy/cheddar/cursor-autopilot/.venv/bin/python3[0m[0m
+2025-06-19 00:32:09 - INFO - [37mWATCHER | 2025-06-19 00:32:09 - DEBUG - [33mProcesses matching 'Cursor' before launch: {25626, 26375, 37226, 25488, 21681, 24914, 25489, 24916, 53267, 726, 24918, 24922, 24919}[0m[0m
+2025-06-19 00:32:09 - INFO - [37mWATCHER | 2025-06-19 00:32:09 - INFO - [33mLaunching Cursor with project path: /Volumes/My Shared Files/Home/cheddar/mushattention/mushattention[0m[0m
+2025-06-19 00:32:09 - INFO - [37mWATCHER | 2025-06-19 00:32:09 - INFO - [33mWaiting for Cursor process to start...[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - INFO - [33mWaiting for Cursor process... (attempt 1/20)[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=726, name=/System/Library/PrivateFrameworks/TextInputUIMacHelper.framework/Versions/A/XPCServices/CursorUIViewService.xpc/Contents/MacOS/CursorUIViewService[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=21681, name=/Applications/Cursor.app/Contents/Frameworks/Cursor Helper (Plugin).app/Contents/MacOS/Cursor Helper (Plugin)[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=24914, name=/Applications/Cursor.app/Contents/MacOS/Cursor[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=24916, name=/Applications/Cursor.app/Contents/Frameworks/Electron Framework.framework/Helpers/chrome_crashpad_handler[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=24918, name=/Applications/Cursor.app/Contents/Frameworks/Cursor Helper (GPU).app/Contents/MacOS/Cursor Helper (GPU)[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=24919, name=/Applications/Cursor.app/Contents/Frameworks/Cursor Helper.app/Contents/MacOS/Cursor Helper[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=24922, name=/Applications/Cursor.app/Contents/Frameworks/Cursor Helper (Renderer).app/Contents/MacOS/Cursor Helper (Renderer)[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=25488, name=Cursor Helper: shared-process[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=25489, name=Cursor Helper: fileWatcher [1][0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=25626, name=Cursor Helper (Plugin): extension-host [1-1][0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=26375, name=Cursor Helper: terminal pty-host[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=38073, name=/Applications/Cursor.app/Contents/Frameworks/Cursor Helper (Renderer).app/Contents/MacOS/Cursor Helper (Renderer)[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=38111, name=Cursor Helper: fileWatcher [2][0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=38112, name=Cursor Helper (Plugin): extension-host [2-2][0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=53267, name=/Applications/Cursor.app/Contents/Frameworks/Cursor Helper (Plugin).app/Contents/MacOS/Cursor Helper (Plugin)[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=37226, name=/Users/cheddarwhizzy/cheddar/cursor-autopilot/.venv/bin/python3[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound PIDs for Cursor: {38112, 25626, 26375, 37226, 25488, 21681, 24914, 25489, 24916, 53267, 726, 24918, 38073, 24922, 24919, 38111}[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=726, name=/System/Library/PrivateFrameworks/TextInputUIMacHelper.framework/Versions/A/XPCServices/CursorUIViewService.xpc/Contents/MacOS/CursorUIViewService[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=21681, name=/Applications/Cursor.app/Contents/Frameworks/Cursor Helper (Plugin).app/Contents/MacOS/Cursor Helper (Plugin)[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=24914, name=/Applications/Cursor.app/Contents/MacOS/Cursor[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=24916, name=/Applications/Cursor.app/Contents/Frameworks/Electron Framework.framework/Helpers/chrome_crashpad_handler[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=24918, name=/Applications/Cursor.app/Contents/Frameworks/Cursor Helper (GPU).app/Contents/MacOS/Cursor Helper (GPU)[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=24919, name=/Applications/Cursor.app/Contents/Frameworks/Cursor Helper.app/Contents/MacOS/Cursor Helper[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=24922, name=/Applications/Cursor.app/Contents/Frameworks/Cursor Helper (Renderer).app/Contents/MacOS/Cursor Helper (Renderer)[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=25488, name=Cursor Helper: shared-process[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=25489, name=Cursor Helper: fileWatcher [1][0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=25626, name=Cursor Helper (Plugin): extension-host [1-1][0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=26375, name=Cursor Helper: terminal pty-host[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=38073, name=/Applications/Cursor.app/Contents/Frameworks/Cursor Helper (Renderer).app/Contents/MacOS/Cursor Helper (Renderer)[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=38111, name=Cursor Helper: fileWatcher [2][0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=38112, name=Cursor Helper (Plugin): extension-host [2-2][0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=53267, name=/Applications/Cursor.app/Contents/Frameworks/Cursor Helper (Plugin).app/Contents/MacOS/Cursor Helper (Plugin)[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=37226, name=/Users/cheddarwhizzy/cheddar/cursor-autopilot/.venv/bin/python3[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound PIDs for cursor: {38112, 25626, 26375, 37226, 25488, 21681, 24914, 25489, 24916, 53267, 726, 24918, 38073, 24922, 24919, 38111}[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=726, name=/System/Library/PrivateFrameworks/TextInputUIMacHelper.framework/Versions/A/XPCServices/CursorUIViewService.xpc/Contents/MacOS/CursorUIViewService[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=21681, name=/Applications/Cursor.app/Contents/Frameworks/Cursor Helper (Plugin).app/Contents/MacOS/Cursor Helper (Plugin)[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=24914, name=/Applications/Cursor.app/Contents/MacOS/Cursor[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=24916, name=/Applications/Cursor.app/Contents/Frameworks/Electron Framework.framework/Helpers/chrome_crashpad_handler[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=24918, name=/Applications/Cursor.app/Contents/Frameworks/Cursor Helper (GPU).app/Contents/MacOS/Cursor Helper (GPU)[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=24919, name=/Applications/Cursor.app/Contents/Frameworks/Cursor Helper.app/Contents/MacOS/Cursor Helper[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=24922, name=/Applications/Cursor.app/Contents/Frameworks/Cursor Helper (Renderer).app/Contents/MacOS/Cursor Helper (Renderer)[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=25488, name=Cursor Helper: shared-process[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=25489, name=Cursor Helper: fileWatcher [1][0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=25626, name=Cursor Helper (Plugin): extension-host [1-1][0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=26375, name=Cursor Helper: terminal pty-host[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=38073, name=/Applications/Cursor.app/Contents/Frameworks/Cursor Helper (Renderer).app/Contents/MacOS/Cursor Helper (Renderer)[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=38111, name=Cursor Helper: fileWatcher [2][0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=38112, name=Cursor Helper (Plugin): extension-host [2-2][0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=53267, name=/Applications/Cursor.app/Contents/Frameworks/Cursor Helper (Plugin).app/Contents/MacOS/Cursor Helper (Plugin)[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=37226, name=/Users/cheddarwhizzy/cheddar/cursor-autopilot/.venv/bin/python3[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound PIDs for Cursor: {38112, 25626, 26375, 37226, 25488, 21681, 24914, 25489, 24916, 53267, 726, 24918, 38073, 24922, 24919, 38111}[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=726, name=/System/Library/PrivateFrameworks/TextInputUIMacHelper.framework/Versions/A/XPCServices/CursorUIViewService.xpc/Contents/MacOS/CursorUIViewService[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=21681, name=/Applications/Cursor.app/Contents/Frameworks/Cursor Helper (Plugin).app/Contents/MacOS/Cursor Helper (Plugin)[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=24914, name=/Applications/Cursor.app/Contents/MacOS/Cursor[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=24916, name=/Applications/Cursor.app/Contents/Frameworks/Electron Framework.framework/Helpers/chrome_crashpad_handler[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=24918, name=/Applications/Cursor.app/Contents/Frameworks/Cursor Helper (GPU).app/Contents/MacOS/Cursor Helper (GPU)[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=24919, name=/Applications/Cursor.app/Contents/Frameworks/Cursor Helper.app/Contents/MacOS/Cursor Helper[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=24922, name=/Applications/Cursor.app/Contents/Frameworks/Cursor Helper (Renderer).app/Contents/MacOS/Cursor Helper (Renderer)[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=25488, name=Cursor Helper: shared-process[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=25489, name=Cursor Helper: fileWatcher [1][0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=25626, name=Cursor Helper (Plugin): extension-host [1-1][0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=26375, name=Cursor Helper: terminal pty-host[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=38073, name=/Applications/Cursor.app/Contents/Frameworks/Cursor Helper (Renderer).app/Contents/MacOS/Cursor Helper (Renderer)[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=38111, name=Cursor Helper: fileWatcher [2][0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=38112, name=Cursor Helper (Plugin): extension-host [2-2][0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=53267, name=/Applications/Cursor.app/Contents/Frameworks/Cursor Helper (Plugin).app/Contents/MacOS/Cursor Helper (Plugin)[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound matching process: PID=37226, name=/Users/cheddarwhizzy/cheddar/cursor-autopilot/.venv/bin/python3[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound PIDs for CURSOR: {38112, 25626, 26375, 37226, 25488, 21681, 24914, 25489, 24916, 53267, 726, 24918, 38073, 24922, 24919, 38111}[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound via grep: PID=726, line=  726 /System/Library/PrivateFrameworks/TextInputUIMacHelper.framework/Versions/A/XPCServices/CursorUIViewService.xpc/Contents/MacOS/CursorUIViewService[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound via grep: PID=21681, line=21681 /Applications/Cursor.app/Contents/Frameworks/Cursor Helper (Plugin).app/Contents/MacOS/Cursor Helper (Plugin)[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound via grep: PID=24914, line=24914 /Applications/Cursor.app/Contents/MacOS/Cursor[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound via grep: PID=24916, line=24916 /Applications/Cursor.app/Contents/Frameworks/Electron Framework.framework/Helpers/chrome_crashpad_handler[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound via grep: PID=24918, line=24918 /Applications/Cursor.app/Contents/Frameworks/Cursor Helper (GPU).app/Contents/MacOS/Cursor Helper (GPU)[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound via grep: PID=24919, line=24919 /Applications/Cursor.app/Contents/Frameworks/Cursor Helper.app/Contents/MacOS/Cursor Helper[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound via grep: PID=24922, line=24922 /Applications/Cursor.app/Contents/Frameworks/Cursor Helper (Renderer).app/Contents/MacOS/Cursor Helper (Renderer)[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound via grep: PID=25488, line=25488 Cursor Helper: shared-process[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound via grep: PID=25489, line=25489 Cursor Helper: fileWatcher [1][0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound via grep: PID=25626, line=25626 Cursor Helper (Plugin): extension-host [1-1][0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound via grep: PID=26375, line=26375 Cursor Helper: terminal pty-host[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound via grep: PID=38073, line=38073 /Applications/Cursor.app/Contents/Frameworks/Cursor Helper (Renderer).app/Contents/MacOS/Cursor Helper (Renderer)[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound via grep: PID=38111, line=38111 Cursor Helper: fileWatcher [2][0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound via grep: PID=38112, line=38112 Cursor Helper (Plugin): extension-host [2-2][0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound via grep: PID=53267, line=53267 /Applications/Cursor.app/Contents/Frameworks/Cursor Helper (Plugin).app/Contents/MacOS/Cursor Helper (Plugin)[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - DEBUG - [33mFound via grep: PID=37226, line=37226 /Users/cheddarwhizzy/cheddar/cursor-autopilot/.venv/bin/python3[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - INFO - [33mDetected new process: Cursor Helper (Plugin): extension-host [2-2] (PID: 38112)[0m[0m
+2025-06-19 00:32:11 - INFO - [37mWATCHER | 2025-06-19 00:32:11 - INFO - [33mWaiting 5 seconds for application to fully initialize...[0m[0m
+2025-06-19 00:32:13 - INFO - [37mWATCHER | 2025-06-19 00:32:13 - DEBUG - [37mNativeEvent(path="/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/.git/FETCH_HEAD", inode=381248, flags=19400, id=3665519): is_file, is_inode_meta_mod, is_modified, is_xattr_mod[0m[0m
+2025-06-19 00:32:13 - INFO - [37mWATCHER | 2025-06-19 00:32:13 - DEBUG - [37mqueue_event FileModifiedEvent(src_path='/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/.git/FETCH_HEAD', dest_path='', event_type='modified', is_directory=False, is_synthetic=False)[0m[0m
+2025-06-19 00:32:13 - INFO - [37mWATCHER | 2025-06-19 00:32:13 - DEBUG - [35mIgnoring file in excluded directory: .git/FETCH_HEAD[0m[0m
+2025-06-19 00:32:17 - INFO - [37mWATCHER | 2025-06-19 00:32:17 - INFO - [33mWindow activation by PID 38112: succeeded[0m[0m
+2025-06-19 00:32:17 - INFO - [37mWATCHER | 2025-06-19 00:32:17 - INFO - [33mcursor (Cursor) launched successfully with PID 38112[0m[0m
+2025-06-19 00:32:17 - INFO - [37mWATCHER | 2025-06-19 00:32:17 - INFO - [35mLaunching windsurf_mushattention (type: windsurf) with project path: /Volumes/My Shared Files/Home/cheddar/mushattention/mushattention[0m[0m
+2025-06-19 00:32:17 - INFO - [37mWATCHER | 2025-06-19 00:32:17 - INFO - [33mStarting Windsurf for platform windsurf_mushattention...[0m[0m
+2025-06-19 00:32:17 - INFO - [37mWATCHER | 2025-06-19 00:32:17 - INFO - [33mChecking if Windsurf is running...[0m[0m
+2025-06-19 00:32:17 - INFO - [37mWATCHER | 2025-06-19 00:32:17 - INFO - [33mWindsurf is not running.[0m[0m
+2025-06-19 00:32:18 - INFO - [37mWATCHER | 2025-06-19 00:32:18 - DEBUG - [33mProcesses matching 'Windsurf' before launch: set()[0m[0m
+2025-06-19 00:32:18 - INFO - [37mWATCHER | 2025-06-19 00:32:18 - INFO - [33mLaunching Windsurf with project path: /Volumes/My Shared Files/Home/cheddar/mushattention/mushattention[0m[0m
+2025-06-19 00:32:19 - INFO - [37mWATCHER | 2025-06-19 00:32:19 - INFO - [33mWaiting for Windsurf process to start...[0m[0m
+2025-06-19 00:32:19 - INFO - [37mWATCHER | 2025-06-19 00:32:19 - DEBUG - [33mFound potential app bundle: Windsurf.app[0m[0m
+2025-06-19 00:32:20 - INFO - [37mWATCHER | 2025-06-19 00:32:20 - INFO - [33mWaiting for Windsurf process... (attempt 1/30)[0m[0m
+2025-06-19 00:32:21 - INFO - [37mWATCHER | 2025-06-19 00:32:21 - DEBUG - [33mFound matching process: PID=38202, name=/Applications/Windsurf.app/Contents/MacOS/Electron[0m[0m
+2025-06-19 00:32:21 - INFO - [37mWATCHER | 2025-06-19 00:32:21 - DEBUG - [33mFound matching process: PID=38209, name=/Applications/Windsurf.app/Contents/Frameworks/Electron Framework.framework/Helpers/chrome_crashpad_handler[0m[0m
+2025-06-19 00:32:21 - INFO - [37mWATCHER | 2025-06-19 00:32:21 - DEBUG - [33mFound matching process: PID=38210, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper (GPU).app/Contents/MacOS/Windsurf Helper (GPU)[0m[0m
+2025-06-19 00:32:21 - INFO - [37mWATCHER | 2025-06-19 00:32:21 - DEBUG - [33mFound matching process: PID=38211, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m[0m
+2025-06-19 00:32:21 - INFO - [37mWATCHER | 2025-06-19 00:32:21 - DEBUG - [33mFound matching process: PID=38213, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper (Renderer).app/Contents/MacOS/Windsurf Helper (Renderer)[0m[0m
+2025-06-19 00:32:21 - INFO - [37mWATCHER | 2025-06-19 00:32:21 - DEBUG - [33mFound matching process: PID=38241, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m[0m
+2025-06-19 00:32:21 - INFO - [37mWATCHER | 2025-06-19 00:32:21 - DEBUG - [33mFound matching process: PID=38242, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m[0m
+2025-06-19 00:32:21 - INFO - [37mWATCHER | 2025-06-19 00:32:21 - DEBUG - [33mFound PIDs for Windsurf: {38209, 38210, 38211, 38241, 38213, 38242, 38202}[0m[0m
+2025-06-19 00:32:21 - INFO - [37mWATCHER | 2025-06-19 00:32:21 - DEBUG - [33mFound matching process: PID=38202, name=/Applications/Windsurf.app/Contents/MacOS/Electron[0m[0m
+2025-06-19 00:32:21 - INFO - [37mWATCHER | 2025-06-19 00:32:21 - DEBUG - [33mFound matching process: PID=38209, name=/Applications/Windsurf.app/Contents/Frameworks/Electron Framework.framework/Helpers/chrome_crashpad_handler[0m[0m
+2025-06-19 00:32:21 - INFO - [37mWATCHER | 2025-06-19 00:32:21 - DEBUG - [33mFound matching process: PID=38210, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper (GPU).app/Contents/MacOS/Windsurf Helper (GPU)[0m[0m
+2025-06-19 00:32:21 - INFO - [37mWATCHER | 2025-06-19 00:32:21 - DEBUG - [33mFound matching process: PID=38211, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m[0m
+2025-06-19 00:32:21 - INFO - [37mWATCHER | 2025-06-19 00:32:21 - DEBUG - [33mFound matching process: PID=38213, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper (Renderer).app/Contents/MacOS/Windsurf Helper (Renderer)[0m[0m
+2025-06-19 00:32:21 - INFO - [37mWATCHER | 2025-06-19 00:32:21 - DEBUG - [33mFound matching process: PID=38241, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m[0m
+2025-06-19 00:32:21 - INFO - [37mWATCHER | 2025-06-19 00:32:21 - DEBUG - [33mFound matching process: PID=38242, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m[0m
+2025-06-19 00:32:21 - INFO - [37mWATCHER | 2025-06-19 00:32:21 - DEBUG - [33mFound PIDs for windsurf: {38209, 38210, 38211, 38241, 38213, 38242, 38202}[0m[0m
+2025-06-19 00:32:21 - INFO - [37mWATCHER | 2025-06-19 00:32:21 - DEBUG - [33mFound matching process: PID=38202, name=/Applications/Windsurf.app/Contents/MacOS/Electron[0m[0m
+2025-06-19 00:32:21 - INFO - [37mWATCHER | 2025-06-19 00:32:21 - DEBUG - [33mFound matching process: PID=38209, name=/Applications/Windsurf.app/Contents/Frameworks/Electron Framework.framework/Helpers/chrome_crashpad_handler[0m[0m
+2025-06-19 00:32:21 - INFO - [37mWATCHER | 2025-06-19 00:32:21 - DEBUG - [33mFound matching process: PID=38210, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper (GPU).app/Contents/MacOS/Windsurf Helper (GPU)[0m[0m
+2025-06-19 00:32:21 - INFO - [37mWATCHER | 2025-06-19 00:32:21 - DEBUG - [33mFound matching process: PID=38211, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m[0m
+2025-06-19 00:32:21 - INFO - [37mWATCHER | 2025-06-19 00:32:21 - DEBUG - [33mFound matching process: PID=38213, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper (Renderer).app/Contents/MacOS/Windsurf Helper (Renderer)[0m[0m
+2025-06-19 00:32:21 - INFO - [37mWATCHER | 2025-06-19 00:32:21 - DEBUG - [33mFound matching process: PID=38241, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m[0m
+2025-06-19 00:32:21 - INFO - [37mWATCHER | 2025-06-19 00:32:21 - DEBUG - [33mFound matching process: PID=38242, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m[0m
+2025-06-19 00:32:21 - INFO - [37mWATCHER | 2025-06-19 00:32:21 - DEBUG - [33mFound PIDs for Windsurf: {38209, 38210, 38211, 38241, 38213, 38242, 38202}[0m[0m
+2025-06-19 00:32:21 - INFO - [37mWATCHER | 2025-06-19 00:32:21 - DEBUG - [33mFound matching process: PID=38202, name=/Applications/Windsurf.app/Contents/MacOS/Electron[0m[0m
+2025-06-19 00:32:21 - INFO - [37mWATCHER | 2025-06-19 00:32:21 - DEBUG - [33mFound matching process: PID=38209, name=/Applications/Windsurf.app/Contents/Frameworks/Electron Framework.framework/Helpers/chrome_crashpad_handler[0m[0m
+2025-06-19 00:32:21 - INFO - [37mWATCHER | 2025-06-19 00:32:21 - DEBUG - [33mFound matching process: PID=38210, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper (GPU).app/Contents/MacOS/Windsurf Helper (GPU)[0m[0m
+2025-06-19 00:32:21 - INFO - [37mWATCHER | 2025-06-19 00:32:21 - DEBUG - [33mFound matching process: PID=38211, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m[0m
+2025-06-19 00:32:21 - INFO - [37mWATCHER | 2025-06-19 00:32:21 - DEBUG - [33mFound matching process: PID=38213, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper (Renderer).app/Contents/MacOS/Windsurf Helper (Renderer)[0m[0m
+2025-06-19 00:32:21 - INFO - [37mWATCHER | 2025-06-19 00:32:21 - DEBUG - [33mFound matching process: PID=38241, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m[0m
+2025-06-19 00:32:21 - INFO - [37mWATCHER | 2025-06-19 00:32:21 - DEBUG - [33mFound matching process: PID=38242, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m[0m
+2025-06-19 00:32:21 - INFO - [37mWATCHER | 2025-06-19 00:32:21 - DEBUG - [33mFound PIDs for WINDSURF: {38209, 38210, 38211, 38241, 38213, 38242, 38202}[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - DEBUG - [33mFound matching process: PID=38202, name=/Applications/Windsurf.app/Contents/MacOS/Electron[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - DEBUG - [33mFound matching process: PID=38209, name=/Applications/Windsurf.app/Contents/Frameworks/Electron Framework.framework/Helpers/chrome_crashpad_handler[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - DEBUG - [33mFound matching process: PID=38210, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper (GPU).app/Contents/MacOS/Windsurf Helper (GPU)[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - DEBUG - [33mFound matching process: PID=38211, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - DEBUG - [33mFound matching process: PID=38213, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper (Renderer).app/Contents/MacOS/Windsurf Helper (Renderer)[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - DEBUG - [33mFound matching process: PID=38241, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - DEBUG - [33mFound matching process: PID=38242, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - DEBUG - [33mFound PIDs for WindSurf: {38209, 38210, 38211, 38241, 38213, 38242, 38202}[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - DEBUG - [33mFound matching process: PID=38202, name=/Applications/Windsurf.app/Contents/MacOS/Electron[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - DEBUG - [33mFound matching process: PID=38209, name=/Applications/Windsurf.app/Contents/Frameworks/Electron Framework.framework/Helpers/chrome_crashpad_handler[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - DEBUG - [33mFound matching process: PID=38210, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper (GPU).app/Contents/MacOS/Windsurf Helper (GPU)[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - DEBUG - [33mFound matching process: PID=38211, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - DEBUG - [33mFound matching process: PID=38213, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper (Renderer).app/Contents/MacOS/Windsurf Helper (Renderer)[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - DEBUG - [33mFound matching process: PID=38241, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - DEBUG - [33mFound matching process: PID=38242, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - DEBUG - [33mFound PIDs for Windsurf: {38209, 38210, 38211, 38241, 38213, 38242, 38202}[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - DEBUG - [33mFound matching process: PID=38202, name=/Applications/Windsurf.app/Contents/MacOS/Electron[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - DEBUG - [33mFound matching process: PID=38209, name=/Applications/Windsurf.app/Contents/Frameworks/Electron Framework.framework/Helpers/chrome_crashpad_handler[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - DEBUG - [33mFound matching process: PID=38210, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper (GPU).app/Contents/MacOS/Windsurf Helper (GPU)[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - DEBUG - [33mFound matching process: PID=38211, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - DEBUG - [33mFound matching process: PID=38213, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper (Renderer).app/Contents/MacOS/Windsurf Helper (Renderer)[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - DEBUG - [33mFound matching process: PID=38241, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - DEBUG - [33mFound matching process: PID=38242, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - DEBUG - [33mFound PIDs for windsurf: {38209, 38210, 38211, 38241, 38213, 38242, 38202}[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - DEBUG - [33mFound matching process: PID=38202, name=/Applications/Windsurf.app/Contents/MacOS/Electron[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - DEBUG - [33mFound matching process: PID=38209, name=/Applications/Windsurf.app/Contents/Frameworks/Electron Framework.framework/Helpers/chrome_crashpad_handler[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - DEBUG - [33mFound matching process: PID=38210, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper (GPU).app/Contents/MacOS/Windsurf Helper (GPU)[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - DEBUG - [33mFound matching process: PID=38211, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - DEBUG - [33mFound matching process: PID=38213, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper (Renderer).app/Contents/MacOS/Windsurf Helper (Renderer)[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - DEBUG - [33mFound matching process: PID=38241, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - DEBUG - [33mFound matching process: PID=38242, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - DEBUG - [33mFound PIDs for Windsurf.app: {38209, 38210, 38211, 38241, 38213, 38242, 38202}[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - DEBUG - [37mNativeEvent(path="/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/.git/index.lock", inode=383397, flags=18100, id=3666561): is_created, is_file, is_xattr_mod[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - DEBUG - [37mqueue_event FileCreatedEvent(src_path='/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/.git/index.lock', dest_path='', event_type='created', is_directory=False, is_synthetic=False)[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - DEBUG - [37mqueue_event DirModifiedEvent(src_path='/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/.git', dest_path='', event_type='modified', is_directory=True, is_synthetic=False)[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - DEBUG - [37mqueue_event FileModifiedEvent(src_path='/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/.git/index.lock', dest_path='', event_type='modified', is_directory=False, is_synthetic=False)[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - DEBUG - [35mIgnoring file in excluded directory: .git/index.lock[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - DEBUG - [33mFound via grep: PID=38202, line=38202 /Applications/Windsurf.app/Contents/MacOS/Electron[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - DEBUG - [33mFound via grep: PID=38209, line=38209 /Applications/Windsurf.app/Contents/Frameworks/Electron Framework.framework/Helpers/chrome_crashpad_handler[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - DEBUG - [33mFound via grep: PID=38210, line=38210 /Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper (GPU).app/Contents/MacOS/Windsurf Helper (GPU)[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - DEBUG - [33mFound via grep: PID=38211, line=38211 /Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - DEBUG - [33mFound via grep: PID=38213, line=38213 /Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper (Renderer).app/Contents/MacOS/Windsurf Helper (Renderer)[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - DEBUG - [33mFound via grep: PID=38241, line=38241 /Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - DEBUG - [33mFound via grep: PID=38242, line=38242 /Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - INFO - [33mDetected new process: /Applications/Windsurf.app/Contents/Frameworks/Electron Framework.framework/Helpers/chrome_crashpad_handler (PID: 38209)[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - INFO - [33mPressing Enter to clear any dialog boxes in Windsurf...[0m[0m
+2025-06-19 00:32:22 - INFO - [37mWATCHER | 2025-06-19 00:32:22 - INFO - [33mWaiting 1 second after pressing Enter...[0m[0m
+2025-06-19 00:32:23 - INFO - [37mWATCHER | 2025-06-19 00:32:23 - INFO - [33mWaiting 8 seconds for application to fully initialize...[0m[0m
+2025-06-19 00:32:24 - INFO - [37mWATCHER | 2025-06-19 00:32:24 - DEBUG - [37mNativeEvent(path="/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/.git/index.lock", inode=383397, flags=19900, id=3666846): is_coalesced, is_created, is_file, is_modified, is_renamed, is_xattr_mod[0m[0m
+2025-06-19 00:32:24 - INFO - [37mWATCHER | 2025-06-19 00:32:24 - DEBUG - [37mNativeEvent(path="/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/.git/index", inode=383397, flags=10800, id=3666847): is_file, is_renamed[0m[0m
+2025-06-19 00:32:24 - INFO - [37mWATCHER | 2025-06-19 00:32:24 - DEBUG - [37mNativeEvent(path="/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/.git/index", inode=381239, flags=10800, id=3666848): is_file, is_renamed[0m[0m
+2025-06-19 00:32:24 - INFO - [37mWATCHER | 2025-06-19 00:32:24 - DEBUG - [37mqueue_event FileModifiedEvent(src_path='/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/.git/index.lock', dest_path='', event_type='modified', is_directory=False, is_synthetic=False)[0m[0m
+2025-06-19 00:32:24 - INFO - [37mWATCHER | 2025-06-19 00:32:24 - DEBUG - [37mDestination event for rename is NativeEvent(path="/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/.git/index", inode=383397, flags=10800, id=3666847)[0m[0m
+2025-06-19 00:32:24 - INFO - [37mWATCHER | 2025-06-19 00:32:24 - DEBUG - [37mqueue_event FileMovedEvent(src_path='/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/.git/index.lock', dest_path='/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/.git/index', event_type='moved', is_directory=False, is_synthetic=False)[0m[0m
+2025-06-19 00:32:24 - INFO - [37mWATCHER | 2025-06-19 00:32:24 - DEBUG - [37mqueue_event DirModifiedEvent(src_path='/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/.git', dest_path='', event_type='modified', is_directory=True, is_synthetic=False)[0m[0m
+2025-06-19 00:32:24 - INFO - [37mWATCHER | 2025-06-19 00:32:24 - DEBUG - [37mqueue_event DirModifiedEvent(src_path='/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/.git', dest_path='', event_type='modified', is_directory=True, is_synthetic=False)[0m[0m
+2025-06-19 00:32:24 - INFO - [37mWATCHER | 2025-06-19 00:32:24 - DEBUG - [37mqueue_event FileDeletedEvent(src_path='/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/.git/index', dest_path='', event_type='deleted', is_directory=False, is_synthetic=False)[0m[0m
+2025-06-19 00:32:24 - INFO - [37mWATCHER | 2025-06-19 00:32:24 - DEBUG - [37mqueue_event DirModifiedEvent(src_path='/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/.git', dest_path='', event_type='modified', is_directory=True, is_synthetic=False)[0m[0m
+2025-06-19 00:32:24 - INFO - [37mWATCHER | 2025-06-19 00:32:24 - DEBUG - [35mIgnoring file in excluded directory: .git/index[0m[0m
+2025-06-19 00:32:24 - INFO - [37mAPI | 2025-06-19 00:32:24 - INFO - [37mRequest started[0m[0m
+2025-06-19 00:32:24 - INFO - [37mAPI | 2025-06-19 00:32:24 - WARNING - [37mAPI endpoint accessed without authentication (no keys configured)[0m[0m
+2025-06-19 00:32:24 - INFO - [37mAPI | 2025-06-19 00:32:24 - ERROR - [37mAPI Error: Configuration validation failed[0m[0m
+2025-06-19 00:32:24 - INFO - [37mAPI | 2025-06-19 00:32:24 - INFO - [37mRequest completed[0m[0m
+2025-06-19 00:32:24 - INFO - [37mAPI | 2025-06-19 00:32:24 - INFO - [37m127.0.0.1 - - [19/Jun/2025 00:32:24] "[31m[1mPOST /api/config HTTP/1.1[0m" 422 -[0m[0m
+2025-06-19 00:32:30 - INFO - [37mWATCHER | 2025-06-19 00:32:30 - DEBUG - [37mNativeEvent(path="/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/.git/index.lock", inode=383403, flags=18100, id=3668227): is_created, is_file, is_xattr_mod[0m[0m
+2025-06-19 00:32:30 - INFO - [37mWATCHER | 2025-06-19 00:32:30 - DEBUG - [37mqueue_event FileCreatedEvent(src_path='/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/.git/index.lock', dest_path='', event_type='created', is_directory=False, is_synthetic=False)[0m[0m
+2025-06-19 00:32:30 - INFO - [37mWATCHER | 2025-06-19 00:32:30 - DEBUG - [37mqueue_event DirModifiedEvent(src_path='/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/.git', dest_path='', event_type='modified', is_directory=True, is_synthetic=False)[0m[0m
+2025-06-19 00:32:30 - INFO - [37mWATCHER | 2025-06-19 00:32:30 - DEBUG - [37mqueue_event FileModifiedEvent(src_path='/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/.git/index.lock', dest_path='', event_type='modified', is_directory=False, is_synthetic=False)[0m[0m
+2025-06-19 00:32:31 - INFO - [37mWATCHER | 2025-06-19 00:32:31 - DEBUG - [37mNativeEvent(path="/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/.git/index.lock", inode=383403, flags=18300, id=3668355): is_coalesced, is_created, is_file, is_removed, is_xattr_mod[0m[0m
+2025-06-19 00:32:31 - INFO - [37mWATCHER | 2025-06-19 00:32:31 - DEBUG - [37mqueue_event FileModifiedEvent(src_path='/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/.git/index.lock', dest_path='', event_type='modified', is_directory=False, is_synthetic=False)[0m[0m
+2025-06-19 00:32:31 - INFO - [37mWATCHER | 2025-06-19 00:32:31 - DEBUG - [37mqueue_event FileDeletedEvent(src_path='/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/.git/index.lock', dest_path='', event_type='deleted', is_directory=False, is_synthetic=False)[0m[0m
+2025-06-19 00:32:31 - INFO - [37mWATCHER | 2025-06-19 00:32:31 - DEBUG - [37mqueue_event DirModifiedEvent(src_path='/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/.git', dest_path='', event_type='modified', is_directory=True, is_synthetic=False)[0m[0m
+2025-06-19 00:32:32 - INFO - [37mWATCHER | 2025-06-19 00:32:32 - INFO - [33mWindow activation by PID 38209: failed[0m[0m
+2025-06-19 00:32:32 - INFO - [37mWATCHER | 2025-06-19 00:32:32 - WARNING - [33mCould not activate window, but continuing...[0m[0m
+2025-06-19 00:32:32 - INFO - [37mWATCHER | 2025-06-19 00:32:32 - INFO - [33mwindsurf_mushattention (Windsurf) launched successfully with PID 38209[0m[0m
+2025-06-19 00:32:32 - INFO - [37mWATCHER | 2025-06-19 00:32:32 - INFO - [35mInitial prompt file found. Sending continuation prompt...[0m[0m
+2025-06-19 00:32:32 - INFO - [37mWATCHER | 2025-06-19 00:32:32 - DEBUG - [35msend_prompt called with platform_to_prompt={'name': 'cursor', 'state': {'platform_type': 'cursor', 'project_path': '/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention', 'inactivity_delay': 120, 'last_activity': 1750318311.4045591, 'last_prompt_time': 0.0, 'watch_handler': <src.file_handling.watcher.PlatformEventHandler object at 0x1087a7a10>, 'observer': <FSEventsObserver(Thread-1, started daemon 6157266944)>, 'task_file_path': 'tasks.md', 'additional_context_path': 'architecture.md', 'continuation_prompt_file_path': 'continuation_prompt.txt', 'initial_prompt_file_path': None, 'window_title': 'Cursor - Mushattention', 'continuation_prompt_override': None, 'initial_prompt_override': None, 'event_queue': <queue.Queue object at 0x1087a7cb0>}, 'config': {'type': 'cursor', 'window_title': 'Cursor - Mushattention', 'project_path': '/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention', 'task_file_path': 'tasks.md', 'additional_context_path': 'architecture.md', 'initialization_delay_seconds': 5, 'initialization': [{'keys': 'control+`', 'delay_ms': 300}, {'keys': 'command+l', 'delay_ms': 300}], 'keystrokes': [{'keys': 'command+a', 'delay_ms': 100}, {'keys': 'backspace', 'delay_ms': 100}, {'keys': 'backspace', 'delay_ms': 100}, {'keys': 'command+l', 'delay_ms': 300}, {'keys': 'command+n', 'delay_ms': 100}]}}[0m[0m
+2025-06-19 00:32:32 - INFO - [37mWATCHER | 2025-06-19 00:32:32 - INFO - [35mSending continuation prompt to platform 'cursor'[0m[0m
+2025-06-19 00:32:32 - INFO - [37mWATCHER | 2025-06-19 00:32:32 - DEBUG - [35mProcessing platform: cursor, state: {'platform_type': 'cursor', 'project_path': '/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention', 'inactivity_delay': 120, 'last_activity': 1750318311.4045591, 'last_prompt_time': 0.0, 'watch_handler': <src.file_handling.watcher.PlatformEventHandler object at 0x1087a7a10>, 'observer': <FSEventsObserver(Thread-1, started daemon 6157266944)>, 'task_file_path': 'tasks.md', 'additional_context_path': 'architecture.md', 'continuation_prompt_file_path': 'continuation_prompt.txt', 'initial_prompt_file_path': None, 'window_title': 'Cursor - Mushattention', 'continuation_prompt_override': None, 'initial_prompt_override': None, 'event_queue': <queue.Queue object at 0x1087a7cb0>}, config: {'type': 'cursor', 'window_title': 'Cursor - Mushattention', 'project_path': '/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention', 'task_file_path': 'tasks.md', 'additional_context_path': 'architecture.md', 'initialization_delay_seconds': 5, 'initialization': [{'keys': 'control+`', 'delay_ms': 300}, {'keys': 'command+l', 'delay_ms': 300}], 'keystrokes': [{'keys': 'command+a', 'delay_ms': 100}, {'keys': 'backspace', 'delay_ms': 100}, {'keys': 'backspace', 'delay_ms': 100}, {'keys': 'command+l', 'delay_ms': 300}, {'keys': 'command+n', 'delay_ms': 100}]}[0m[0m
+2025-06-19 00:32:32 - INFO - [37mWATCHER | 2025-06-19 00:32:32 - INFO - [35m[cursor] Waiting 5 seconds for initialization...[0m[0m
+2025-06-19 00:32:34 - INFO - [37mAPI | 2025-06-19 00:32:34 - INFO - [37mRequest started[0m[0m
+2025-06-19 00:32:34 - INFO - [37mAPI | 2025-06-19 00:32:34 - WARNING - [37mAPI endpoint accessed without authentication (no keys configured)[0m[0m
+2025-06-19 00:32:34 - INFO - [37mAPI | 2025-06-19 00:32:34 - INFO - [37mUpdated general.inactivity_delay: 120 -> 240[0m[0m
+2025-06-19 00:32:34 - INFO - [37mAPI | 2025-06-19 00:32:34 - INFO - [37mSuccessfully wrote configuration to /Users/cheddarwhizzy/cheddar/cursor-autopilot/src/../config.yaml[0m[0m
+2025-06-19 00:32:34 - INFO - [37mAPI | 2025-06-19 00:32:34 - INFO - [37mSuccessfully updated configuration with 1 changes[0m[0m
+2025-06-19 00:32:34 - INFO - [37mAPI | 2025-06-19 00:32:34 - INFO - [37mRequest completed[0m[0m
+2025-06-19 00:32:34 - INFO - [37mAPI | 2025-06-19 00:32:34 - INFO - [37m127.0.0.1 - - [19/Jun/2025 00:32:34] "POST /api/config HTTP/1.1" 200 -[0m[0m
+2025-06-19 00:32:37 - INFO - [37mWATCHER | 2025-06-19 00:32:37 - INFO - [35m[cursor] Sending initialization keystrokes...[0m[0m
+2025-06-19 00:32:37 - INFO - [37mWATCHER | 2025-06-19 00:32:37 - DEBUG - [35m[cursor] Sending init key: control+`[0m[0m
+2025-06-19 00:32:38 - INFO - [37mWATCHER | 2025-06-19 00:32:38 - DEBUG - [37m[cursor] Sending keystroke: control+`[0m[0m
+2025-06-19 00:32:38 - INFO - [37mWATCHER | 2025-06-19 00:32:38 - DEBUG - [35m[cursor] Sending init key: command+l[0m[0m
+2025-06-19 00:32:38 - INFO - [37mWATCHER | 2025-06-19 00:32:38 - DEBUG - [37m[cursor] Sending keystroke: command+l[0m[0m
+2025-06-19 00:32:38 - INFO - [37mWATCHER | 2025-06-19 00:32:38 - WARNING - [37mCould not read prompt file /Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/continuation_prompt.txt: [Errno 2] No such file or directory: '/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/continuation_prompt.txt'[0m[0m
+2025-06-19 00:32:38 - INFO - [37mWATCHER | 2025-06-19 00:32:38 - DEBUG - [35mPrompt template for cursor: Continue working on the next task in {task_file_path}.[0m
+2025-06-19 00:32:38 - INFO - [37mWATCHER | Review the current task status and implement the next logical step. Maintain the same high standards of code quality, testing, and documentation as established.[0m[0m
+2025-06-19 00:32:38 - INFO - [37mWATCHER | 2025-06-19 00:32:38 - DEBUG - [35mFormatted prompt content for cursor: Continue working on the next task in tasks.md.[0m
+2025-06-19 00:32:38 - INFO - [37mWATCHER | Review the current task status and implement the next logical step. Maintain the same high standards of code quality, testing, and documentation as established.[0m[0m
+2025-06-19 00:32:38 - INFO - [37mWATCHER | 2025-06-19 00:32:38 - DEBUG - [35mAbout to activate platform window for cursor[0m[0m
+2025-06-19 00:32:38 - INFO - [37mWATCHER | 2025-06-19 00:32:38 - INFO - [33mActivating window for cursor: 'Cursor - Mushattention'[0m[0m
+2025-06-19 00:32:39 - INFO - [37mWATCHER | 2025-06-19 00:32:39 - WARNING - [35mFailed to activate platform window for cursor, but continuing to send prompt[0m[0m
+2025-06-19 00:32:40 - INFO - [37mWATCHER | 2025-06-19 00:32:40 - DEBUG - [35mSending keystroke string to cursor: Continue working on the next task in tasks.md.[0m
+2025-06-19 00:32:40 - INFO - [37mWATCHER | Review the current task status and implement the ne...[0m[0m
+2025-06-19 00:32:40 - INFO - [37mWATCHER | 2025-06-19 00:32:40 - DEBUG - [37m[cursor] Typing string of 209 characters[0m[0m
+2025-06-19 00:32:40 - INFO - [37mWATCHER | 2025-06-19 00:32:40 - DEBUG - [37m[cursor] Adding newline with shift+enter[0m[0m
+2025-06-19 00:32:41 - INFO - [37mWATCHER | 2025-06-19 00:32:41 - DEBUG - [37m[cursor] Adding newline with shift+enter[0m[0m
+2025-06-19 00:32:41 - INFO - [37mWATCHER | 2025-06-19 00:32:41 - DEBUG - [37mNativeEvent(path="/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/.git/index.lock", inode=383730, flags=18100, id=3671858): is_created, is_file, is_xattr_mod[0m[0m
+2025-06-19 00:32:41 - INFO - [37mWATCHER | 2025-06-19 00:32:41 - DEBUG - [37mqueue_event FileCreatedEvent(src_path='/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/.git/index.lock', dest_path='', event_type='created', is_directory=False, is_synthetic=False)[0m[0m
+2025-06-19 00:32:41 - INFO - [37mWATCHER | 2025-06-19 00:32:41 - DEBUG - [37mqueue_event DirModifiedEvent(src_path='/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/.git', dest_path='', event_type='modified', is_directory=True, is_synthetic=False)[0m[0m
+2025-06-19 00:32:41 - INFO - [37mWATCHER | 2025-06-19 00:32:41 - DEBUG - [37mqueue_event FileModifiedEvent(src_path='/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/.git/index.lock', dest_path='', event_type='modified', is_directory=False, is_synthetic=False)[0m[0m
+2025-06-19 00:32:41 - INFO - [37mWATCHER | 2025-06-19 00:32:41 - DEBUG - [37mNativeEvent(path="/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/.git/index.lock", inode=383730, flags=18300, id=3671885): is_coalesced, is_created, is_file, is_removed, is_xattr_mod[0m[0m
+2025-06-19 00:32:41 - INFO - [37mWATCHER | 2025-06-19 00:32:41 - DEBUG - [37mqueue_event FileModifiedEvent(src_path='/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/.git/index.lock', dest_path='', event_type='modified', is_directory=False, is_synthetic=False)[0m[0m
+2025-06-19 00:32:41 - INFO - [37mWATCHER | 2025-06-19 00:32:41 - DEBUG - [37mqueue_event FileDeletedEvent(src_path='/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/.git/index.lock', dest_path='', event_type='deleted', is_directory=False, is_synthetic=False)[0m[0m
+2025-06-19 00:32:41 - INFO - [37mWATCHER | 2025-06-19 00:32:41 - DEBUG - [37mqueue_event DirModifiedEvent(src_path='/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/.git', dest_path='', event_type='modified', is_directory=True, is_synthetic=False)[0m[0m
+2025-06-19 00:32:42 - INFO - [37mWATCHER | 2025-06-19 00:32:42 - DEBUG - [37m[cursor] Sending final Enter to submit message[0m[0m
+2025-06-19 00:32:42 - INFO - [37mWATCHER | 2025-06-19 00:32:42 - DEBUG - [35msend_prompt called with platform_to_prompt={'name': 'windsurf_mushattention', 'state': {'platform_type': 'windsurf', 'project_path': '/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention', 'inactivity_delay': 120, 'last_activity': 1750318311.404663, 'last_prompt_time': 0.0, 'watch_handler': <src.file_handling.watcher.PlatformEventHandler object at 0x10f200190>, 'observer': <FSEventsObserver(Thread-3, started daemon 6341865472)>, 'task_file_path': 'tasks.md', 'additional_context_path': 'architecture.md', 'continuation_prompt_file_path': 'continuation_prompt.txt', 'initial_prompt_file_path': None, 'window_title': 'WindSurf - Mushattention', 'continuation_prompt_override': None, 'initial_prompt_override': None, 'event_queue': <queue.Queue object at 0x10f200050>}, 'config': {'type': 'windsurf', 'window_title': 'WindSurf - Mushattention', 'project_path': '/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention', 'task_file_path': 'tasks.md', 'additional_context_path': 'architecture.md', 'initialization_delay_seconds': 8, 'initialization': [{'keys': 'control+`', 'delay_ms': 300}, {'keys': 'control+kw', 'delay_ms': 300}, {'keys': 'command+l', 'delay_ms': 300}], 'keystrokes': [{'keys': 'command+a', 'delay_ms': 300}, {'keys': 'backspace', 'delay_ms': 100}, {'keys': 'backspace', 'delay_ms': 100}, {'keys': 'command+l', 'delay_ms': 300}, {'keys': 'command+shift+l', 'delay_ms': 100}]}}[0m[0m
+2025-06-19 00:32:42 - INFO - [37mWATCHER | 2025-06-19 00:32:42 - INFO - [35mSending continuation prompt to platform 'windsurf_mushattention'[0m[0m
+2025-06-19 00:32:42 - INFO - [37mWATCHER | 2025-06-19 00:32:42 - DEBUG - [35mProcessing platform: windsurf_mushattention, state: {'platform_type': 'windsurf', 'project_path': '/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention', 'inactivity_delay': 120, 'last_activity': 1750318311.404663, 'last_prompt_time': 0.0, 'watch_handler': <src.file_handling.watcher.PlatformEventHandler object at 0x10f200190>, 'observer': <FSEventsObserver(Thread-3, started daemon 6341865472)>, 'task_file_path': 'tasks.md', 'additional_context_path': 'architecture.md', 'continuation_prompt_file_path': 'continuation_prompt.txt', 'initial_prompt_file_path': None, 'window_title': 'WindSurf - Mushattention', 'continuation_prompt_override': None, 'initial_prompt_override': None, 'event_queue': <queue.Queue object at 0x10f200050>}, config: {'type': 'windsurf', 'window_title': 'WindSurf - Mushattention', 'project_path': '/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention', 'task_file_path': 'tasks.md', 'additional_context_path': 'architecture.md', 'initialization_delay_seconds': 8, 'initialization': [{'keys': 'control+`', 'delay_ms': 300}, {'keys': 'control+kw', 'delay_ms': 300}, {'keys': 'command+l', 'delay_ms': 300}], 'keystrokes': [{'keys': 'command+a', 'delay_ms': 300}, {'keys': 'backspace', 'delay_ms': 100}, {'keys': 'backspace', 'delay_ms': 100}, {'keys': 'command+l', 'delay_ms': 300}, {'keys': 'command+shift+l', 'delay_ms': 100}]}[0m[0m
+2025-06-19 00:32:42 - INFO - [37mWATCHER | 2025-06-19 00:32:42 - INFO - [35m[windsurf_mushattention] Waiting 8 seconds for initialization...[0m[0m
+2025-06-19 00:32:50 - INFO - [37mWATCHER | 2025-06-19 00:32:50 - INFO - [35m[windsurf_mushattention] Sending initialization keystrokes...[0m[0m
+2025-06-19 00:32:50 - INFO - [37mWATCHER | 2025-06-19 00:32:50 - DEBUG - [35m[windsurf_mushattention] Sending init key: control+`[0m[0m
+2025-06-19 00:32:51 - INFO - [37mWATCHER | 2025-06-19 00:32:51 - DEBUG - [37m[windsurf_mushattention] Sending keystroke: control+`[0m[0m
+2025-06-19 00:32:51 - INFO - [37mWATCHER | 2025-06-19 00:32:51 - DEBUG - [35m[windsurf_mushattention] Sending init key: control+kw[0m[0m
+2025-06-19 00:32:51 - INFO - [37mWATCHER | 2025-06-19 00:32:51 - DEBUG - [37m[windsurf_mushattention] Sending keystroke: control+kw[0m[0m
+2025-06-19 00:32:51 - INFO - [37mWATCHER | 2025-06-19 00:32:51 - DEBUG - [35m[windsurf_mushattention] Sending init key: command+l[0m[0m
+2025-06-19 00:32:52 - INFO - [37mWATCHER | 2025-06-19 00:32:52 - DEBUG - [37m[windsurf_mushattention] Sending keystroke: command+l[0m[0m
+2025-06-19 00:32:52 - INFO - [37mWATCHER | 2025-06-19 00:32:52 - WARNING - [37mCould not read prompt file /Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/continuation_prompt.txt: [Errno 2] No such file or directory: '/Volumes/My Shared Files/Home/cheddar/mushattention/mushattention/continuation_prompt.txt'[0m[0m
+2025-06-19 00:32:52 - INFO - [37mWATCHER | 2025-06-19 00:32:52 - DEBUG - [35mPrompt template for windsurf_mushattention: Continue working on the next task in {task_file_path}.[0m
+2025-06-19 00:32:52 - INFO - [37mWATCHER | Review the current task status and implement the next logical step. Maintain the same high standards of code quality, testing, and documentation as established.[0m[0m
+2025-06-19 00:32:52 - INFO - [37mWATCHER | 2025-06-19 00:32:52 - DEBUG - [35mFormatted prompt content for windsurf_mushattention: Continue working on the next task in tasks.md.[0m
+2025-06-19 00:32:52 - INFO - [37mWATCHER | Review the current task status and implement the next logical step. Maintain the same high standards of code quality, testing, and documentation as established.[0m[0m
+2025-06-19 00:32:52 - INFO - [37mWATCHER | 2025-06-19 00:32:52 - DEBUG - [35mAbout to activate platform window for windsurf_mushattention[0m[0m
+2025-06-19 00:32:52 - INFO - [37mWATCHER | 2025-06-19 00:32:52 - INFO - [33mActivating window for windsurf_mushattention: 'WindSurf - Mushattention'[0m[0m
+2025-06-19 00:32:52 - INFO - [37mWATCHER | 2025-06-19 00:32:52 - WARNING - [35mFailed to activate platform window for windsurf_mushattention, but continuing to send prompt[0m[0m
+2025-06-19 00:32:53 - INFO - [37mAPI | 2025-06-19 00:32:53 - INFO - [37mRequest started[0m[0m
+2025-06-19 00:32:53 - INFO - [37mAPI | 2025-06-19 00:32:53 - INFO - [37mRequest completed[0m[0m
+2025-06-19 00:32:53 - INFO - [37mAPI | 2025-06-19 00:32:53 - INFO - [37m127.0.0.1 - - [19/Jun/2025 00:32:53] "GET /health HTTP/1.1" 200 -[0m[0m
+2025-06-19 00:32:53 - INFO - [37mWATCHER | 2025-06-19 00:32:53 - DEBUG - [35mSending keystroke string to windsurf_mushattention: Continue working on the next task in tasks.md.[0m
+2025-06-19 00:32:53 - INFO - [37mWATCHER | Review the current task status and implement the ne...[0m[0m
+2025-06-19 00:32:53 - INFO - [37mWATCHER | 2025-06-19 00:32:53 - DEBUG - [37m[windsurf_mushattention] Typing string of 209 characters[0m[0m
+2025-06-19 00:32:53 - INFO - [37mWATCHER | 2025-06-19 00:32:53 - DEBUG - [37m[windsurf_mushattention] Adding newline with shift+enter[0m[0m
+2025-06-19 00:32:54 - INFO - [37mWATCHER | 2025-06-19 00:32:54 - DEBUG - [37m[windsurf_mushattention] Adding newline with shift+enter[0m[0m
+2025-06-19 00:32:55 - INFO - [37mWATCHER | 2025-06-19 00:32:55 - DEBUG - [37m[windsurf_mushattention] Sending final Enter to submit message[0m[0m
+2025-06-19 00:32:55 - INFO - [37mWATCHER | 2025-06-19 00:32:55 - INFO - [35mEntering main watcher loop...[0m[0m
+2025-06-19 00:32:55 - INFO - [37mWATCHER | 2025-06-19 00:32:55 - DEBUG - [35mConfig file has been modified[0m[0m
+2025-06-19 00:32:55 - INFO - [37mWATCHER | 2025-06-19 00:32:55 - INFO - [35mConfiguration file changed, reloading...[0m[0m
+2025-06-19 00:32:55 - INFO - [37mWATCHER | 2025-06-19 00:32:55 - DEBUG - [35mLoaded 6 patterns from /Users/cheddarwhizzy/cheddar/cursor-autopilot/src/../.gitignore[0m[0m
+2025-06-19 00:32:55 - INFO - [37mWATCHER | 2025-06-19 00:32:55 - DEBUG - [35mLoaded 6 gitignore patterns[0m[0m
+2025-06-19 00:32:55 - INFO - [37mWATCHER | 2025-06-19 00:32:55 - WARNING - [35mConfig reloaded, but observer paths might be stale. Restart recommended for path changes.[0m[0m
+2025-06-19 00:32:55 - INFO - [37mWATCHER | 2025-06-19 00:32:55 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:32:55 - INFO - [37mWATCHER | 2025-06-19 00:32:55 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:32:56 - INFO - [37mWATCHER | 2025-06-19 00:32:56 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:32:56 - INFO - [37mWATCHER | 2025-06-19 00:32:56 - INFO - [35m[cursor] Inactivity countdown: 105 seconds until next prompt[0m[0m
+2025-06-19 00:32:56 - INFO - [37mWATCHER | 2025-06-19 00:32:56 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:32:57 - INFO - [37mWATCHER | 2025-06-19 00:32:57 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:32:57 - INFO - [37mWATCHER | 2025-06-19 00:32:57 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:32:58 - INFO - [37mWATCHER | 2025-06-19 00:32:58 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:32:58 - INFO - [37mWATCHER | 2025-06-19 00:32:58 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:32:59 - INFO - [37mWATCHER | 2025-06-19 00:32:59 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:32:59 - INFO - [37mWATCHER | 2025-06-19 00:32:59 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:00 - INFO - [37mAPI | 2025-06-19 00:33:00 - INFO - [37mRequest started[0m[0m
+2025-06-19 00:33:00 - INFO - [37mAPI | 2025-06-19 00:33:00 - WARNING - [37mAPI endpoint accessed without authentication (no keys configured)[0m[0m
+2025-06-19 00:33:00 - INFO - [37mAPI | 2025-06-19 00:33:00 - INFO - [37mRequest completed[0m[0m
+2025-06-19 00:33:00 - INFO - [37mAPI | 2025-06-19 00:33:00 - INFO - [37m127.0.0.1 - - [19/Jun/2025 00:33:00] "GET /api/config HTTP/1.1" 200 -[0m[0m
+2025-06-19 00:33:00 - INFO - [37mWATCHER | 2025-06-19 00:33:00 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:00 - INFO - [37mWATCHER | 2025-06-19 00:33:00 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:01 - INFO - [37mWATCHER | 2025-06-19 00:33:01 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:01 - INFO - [37mWATCHER | 2025-06-19 00:33:01 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:02 - INFO - [37mWATCHER | 2025-06-19 00:33:02 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:02 - INFO - [37mWATCHER | 2025-06-19 00:33:02 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:03 - INFO - [37mWATCHER | 2025-06-19 00:33:03 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:03 - INFO - [37mWATCHER | 2025-06-19 00:33:03 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:04 - INFO - [37mWATCHER | 2025-06-19 00:33:04 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:04 - INFO - [37mWATCHER | 2025-06-19 00:33:04 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:05 - INFO - [37mWATCHER | 2025-06-19 00:33:05 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:05 - INFO - [37mWATCHER | 2025-06-19 00:33:05 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:06 - INFO - [37mWATCHER | 2025-06-19 00:33:06 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:06 - INFO - [37mWATCHER | 2025-06-19 00:33:06 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:07 - INFO - [37mWATCHER | 2025-06-19 00:33:07 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:07 - INFO - [37mWATCHER | 2025-06-19 00:33:07 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:08 - INFO - [37mWATCHER | 2025-06-19 00:33:08 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:08 - INFO - [37mWATCHER | 2025-06-19 00:33:08 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:09 - INFO - [37mWATCHER | 2025-06-19 00:33:09 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:09 - INFO - [37mWATCHER | 2025-06-19 00:33:09 - INFO - [35m[windsurf_mushattention] Inactivity countdown: 105 seconds until next prompt[0m[0m
+2025-06-19 00:33:09 - INFO - [37mWATCHER | 2025-06-19 00:33:09 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:10 - INFO - [37mWATCHER | 2025-06-19 00:33:10 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:10 - INFO - [37mWATCHER | 2025-06-19 00:33:10 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:11 - INFO - [37mWATCHER | 2025-06-19 00:33:11 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:11 - INFO - [37mWATCHER | 2025-06-19 00:33:11 - INFO - [35m[cursor] Inactivity countdown: 90 seconds until next prompt[0m[0m
+2025-06-19 00:33:11 - INFO - [37mWATCHER | 2025-06-19 00:33:11 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:12 - INFO - [37mWATCHER | 2025-06-19 00:33:12 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:12 - INFO - [37mWATCHER | 2025-06-19 00:33:12 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:13 - INFO - [37mWATCHER | 2025-06-19 00:33:13 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:13 - INFO - [37mWATCHER | 2025-06-19 00:33:13 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:14 - INFO - [37mWATCHER | 2025-06-19 00:33:14 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:14 - INFO - [37mWATCHER | 2025-06-19 00:33:14 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:15 - INFO - [37mWATCHER | 2025-06-19 00:33:15 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:15 - INFO - [37mWATCHER | 2025-06-19 00:33:15 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:16 - INFO - [37mWATCHER | 2025-06-19 00:33:16 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:16 - INFO - [37mWATCHER | 2025-06-19 00:33:16 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:17 - INFO - [37mWATCHER | 2025-06-19 00:33:17 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:17 - INFO - [37mWATCHER | 2025-06-19 00:33:17 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:18 - INFO - [37mWATCHER | 2025-06-19 00:33:18 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:18 - INFO - [37mWATCHER | 2025-06-19 00:33:18 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:19 - INFO - [37mWATCHER | 2025-06-19 00:33:19 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:19 - INFO - [37mWATCHER | 2025-06-19 00:33:19 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:20 - INFO - [37mWATCHER | 2025-06-19 00:33:20 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:20 - INFO - [37mWATCHER | 2025-06-19 00:33:20 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:21 - INFO - [37mWATCHER | 2025-06-19 00:33:21 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:21 - INFO - [37mWATCHER | 2025-06-19 00:33:21 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:22 - INFO - [37mWATCHER | 2025-06-19 00:33:22 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:22 - INFO - [37mWATCHER | 2025-06-19 00:33:22 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:23 - INFO - [37mWATCHER | 2025-06-19 00:33:23 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:23 - INFO - [37mWATCHER | 2025-06-19 00:33:23 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:24 - INFO - [37mWATCHER | 2025-06-19 00:33:24 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:24 - INFO - [37mWATCHER | 2025-06-19 00:33:24 - INFO - [35m[windsurf_mushattention] Inactivity countdown: 90 seconds until next prompt[0m[0m
+2025-06-19 00:33:24 - INFO - [37mWATCHER | 2025-06-19 00:33:24 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:25 - INFO - [37mWATCHER | 2025-06-19 00:33:25 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:25 - INFO - [37mWATCHER | 2025-06-19 00:33:25 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:26 - INFO - [37mWATCHER | 2025-06-19 00:33:26 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:26 - INFO - [37mWATCHER | 2025-06-19 00:33:26 - INFO - [35m[cursor] Inactivity countdown: 75 seconds until next prompt[0m[0m
+2025-06-19 00:33:26 - INFO - [37mWATCHER | 2025-06-19 00:33:26 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:27 - INFO - [37mWATCHER | 2025-06-19 00:33:27 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:27 - INFO - [37mWATCHER | 2025-06-19 00:33:27 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:28 - INFO - [37mWATCHER | 2025-06-19 00:33:28 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:28 - INFO - [37mWATCHER | 2025-06-19 00:33:28 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:29 - INFO - [37mWATCHER | 2025-06-19 00:33:29 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:29 - INFO - [37mWATCHER | 2025-06-19 00:33:29 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:30 - INFO - [37mWATCHER | 2025-06-19 00:33:30 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:30 - INFO - [37mWATCHER | 2025-06-19 00:33:30 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:31 - INFO - [37mWATCHER | 2025-06-19 00:33:31 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:31 - INFO - [37mWATCHER | 2025-06-19 00:33:31 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:32 - INFO - [37mWATCHER | 2025-06-19 00:33:32 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:32 - INFO - [37mWATCHER | 2025-06-19 00:33:32 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:33 - INFO - [37mWATCHER | 2025-06-19 00:33:33 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:33 - INFO - [37mWATCHER | 2025-06-19 00:33:33 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:34 - INFO - [37mWATCHER | 2025-06-19 00:33:34 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:34 - INFO - [37mWATCHER | 2025-06-19 00:33:34 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:35 - INFO - [37mWATCHER | 2025-06-19 00:33:35 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:35 - INFO - [37mWATCHER | 2025-06-19 00:33:35 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:37 - INFO - [37mWATCHER | 2025-06-19 00:33:37 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:37 - INFO - [37mWATCHER | 2025-06-19 00:33:37 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:38 - INFO - [37mWATCHER | 2025-06-19 00:33:38 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:38 - INFO - [37mWATCHER | 2025-06-19 00:33:38 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:39 - INFO - [37mWATCHER | 2025-06-19 00:33:39 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:39 - INFO - [37mWATCHER | 2025-06-19 00:33:39 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:40 - INFO - [37mWATCHER | 2025-06-19 00:33:40 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:40 - INFO - [37mWATCHER | 2025-06-19 00:33:40 - INFO - [35m[windsurf_mushattention] Inactivity countdown: 75 seconds until next prompt[0m[0m
+2025-06-19 00:33:40 - INFO - [37mWATCHER | 2025-06-19 00:33:40 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:41 - INFO - [37mWATCHER | 2025-06-19 00:33:41 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:41 - INFO - [37mWATCHER | 2025-06-19 00:33:41 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:42 - INFO - [37mWATCHER | 2025-06-19 00:33:42 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:42 - INFO - [37mWATCHER | 2025-06-19 00:33:42 - INFO - [35m[cursor] Inactivity countdown: 60 seconds until next prompt[0m[0m
+2025-06-19 00:33:42 - INFO - [37mWATCHER | 2025-06-19 00:33:42 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:43 - INFO - [37mWATCHER | 2025-06-19 00:33:43 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:43 - INFO - [37mWATCHER | 2025-06-19 00:33:43 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:44 - INFO - [37mWATCHER | 2025-06-19 00:33:44 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:44 - INFO - [37mWATCHER | 2025-06-19 00:33:44 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:45 - INFO - [37mWATCHER | 2025-06-19 00:33:45 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:45 - INFO - [37mWATCHER | 2025-06-19 00:33:45 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:46 - INFO - [37mWATCHER | 2025-06-19 00:33:46 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:46 - INFO - [37mWATCHER | 2025-06-19 00:33:46 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:47 - INFO - [37mWATCHER | 2025-06-19 00:33:47 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:47 - INFO - [37mWATCHER | 2025-06-19 00:33:47 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:48 - INFO - [37mWATCHER | 2025-06-19 00:33:48 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:48 - INFO - [37mWATCHER | 2025-06-19 00:33:48 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:49 - INFO - [37mWATCHER | 2025-06-19 00:33:49 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:49 - INFO - [37mWATCHER | 2025-06-19 00:33:49 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:50 - INFO - [37mWATCHER | 2025-06-19 00:33:50 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:50 - INFO - [37mWATCHER | 2025-06-19 00:33:50 - DEBUG - [35mshould_send_prompt returned: None[0m[0m
+2025-06-19 00:33:51 - INFO - [37mWATCHER | 2025-06-19 00:33:51 - DEBUG - [35mChecking if continuation prompt should be sent...[0m[0m
+2025-06-19 00:33:51 - INFO - [37mWATCHER | 2025-06-19 00:33:51 - DEBUG - [35mshould_send_prompt returned: None[0m[0m

@@ -15,7 +15,14 @@ INITIAL_PROMPT_PATH = os.path.join(os.path.dirname(__file__), "initial_prompt.tx
 INITIAL_PROMPT_SENT_PATH = os.path.join(os.path.dirname(__file__), ".initial_prompt_sent")
 
 DEFAULT_INITIAL_PROMPT = '''You are working in a pre-existing application. 
-Before implementing any feature, always reference and update!!.
+Use {task_file_path} as your task list and work through tasks systematically.
+
+For each task:
+1. Review the current state of the codebase
+2. Check for any new context in {additional_context_path}, updating it as you complete planning each task
+3. Implement the next logical step
+4. Verify your changes work as expected
+5. Update documentation and tests as needed
 
 Before implementing any feature:
 1. Architecture & Documentation:
@@ -30,7 +37,6 @@ Before implementing any feature:
    - Follow the project's established patterns and conventions
 
 3. Development Process:
-   - Use {task_file_path} as your task list
    - Implement features one by one
    - After each feature:
      * Update {task_file_path} with new files/components
@@ -39,19 +45,19 @@ Before implementing any feature:
      * Mark the feature as completed
      * Update repomix-output.xml if available
 
-4. Code Quality:
-   - Write clean, maintainable code
-   - Add appropriate comments and documentation
-   - Follow TypeScript best practices
-   - Handle edge cases and error conditions
-   - Consider performance implications
+Maintain high standards of:
+- Code quality and organization
+- Testing and verification
+- Documentation and comments
+- Error handling and edge cases
+- Performance considerations
 
-5. Tools & Capabilities:
-   - You have access to code search, file reading, and editing tools
-   - You can run terminal commands when needed
-   - You can analyze the codebase structure
-   - You can read and write files
-   - You can execute tests and verify functionality
+Tools & Capabilities:
+- You have access to code search, file reading, and editing tools
+- You can run terminal commands when needed
+- You can analyze the codebase structure
+- You can read and write files
+- You can execute tests and verify functionality
 
 Remember to:
 - Think step by step before implementing
@@ -59,25 +65,14 @@ Remember to:
 - Maintain backward compatibility
 - Document any assumptions or limitations
 - Ask for clarification if requirements are unclear
+- If you encounter blockers, document them in the task file
+
+!!! Commit this to this repository's memory so you can reference it in all future chats for this repository. !!!
 '''
 
-DEFAULT_CONTINUATION_PROMPT = '''Continue working on the tasks in {task_file_path}. 
+DEFAULT_CONTINUATION_PROMPT = '''Continue working on the next task in {task_file_path}. 
 
-For each task:
-1. Review the current state of the codebase
-2. Check for any new context in {additional_context_path}
-3. Implement the next logical step
-4. Verify your changes work as expected
-5. Update documentation and tests as needed
-
-Maintain the same high standards of:
-- Code quality and organization
-- Testing and verification
-- Documentation and comments
-- Error handling and edge cases
-- Performance considerations
-
-If you encounter any blockers or need clarification, document them in the task file.'''
+Review the current task status and implement the next logical step. Maintain the same high standards of code quality, testing, and documentation as established.'''
 
 def get_config():
     config_path = os.path.join(os.path.dirname(__file__), "config.yaml")

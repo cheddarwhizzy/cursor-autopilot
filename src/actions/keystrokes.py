@@ -155,7 +155,7 @@ def send_keystroke_string(
     text: str, platform: str = "cursor", send_message: bool = True
 ) -> bool:
     """
-    Send a text string to Cursor or Windsurf.
+    Send a text string to Cursor or Windsurf with proper newline handling.
 
     Args:
         text: The text to send
@@ -171,33 +171,59 @@ def send_keystroke_string(
     logger.debug(f"[{platform}] Typing string of {len(text)} characters")
 
     try:
-        # Split text into smaller chunks to avoid issues with very long texts
-        chunk_size = 500
-        for i in range(0, len(text), chunk_size):
-            chunk = text[i : i + chunk_size]
-            # Escape quotes and backslashes
-            escaped_chunk = chunk.replace("\\", "\\\\").replace('"', '\\"')
+        # Split text by lines to handle newlines properly
+        lines = text.split('\n')
+        
+        for line_idx, line in enumerate(lines):
+            if line:  # Only process non-empty lines
+                # Split line into smaller chunks to avoid issues with very long texts
+                chunk_size = 500
+                for i in range(0, len(line), chunk_size):
+                    chunk = line[i : i + chunk_size]
+                    # Escape quotes and backslashes for AppleScript
+                    escaped_chunk = chunk.replace("\\", "\\\\").replace('"', '\\"')
 
-            script = f"""
-            tell application "System Events"
-                tell process "{app_name}"
-                    keystroke "{escaped_chunk}"
+                    script = f"""
+                    tell application "System Events"
+                        tell process "{app_name}"
+                            keystroke "{escaped_chunk}"
+                        end tell
+                    end tell
+                    """
+                    result = subprocess.run(
+                        ["osascript", "-e", script], capture_output=True, text=True
+                    )
+                    if result.returncode != 0:
+                        logger.error(f"AppleScript error while typing: {result.stderr}")
+                        return False
+
+                    # Add small delay between chunks
+                    if i + chunk_size < len(line):
+                        time.sleep(0.1)
+            
+            # Add newline (shift+enter) if not the last line
+            if line_idx < len(lines) - 1:
+                logger.debug(f"[{platform}] Adding newline with shift+enter")
+                script = f"""
+                tell application "System Events"
+                    tell process "{app_name}"
+                        keystroke return using shift down
+                    end tell
                 end tell
-            end tell
-            """
-            result = subprocess.run(
-                ["osascript", "-e", script], capture_output=True, text=True
-            )
-            if result.returncode != 0:
-                logger.error(f"AppleScript error while typing: {result.stderr}")
-                return False
+                """
+                result = subprocess.run(
+                    ["osascript", "-e", script], capture_output=True, text=True
+                )
+                if result.returncode != 0:
+                    logger.error(f"AppleScript error sending shift+enter: {result.stderr}")
+                    return False
+                
+                # Add delay between newlines as requested (0.8 seconds)
+                time.sleep(0.8)
 
-            # Add small delay between chunks to avoid overwhelming the application
-            if i + chunk_size < len(text):
-                time.sleep(0.2)
-
-        # Send Enter after typing if requested
+        # Send Enter after typing if requested (to actually send the message)
         if send_message:
+            logger.debug(f"[{platform}] Sending final Enter to submit message")
             script = f"""
             tell application "System Events"
                 tell process "{app_name}"

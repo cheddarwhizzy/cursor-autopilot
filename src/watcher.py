@@ -141,12 +141,50 @@ class CursorAutopilot:
 
         return True
 
+    def _process_file_events(self) -> None:
+        """
+        Process file events from all platform event queues and update activity timers
+        """
+        for platform_name in self.platform_manager.platform_names:
+            platform_state = self.platform_manager.get_platform_state(platform_name)
+            event_queue = platform_state.get("event_queue")
+            
+            if not event_queue:
+                continue
+                
+            events_processed = 0
+            # Process all pending events
+            while not event_queue.empty():
+                try:
+                    event = event_queue.get_nowait()
+                    events_processed += 1
+                    
+                    # Get relative path for logging
+                    project_path = platform_state.get("project_path", "")
+                    try:
+                        rel_path = os.path.relpath(event.src_path, project_path)
+                    except (ValueError, AttributeError):
+                        rel_path = str(event.src_path)
+                    
+                    self.logger.debug(f"[{platform_name}] File activity detected: {event.event_type} - {rel_path}")
+                    
+                    # Update activity timer - this resets the inactivity countdown
+                    self.platform_manager.update_activity(platform_name)
+                    
+                except Exception as e:
+                    self.logger.error(f"Error processing file event for {platform_name}: {e}")
+                    break
+            
+            if events_processed > 0:
+                self.logger.info(f"[{platform_name}] Processed {events_processed} file events - activity timer reset")
+
     def send_prompt(self, platform_to_prompt: dict = None) -> None:
         """
         Send either initial or continuation prompt to platforms
         Args:
             platform_to_prompt: Optional dict containing platform info for continuation prompt
         """
+        self.logger.debug(f"send_prompt called with platform_to_prompt={platform_to_prompt}")
         if platform_to_prompt:
             # Continuation prompt for specific platform
             platform_name = platform_to_prompt["name"]
@@ -158,6 +196,7 @@ class CursorAutopilot:
             )
         else:
             # Initial prompts for all platforms
+            self.logger.debug(f"self.initial_prompt_sent={self.initial_prompt_sent}")
             if self.initial_prompt_sent:
                 self.logger.info("Initial prompt file found. Skipping initial prompts.")
                 return
@@ -172,6 +211,7 @@ class CursorAutopilot:
             ]
 
         for platform_name, state, platform_config in platforms_to_process:
+            self.logger.debug(f"Processing platform: {platform_name}, state: {state}, config: {platform_config}")
             # Get initialization delay
             initialization_delay = platform_config.get(
                 "initialization_delay_seconds", 8
@@ -239,33 +279,32 @@ class CursorAutopilot:
                     )
                     prompt_template = read_prompt_from_file(prompt_file) or default_template
 
+            self.logger.debug(f"Prompt template for {platform_name}: {prompt_template}")
+
             # Format the prompt
             try:
                 # Check if we're using overrides for task file and context file
                 platform_state = self.platform_manager.get_platform_state(platform_name)
-                
                 # Use overridden paths if available, otherwise use the ones from the template
                 task_file_to_use = platform_state.get("task_file_path") or task_file
                 context_file_to_use = platform_state.get("additional_context_path") or context_file
-                
                 # Check if files exist and log warnings if they don't
                 if task_file_to_use and not os.path.exists(task_file_to_use):
                     self.logger.warning(
                         f"[{platform_name}] Task file not found: {task_file_to_use}"
                     )
                     task_file_to_use = ""
-
                 if context_file_to_use and not os.path.exists(context_file_to_use):
                     self.logger.warning(
                         f"[{platform_name}] Context file not found: {context_file_to_use}"
                     )
                     context_file_to_use = ""
-
                 # Format the prompt with the appropriate file paths
                 prompt_content = prompt_template.format(
                     task_file_path=task_file_to_use or "",
                     additional_context_path=context_file_to_use or "",
                 )
+                self.logger.debug(f"Formatted prompt content for {platform_name}: {prompt_content}")
             except KeyError as e:
                 self.logger.error(
                     f"[{platform_name}] Error formatting prompt template (missing key {e}). Using raw template."
@@ -274,12 +313,19 @@ class CursorAutopilot:
 
             # Send the prompt if not in no-send mode
             if not self.args.no_send:
-                if not activate_platform_window(platform_name, state):
-                    self.logger.error(
-                        f"Failed to activate platform window for {platform_name}"
+                self.logger.debug(f"About to activate platform window for {platform_name}")
+                activation_success = activate_platform_window(platform_name, state)
+                if not activation_success:
+                    self.logger.warning(
+                        f"Failed to activate platform window for {platform_name}, but continuing to send prompt"
                     )
-                    return
-                time.sleep(0.5)
+                else:
+                    self.logger.debug(f"Successfully activated platform window for {platform_name}")
+                
+                # Add a small delay regardless of activation success
+                time.sleep(1.0)
+                
+                self.logger.debug(f"Sending keystroke string to {platform_name}: {prompt_content[:100]}...")
                 send_keystroke_string(
                     prompt_content,
                     platform_name,
@@ -381,6 +427,9 @@ class CursorAutopilot:
             while True:
                 current_time = time.time()
 
+                # Process file events to update activity timers
+                self._process_file_events()
+
                 # Check for configuration changes
                 if self.config_manager.check_config_changed():
                     self.logger.info("Configuration file changed, reloading...")
@@ -394,12 +443,14 @@ class CursorAutopilot:
                         self.logger.warning("Config reloaded, but observer paths might be stale. Restart recommended for path changes.")
 
                 # Check for inactive platforms and send continuation prompts if needed
+                self.logger.debug("Checking if continuation prompt should be sent...")
                 platform_to_prompt = self.platform_manager.should_send_prompt(stagger_delay)
+                self.logger.debug(f"should_send_prompt returned: {platform_to_prompt}")
                 if platform_to_prompt:
                     self.logger.info(
                         f"Sending continuation prompt to platforms: {platform_to_prompt}"
                     )
-                
+                    self.send_prompt(platform_to_prompt)
                 # Sleep for a short while to prevent high CPU usage
                 time.sleep(1)
                 

@@ -63,6 +63,21 @@ The main `run.sh` script provides a unified way to run the autopilot with variou
 | `--debug` | Enable debug logging | `--debug` |
 | `--no-send` | Don't send keystrokes to the IDE | `--no-send` |
 | `--auto` | Enable auto mode | `--auto` |
+| `--api` | Start both watcher and configuration API server | `--api` |
+
+### API Mode
+
+When running with the `--api` flag, both the file watcher and a configuration API server are started:
+
+```bash
+# Run with API server for configuration management
+./run.sh --api --platform=cursor_meanscoop
+
+# In a separate terminal, watch countdown messages clearly
+./scripts/watch_countdown.sh
+```
+
+**Note**: When running in API mode, countdown timer messages are prefixed with `"WATCHER |"` and might be less visible in the main terminal. Use the `watch_countdown.sh` script to monitor countdown messages clearly in a separate terminal.
 
 ### Configuration File
 

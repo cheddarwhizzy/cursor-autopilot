@@ -1,0 +1,166 @@
+2025-06-18 23:30:01 - INFO - [33mInfo logging enabled[0m
+2025-06-18 23:30:01 - DEBUG - [35mCursorAutopilot initialization started[0m
+2025-06-18 23:30:01 - DEBUG - [35mUsing root config file: /Users/cheddarwhizzy/cheddar/cursor-autopilot/config.yaml[0m
+2025-06-18 23:30:01 - INFO - [35mPlatform override: windsurf_meanscoop[0m
+2025-06-18 23:30:01 - DEBUG - [35mLoaded 6 patterns from /Users/cheddarwhizzy/cheddar/cursor-autopilot/src/../.gitignore[0m
+2025-06-18 23:30:01 - DEBUG - [35mLoaded 6 gitignore patterns[0m
+2025-06-18 23:30:01 - INFO - [35mPlatform override from command line: ['windsurf_meanscoop'][0m
+2025-06-18 23:30:01 - DEBUG - [35mFinal active platforms: ['windsurf_meanscoop'][0m
+2025-06-18 23:30:01 - DEBUG - [35mInitializing state for platform: windsurf_meanscoop[0m
+2025-06-18 23:30:01 - DEBUG - [35mPlatform type for windsurf_meanscoop: windsurf[0m
+2025-06-18 23:30:01 - DEBUG - [35mRaw project path for windsurf_meanscoop: /Volumes/My Shared Files/Home/cheddar/cheddarwhizzy/mean-scoop/meanscoop-payload[0m
+2025-06-18 23:30:01 - DEBUG - [35mExpanded project path for windsurf_meanscoop: /Volumes/My Shared Files/Home/cheddar/cheddarwhizzy/mean-scoop/meanscoop-payload[0m
+2025-06-18 23:30:01 - DEBUG - [35mUsing inactivity delay for windsurf_meanscoop: 120[0m
+2025-06-18 23:30:01 - DEBUG - [35mState for windsurf_meanscoop: {'platform_type': 'windsurf', 'project_path': '/Volumes/My Shared Files/Home/cheddar/cheddarwhizzy/mean-scoop/meanscoop-payload', 'inactivity_delay': 120, 'last_activity': 1750314601.818877, 'last_prompt_time': 0.0, 'watch_handler': None, 'observer': None, 'task_file_path': 'tasks.md', 'additional_context_path': 'architecture.md', 'continuation_prompt_file_path': 'continuation_prompt.txt', 'initial_prompt_file_path': None, 'window_title': 'meanscoop-payload', 'continuation_prompt_override': None, 'initial_prompt_override': None}[0m
+2025-06-18 23:30:01 - INFO - [35mLoading gitignore patterns based on project path: /Volumes/My Shared Files/Home/cheddar/cheddarwhizzy/mean-scoop/meanscoop-payload[0m
+2025-06-18 23:30:01 - DEBUG - [35mLoading .gitignore patterns from /Volumes/My Shared Files/Home/cheddar/cheddarwhizzy/mean-scoop/meanscoop-payload[0m
+2025-06-18 23:30:01 - DEBUG - [35mFound root .gitignore at /Volumes/My Shared Files/Home/cheddar/cheddarwhizzy/mean-scoop/meanscoop-payload/.gitignore[0m
+2025-06-18 23:30:01 - DEBUG - [35mLoaded 21 patterns from root .gitignore[0m
+2025-06-18 23:30:01 - DEBUG - [35mFound .gitignore at /Volumes/My Shared Files/Home/cheddar/cheddarwhizzy/mean-scoop/meanscoop-payload/.gitignore[0m
+2025-06-18 23:30:08 - INFO - [35mLoaded a total of 21 gitignore patterns[0m
+2025-06-18 23:30:08 - INFO - [35mConfiguration loaded successfully for multiple platforms:[0m
+2025-06-18 23:30:08 - INFO - [35m  Platform: windsurf_meanscoop (Type: windsurf)[0m
+2025-06-18 23:30:08 - INFO - [35m    Project Path: /Volumes/My Shared Files/Home/cheddar/cheddarwhizzy/mean-scoop/meanscoop-payload[0m
+2025-06-18 23:30:08 - INFO - [35m    Inactivity Delay: 120s[0m
+2025-06-18 23:30:08 - INFO - [35m    Window Title: meanscoop-payload[0m
+2025-06-18 23:30:08 - INFO - [35mLoaded 21 gitignore patterns (from /Volumes/My Shared Files/Home/cheddar/cheddarwhizzy/mean-scoop/meanscoop-payload)[0m
+2025-06-18 23:30:08 - DEBUG - [35mFileFilter initialized with use_gitignore=True[0m
+2025-06-18 23:30:08 - DEBUG - [35mInitial prompt sent file exists: False (workspace: False, project: False)[0m
+2025-06-18 23:30:08 - DEBUG - [35mLoaded 6 patterns from /Users/cheddarwhizzy/cheddar/cursor-autopilot/src/../.gitignore[0m
+2025-06-18 23:30:08 - DEBUG - [35mLoaded 6 gitignore patterns[0m
+2025-06-18 23:30:08 - INFO - [35mPlatform override from command line: ['windsurf_meanscoop'][0m
+2025-06-18 23:30:08 - DEBUG - [35mFinal active platforms: ['windsurf_meanscoop'][0m
+2025-06-18 23:30:08 - DEBUG - [35mInitializing state for platform: windsurf_meanscoop[0m
+2025-06-18 23:30:08 - DEBUG - [35mPlatform type for windsurf_meanscoop: windsurf[0m
+2025-06-18 23:30:08 - DEBUG - [35mRaw project path for windsurf_meanscoop: /Volumes/My Shared Files/Home/cheddar/cheddarwhizzy/mean-scoop/meanscoop-payload[0m
+2025-06-18 23:30:08 - DEBUG - [35mExpanded project path for windsurf_meanscoop: /Volumes/My Shared Files/Home/cheddar/cheddarwhizzy/mean-scoop/meanscoop-payload[0m
+2025-06-18 23:30:08 - DEBUG - [35mUsing inactivity delay for windsurf_meanscoop: 120[0m
+2025-06-18 23:30:08 - DEBUG - [35mState for windsurf_meanscoop: {'platform_type': 'windsurf', 'project_path': '/Volumes/My Shared Files/Home/cheddar/cheddarwhizzy/mean-scoop/meanscoop-payload', 'inactivity_delay': 120, 'last_activity': 1750314608.120636, 'last_prompt_time': 0.0, 'watch_handler': None, 'observer': None, 'task_file_path': 'tasks.md', 'additional_context_path': 'architecture.md', 'continuation_prompt_file_path': 'continuation_prompt.txt', 'initial_prompt_file_path': None, 'window_title': 'meanscoop-payload', 'continuation_prompt_override': None, 'initial_prompt_override': None}[0m
+2025-06-18 23:30:08 - INFO - [35mLoading gitignore patterns based on project path: /Volumes/My Shared Files/Home/cheddar/cheddarwhizzy/mean-scoop/meanscoop-payload[0m
+2025-06-18 23:30:08 - DEBUG - [35mLoading .gitignore patterns from /Volumes/My Shared Files/Home/cheddar/cheddarwhizzy/mean-scoop/meanscoop-payload[0m
+2025-06-18 23:30:08 - DEBUG - [35mFound root .gitignore at /Volumes/My Shared Files/Home/cheddar/cheddarwhizzy/mean-scoop/meanscoop-payload/.gitignore[0m
+2025-06-18 23:30:08 - DEBUG - [35mLoaded 21 patterns from root .gitignore[0m
+2025-06-18 23:30:08 - DEBUG - [35mFound .gitignore at /Volumes/My Shared Files/Home/cheddar/cheddarwhizzy/mean-scoop/meanscoop-payload/.gitignore[0m
+2025-06-18 23:30:14 - INFO - [35mLoaded a total of 21 gitignore patterns[0m
+2025-06-18 23:30:14 - INFO - [35mConfiguration loaded successfully for multiple platforms:[0m
+2025-06-18 23:30:14 - INFO - [35m  Platform: windsurf_meanscoop (Type: windsurf)[0m
+2025-06-18 23:30:14 - INFO - [35m    Project Path: /Volumes/My Shared Files/Home/cheddar/cheddarwhizzy/mean-scoop/meanscoop-payload[0m
+2025-06-18 23:30:14 - INFO - [35m    Inactivity Delay: 120s[0m
+2025-06-18 23:30:14 - INFO - [35m    Window Title: meanscoop-payload[0m
+2025-06-18 23:30:14 - INFO - [35mLoaded 21 gitignore patterns (from /Volumes/My Shared Files/Home/cheddar/cheddarwhizzy/mean-scoop/meanscoop-payload)[0m
+2025-06-18 23:30:14 - DEBUG - [35mFileFilter initialized with use_gitignore=True[0m
+2025-06-18 23:30:14 - DEBUG - [35mInitial prompt sent file exists: False (workspace: False, project: False)[0m
+2025-06-18 23:30:14 - DEBUG - [35mFileFilter initialized with use_gitignore=True[0m
+2025-06-18 23:30:14 - INFO - [35m[windsurf_meanscoop] Setting up file watcher for path: /Volumes/My Shared Files/Home/cheddar/cheddarwhizzy/mean-scoop/meanscoop-payload[0m
+2025-06-18 23:30:14 - DEBUG - [35mInitialized event handler for platform: windsurf_meanscoop[0m
+2025-06-18 23:30:14 - DEBUG - [35m[windsurf_meanscoop] Observer scheduled.[0m
+2025-06-18 23:30:14 - INFO - [35mStarted 1 file watcher observers[0m
+2025-06-18 23:30:14 - INFO - [35mLaunching windsurf_meanscoop (type: windsurf) with project path: /Volumes/My Shared Files/Home/cheddar/cheddarwhizzy/mean-scoop/meanscoop-payload[0m
+2025-06-18 23:30:14 - INFO - [33mStarting Windsurf for platform windsurf_meanscoop...[0m
+2025-06-18 23:30:14 - INFO - [33mChecking if Windsurf is running...[0m
+2025-06-18 23:30:14 - INFO - [33mWindsurf is not running.[0m
+2025-06-18 23:30:15 - DEBUG - [33mProcesses matching 'Windsurf' before launch: set()[0m
+2025-06-18 23:30:15 - INFO - [33mLaunching Windsurf with project path: /Volumes/My Shared Files/Home/cheddar/cheddarwhizzy/mean-scoop/meanscoop-payload[0m
+2025-06-18 23:30:15 - INFO - [33mWaiting for Windsurf process to start...[0m
+2025-06-18 23:30:15 - DEBUG - [33mFound potential app bundle: Windsurf.app[0m
+2025-06-18 23:30:16 - INFO - [33mWaiting for Windsurf process... (attempt 1/30)[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=96891, name=/Applications/Windsurf.app/Contents/MacOS/Electron[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=96894, name=/Applications/Windsurf.app/Contents/Frameworks/Electron Framework.framework/Helpers/chrome_crashpad_handler[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=96895, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper (GPU).app/Contents/MacOS/Windsurf Helper (GPU)[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=96896, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=96898, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper (Renderer).app/Contents/MacOS/Windsurf Helper (Renderer)[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=97011, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=97012, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound PIDs for Windsurf: {96896, 96898, 97011, 97012, 96891, 96894, 96895}[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=96891, name=/Applications/Windsurf.app/Contents/MacOS/Electron[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=96894, name=/Applications/Windsurf.app/Contents/Frameworks/Electron Framework.framework/Helpers/chrome_crashpad_handler[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=96895, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper (GPU).app/Contents/MacOS/Windsurf Helper (GPU)[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=96896, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=96898, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper (Renderer).app/Contents/MacOS/Windsurf Helper (Renderer)[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=97011, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=97012, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound PIDs for windsurf: {96896, 96898, 97011, 97012, 96891, 96894, 96895}[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=96891, name=/Applications/Windsurf.app/Contents/MacOS/Electron[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=96894, name=/Applications/Windsurf.app/Contents/Frameworks/Electron Framework.framework/Helpers/chrome_crashpad_handler[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=96895, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper (GPU).app/Contents/MacOS/Windsurf Helper (GPU)[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=96896, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=96898, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper (Renderer).app/Contents/MacOS/Windsurf Helper (Renderer)[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=97011, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=97012, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound PIDs for Windsurf: {96896, 96898, 97011, 97012, 96891, 96894, 96895}[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=96891, name=/Applications/Windsurf.app/Contents/MacOS/Electron[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=96894, name=/Applications/Windsurf.app/Contents/Frameworks/Electron Framework.framework/Helpers/chrome_crashpad_handler[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=96895, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper (GPU).app/Contents/MacOS/Windsurf Helper (GPU)[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=96896, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=96898, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper (Renderer).app/Contents/MacOS/Windsurf Helper (Renderer)[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=97011, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=97012, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound PIDs for WINDSURF: {96896, 96898, 97011, 97012, 96891, 96894, 96895}[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=96891, name=/Applications/Windsurf.app/Contents/MacOS/Electron[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=96894, name=/Applications/Windsurf.app/Contents/Frameworks/Electron Framework.framework/Helpers/chrome_crashpad_handler[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=96895, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper (GPU).app/Contents/MacOS/Windsurf Helper (GPU)[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=96896, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=96898, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper (Renderer).app/Contents/MacOS/Windsurf Helper (Renderer)[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=97011, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=97012, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound PIDs for WindSurf: {96896, 96898, 97011, 97012, 96891, 96894, 96895}[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=96891, name=/Applications/Windsurf.app/Contents/MacOS/Electron[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=96894, name=/Applications/Windsurf.app/Contents/Frameworks/Electron Framework.framework/Helpers/chrome_crashpad_handler[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=96895, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper (GPU).app/Contents/MacOS/Windsurf Helper (GPU)[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=96896, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=96898, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper (Renderer).app/Contents/MacOS/Windsurf Helper (Renderer)[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=97011, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=97012, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound PIDs for Windsurf: {96896, 96898, 97011, 97012, 96891, 96894, 96895}[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=96891, name=/Applications/Windsurf.app/Contents/MacOS/Electron[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=96894, name=/Applications/Windsurf.app/Contents/Frameworks/Electron Framework.framework/Helpers/chrome_crashpad_handler[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=96895, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper (GPU).app/Contents/MacOS/Windsurf Helper (GPU)[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=96896, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=96898, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper (Renderer).app/Contents/MacOS/Windsurf Helper (Renderer)[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=97011, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=97012, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound PIDs for windsurf: {96896, 96898, 97011, 97012, 96891, 96894, 96895}[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=96891, name=/Applications/Windsurf.app/Contents/MacOS/Electron[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=96894, name=/Applications/Windsurf.app/Contents/Frameworks/Electron Framework.framework/Helpers/chrome_crashpad_handler[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=96895, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper (GPU).app/Contents/MacOS/Windsurf Helper (GPU)[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=96896, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=96898, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper (Renderer).app/Contents/MacOS/Windsurf Helper (Renderer)[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=97011, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound matching process: PID=97012, name=/Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound PIDs for Windsurf.app: {96896, 96898, 97011, 97012, 96891, 96894, 96895}[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound via grep: PID=96891, line=96891 /Applications/Windsurf.app/Contents/MacOS/Electron[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound via grep: PID=96894, line=96894 /Applications/Windsurf.app/Contents/Frameworks/Electron Framework.framework/Helpers/chrome_crashpad_handler[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound via grep: PID=96895, line=96895 /Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper (GPU).app/Contents/MacOS/Windsurf Helper (GPU)[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound via grep: PID=96896, line=96896 /Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound via grep: PID=96898, line=96898 /Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper (Renderer).app/Contents/MacOS/Windsurf Helper (Renderer)[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound via grep: PID=97011, line=97011 /Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m
+2025-06-18 23:30:17 - DEBUG - [33mFound via grep: PID=97012, line=97012 /Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper[0m
+2025-06-18 23:30:17 - INFO - [33mDetected new process: /Applications/Windsurf.app/Contents/Frameworks/Windsurf Helper.app/Contents/MacOS/Windsurf Helper (PID: 96896)[0m
+2025-06-18 23:30:17 - INFO - [33mPressing Enter to clear any dialog boxes in Windsurf...[0m
+2025-06-18 23:30:17 - INFO - [33mWaiting 1 second after pressing Enter...[0m
+2025-06-18 23:30:18 - INFO - [33mWaiting 8 seconds for application to fully initialize...[0m
+2025-06-18 23:30:21 - DEBUG - [37mNativeEvent(path="/Volumes/My Shared Files/Home/cheddar/cheddarwhizzy/mean-scoop/meanscoop-payload/.git/index.lock", inode=74256, flags=18100, id=1677860): is_created, is_file, is_xattr_mod[0m
+2025-06-18 23:30:21 - DEBUG - [37mqueue_event FileCreatedEvent(src_path='/Volumes/My Shared Files/Home/cheddar/cheddarwhizzy/mean-scoop/meanscoop-payload/.git/index.lock', dest_path='', event_type='created', is_directory=False, is_synthetic=False)[0m
+2025-06-18 23:30:21 - DEBUG - [37mqueue_event DirModifiedEvent(src_path='/Volumes/My Shared Files/Home/cheddar/cheddarwhizzy/mean-scoop/meanscoop-payload/.git', dest_path='', event_type='modified', is_directory=True, is_synthetic=False)[0m
+2025-06-18 23:30:21 - DEBUG - [37mqueue_event FileModifiedEvent(src_path='/Volumes/My Shared Files/Home/cheddar/cheddarwhizzy/mean-scoop/meanscoop-payload/.git/index.lock', dest_path='', event_type='modified', is_directory=False, is_synthetic=False)[0m
+2025-06-18 23:30:21 - DEBUG - [35mIgnoring file in excluded directory: .git/index.lock[0m
+2025-06-18 23:30:22 - DEBUG - [37mNativeEvent(path="/Volumes/My Shared Files/Home/cheddar/cheddarwhizzy/mean-scoop/meanscoop-payload/.git/index.lock", inode=74256, flags=18300, id=1677977): is_coalesced, is_created, is_file, is_removed, is_xattr_mod[0m
+2025-06-18 23:30:22 - DEBUG - [37mqueue_event FileModifiedEvent(src_path='/Volumes/My Shared Files/Home/cheddar/cheddarwhizzy/mean-scoop/meanscoop-payload/.git/index.lock', dest_path='', event_type='modified', is_directory=False, is_synthetic=False)[0m
+2025-06-18 23:30:22 - DEBUG - [37mqueue_event FileDeletedEvent(src_path='/Volumes/My Shared Files/Home/cheddar/cheddarwhizzy/mean-scoop/meanscoop-payload/.git/index.lock', dest_path='', event_type='deleted', is_directory=False, is_synthetic=False)[0m
+2025-06-18 23:30:22 - DEBUG - [37mqueue_event DirModifiedEvent(src_path='/Volumes/My Shared Files/Home/cheddar/cheddarwhizzy/mean-scoop/meanscoop-payload/.git', dest_path='', event_type='modified', is_directory=True, is_synthetic=False)[0m
+2025-06-18 23:30:22 - DEBUG - [37mNativeEvent(path="/Volumes/My Shared Files/Home/cheddar/cheddarwhizzy/mean-scoop/meanscoop-payload/.git/index.lock", inode=74257, flags=18100, id=1678115): is_created, is_file, is_xattr_mod[0m
+2025-06-18 23:30:22 - DEBUG - [37mqueue_event FileCreatedEvent(src_path='/Volumes/My Shared Files/Home/cheddar/cheddarwhizzy/mean-scoop/meanscoop-payload/.git/index.lock', dest_path='', event_type='created', is_directory=False, is_synthetic=False)[0m
+2025-06-18 23:30:22 - DEBUG - [37mqueue_event DirModifiedEvent(src_path='/Volumes/My Shared Files/Home/cheddar/cheddarwhizzy/mean-scoop/meanscoop-payload/.git', dest_path='', event_type='modified', is_directory=True, is_synthetic=False)[0m
+2025-06-18 23:30:22 - DEBUG - [37mqueue_event FileModifiedEvent(src_path='/Volumes/My Shared Files/Home/cheddar/cheddarwhizzy/mean-scoop/meanscoop-payload/.git/index.lock', dest_path='', event_type='modified', is_directory=False, is_synthetic=False)[0m
+2025-06-18 23:30:23 - DEBUG - [37mNativeEvent(path="/Volumes/My Shared Files/Home/cheddar/cheddarwhizzy/mean-scoop/meanscoop-payload/.git/index.lock", inode=74257, flags=18300, id=1678166): is_coalesced, is_created, is_file, is_removed, is_xattr_mod[0m
+2025-06-18 23:30:23 - DEBUG - [37mqueue_event FileModifiedEvent(src_path='/Volumes/My Shared Files/Home/cheddar/cheddarwhizzy/mean-scoop/meanscoop-payload/.git/index.lock', dest_path='', event_type='modified', is_directory=False, is_synthetic=False)[0m
+2025-06-18 23:30:23 - DEBUG - [37mqueue_event FileDeletedEvent(src_path='/Volumes/My Shared Files/Home/cheddar/cheddarwhizzy/mean-scoop/meanscoop-payload/.git/index.lock', dest_path='', event_type='deleted', is_directory=False, is_synthetic=False)[0m
+2025-06-18 23:30:23 - DEBUG - [37mqueue_event DirModifiedEvent(src_path='/Volumes/My Shared Files/Home/cheddar/cheddarwhizzy/mean-scoop/meanscoop-payload/.git', dest_path='', event_type='modified', is_directory=True, is_synthetic=False)[0m
+2025-06-18 23:30:26 - INFO - [33mWindow activation by PID 96896: failed[0m
+2025-06-18 23:30:26 - WARNING - [33mCould not activate window, but continuing...[0m
+2025-06-18 23:30:27 - INFO - [33mwindsurf_meanscoop (Windsurf) launched successfully with PID 96896[0m
+2025-06-18 23:30:27 - DEBUG - [35msend_prompt called with platform_to_prompt=None[0m
+2025-06-18 23:30:27 - DEBUG - [35mself.initial_prompt_sent=False[0m
+2025-06-18 23:30:27 - INFO - [35mSending initial prompts to all platforms...[0m
+2025-06-18 23:30:27 - DEBUG - [35mProcessing platform: windsurf_meanscoop, state: {'platform_type': 'windsurf', 'project_path': '/Volumes/My Shared Files/Home/cheddar/cheddarwhizzy/mean-scoop/meanscoop-payload', 'inactivity_delay': 120, 'last_activity': 1750314608.120636, 'last_prompt_time': 0.0, 'watch_handler': <src.file_handling.watcher.PlatformEventHandler object at 0x10797fe00>, 'observer': <FSEventsObserver(Thread-1, started daemon 6160953344)>, 'task_file_path': 'tasks.md', 'additional_context_path': 'architecture.md', 'continuation_prompt_file_path': 'continuation_prompt.txt', 'initial_prompt_file_path': None, 'window_title': 'meanscoop-payload', 'continuation_prompt_override': None, 'initial_prompt_override': None, 'event_queue': <queue.Queue object at 0x10797fb60>}, config: {'type': 'windsurf', 'window_title': 'meanscoop-payload', 'project_path': '/Volumes/My Shared Files/Home/cheddar/cheddarwhizzy/mean-scoop/meanscoop-payload', 'task_file_path': 'tasks.md', 'additional_context_path': 'architecture.md', 'initialization_delay_seconds': 12, 'initialization': [{'keys': 'control+`', 'delay_ms': 300}, {'keys': 'control+kw', 'delay_ms': 300}, {'keys': 'command+l', 'delay_ms': 300}], 'keystrokes': [{'keys': 'command+a', 'delay_ms': 300}, {'keys': 'backspace', 'delay_ms': 100}, {'keys': 'backspace', 'delay_ms': 100}, {'keys': 'command+l', 'delay_ms': 300}, {'keys': 'command+shift+l', 'delay_ms': 100}]}[0m
+2025-06-18 23:30:27 - INFO - [35m[windsurf_meanscoop] Waiting 12 seconds for initialization...[0m
