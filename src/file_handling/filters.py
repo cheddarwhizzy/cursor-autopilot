@@ -51,24 +51,35 @@ class FileFilter:
 
         # Skip gitignore patterns if enabled
         if self.use_gitignore:
+            # Normalize path separators for cross-platform compatibility
+            normalized_rel_path = rel_path.replace(os.sep, "/")
+
             for pattern in self.gitignore_patterns:
-                # Handle patterns with directory components
-                if os.sep in pattern:
-                    if fnmatch.fnmatch(rel_path, pattern):
+                # Remove leading slash if present (gitignore patterns can start with /)
+                clean_pattern = pattern.lstrip("/")
+
+                # Check for directory patterns (ending with /)
+                if pattern.endswith("/"):
+                    # This is a directory pattern - check if the file is under this directory
+                    dir_pattern = clean_pattern.rstrip("/")
+                    if (
+                        normalized_rel_path.startswith(dir_pattern + "/")
+                        or normalized_rel_path == dir_pattern
+                    ):
                         logger.debug(
-                            f"Ignoring file matching gitignore pattern: {rel_path}"
+                            f"Ignoring file in gitignore directory pattern '{pattern}': {rel_path}"
                         )
                         return True
-                    # Also try with / separator for cross-platform compatibility
-                    if fnmatch.fnmatch(rel_path, pattern.replace(os.sep, "/")):
-                        logger.debug(
-                            f"Ignoring file matching gitignore pattern (with /): {rel_path}"
-                        )
-                        return True
-                # Handle filename-only patterns
-                elif fnmatch.fnmatch(os.path.basename(file_path), pattern):
+                # Check for exact matches and wildcard patterns
+                elif fnmatch.fnmatch(normalized_rel_path, clean_pattern):
                     logger.debug(
-                        f"Ignoring file matching gitignore filename pattern: {rel_path}"
+                        f"Ignoring file matching gitignore pattern '{pattern}': {rel_path}"
+                    )
+                    return True
+                # Check individual path components for patterns like .tmp
+                elif clean_pattern in normalized_rel_path.split("/"):
+                    logger.debug(
+                        f"Ignoring file with path component matching gitignore pattern '{pattern}': {rel_path}"
                     )
                     return True
 

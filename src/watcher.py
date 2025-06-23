@@ -109,13 +109,7 @@ class CursorAutopilot:
             self.logger.error("Failed to initialize platforms. Exiting.")
             return False
 
-        # Initialize file filter
-        self.file_filter = FileFilter(
-            self.config_manager.exclude_dirs,
-            self.config_manager.exclude_files,
-            self.config_manager.gitignore_patterns,
-            self.config_manager.use_gitignore,
-        )
+        # File filters are now created per-platform in FileWatcherManager
 
         # Check for initial prompt sent file in both workspace root and project directory
         workspace_flag = os.path.exists(INITIAL_PROMPT_SENT_FILE)
@@ -148,33 +142,33 @@ class CursorAutopilot:
         for platform_name in self.platform_manager.platform_names:
             platform_state = self.platform_manager.get_platform_state(platform_name)
             event_queue = platform_state.get("event_queue")
-            
+
             if not event_queue:
                 continue
-                
+
             events_processed = 0
             # Process all pending events
             while not event_queue.empty():
                 try:
                     event = event_queue.get_nowait()
                     events_processed += 1
-                    
+
                     # Get relative path for logging
                     project_path = platform_state.get("project_path", "")
                     try:
                         rel_path = os.path.relpath(event.src_path, project_path)
                     except (ValueError, AttributeError):
                         rel_path = str(event.src_path)
-                    
+
                     self.logger.debug(f"[{platform_name}] File activity detected: {event.event_type} - {rel_path}")
-                    
+
                     # Update activity timer - this resets the inactivity countdown
                     self.platform_manager.update_activity(platform_name)
-                    
+
                 except Exception as e:
                     self.logger.error(f"Error processing file event for {platform_name}: {e}")
                     break
-            
+
             if events_processed > 0:
                 self.logger.info(f"[{platform_name}] Processed {events_processed} file events - activity timer reset")
 
@@ -288,17 +282,36 @@ class CursorAutopilot:
                 # Use overridden paths if available, otherwise use the ones from the template
                 task_file_to_use = platform_state.get("task_file_path") or task_file
                 context_file_to_use = platform_state.get("additional_context_path") or context_file
+
+                # Get the project path for this platform to construct full file paths
+                project_path = platform_state.get("project_path", "")
+
                 # Check if files exist and log warnings if they don't
-                if task_file_to_use and not os.path.exists(task_file_to_use):
-                    self.logger.warning(
-                        f"[{platform_name}] Task file not found: {task_file_to_use}"
+                if task_file_to_use:
+                    # Construct full path for existence check
+                    full_task_file_path = (
+                        os.path.join(project_path, task_file_to_use)
+                        if not os.path.isabs(task_file_to_use)
+                        else task_file_to_use
                     )
-                    task_file_to_use = ""
-                if context_file_to_use and not os.path.exists(context_file_to_use):
-                    self.logger.warning(
-                        f"[{platform_name}] Context file not found: {context_file_to_use}"
+                    if not os.path.exists(full_task_file_path):
+                        self.logger.warning(
+                            f"[{platform_name}] Task file not found: {task_file_to_use} (full path: {full_task_file_path})"
+                        )
+                        task_file_to_use = ""
+
+                if context_file_to_use:
+                    # Construct full path for existence check
+                    full_context_file_path = (
+                        os.path.join(project_path, context_file_to_use)
+                        if not os.path.isabs(context_file_to_use)
+                        else context_file_to_use
                     )
-                    context_file_to_use = ""
+                    if not os.path.exists(full_context_file_path):
+                        self.logger.warning(
+                            f"[{platform_name}] Context file not found: {context_file_to_use} (full path: {full_context_file_path})"
+                        )
+                        context_file_to_use = ""
                 # Format the prompt with the appropriate file paths
                 prompt_content = prompt_template.format(
                     task_file_path=task_file_to_use or "",
@@ -321,10 +334,10 @@ class CursorAutopilot:
                     )
                 else:
                     self.logger.debug(f"Successfully activated platform window for {platform_name}")
-                
+
                 # Add a small delay regardless of activation success
                 time.sleep(1.0)
-                
+
                 self.logger.debug(f"Sending keystroke string to {platform_name}: {prompt_content[:100]}...")
                 send_keystroke_string(
                     prompt_content,
@@ -453,7 +466,7 @@ class CursorAutopilot:
                     self.send_prompt(platform_to_prompt)
                 # Sleep for a short while to prevent high CPU usage
                 time.sleep(1)
-                
+
         except KeyboardInterrupt:
             self.logger.info("Shutting down...")
             return

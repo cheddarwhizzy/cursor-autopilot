@@ -2,7 +2,7 @@ platforms:
   cursor:
     type: cursor
     window_title: Cursor - Mushattention
-    project_path: /Volumes/My Shared Files/Home/cheddar/mushattention/mushattention
+    project_path: /Users/cheddarwhizzy/cheddar/mushattention/mushattention # /Volumes/My Shared Files/Home/cheddar/mushattention/mushattention
     task_file_path: tasks.md
     additional_context_path: architecture.md
     initialization_delay_seconds: 5
@@ -25,8 +25,8 @@ platforms:
   windsurf_mushattention:
     type: windsurf
     window_title: WindSurf - Mushattention
-    project_path: /Volumes/My Shared Files/Home/cheddar/mushattention/mushattention
-    task_file_path: tasks.md
+    project_path: /Users/cheddarwhizzy/cheddar/mushattention/mushattention
+    task_file_path: notification-service/mongodb-integration-and-testing-plan.md
     additional_context_path: architecture.md
     initialization_delay_seconds: 8
     initialization:
