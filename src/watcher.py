@@ -206,6 +206,7 @@ class CursorAutopilot:
 
         for platform_name, state, platform_config in platforms_to_process:
             self.logger.debug(f"Processing platform: {platform_name}, state: {state}, config: {platform_config}")
+
             # Get initialization delay
             initialization_delay = platform_config.get(
                 "initialization_delay_seconds", 8
@@ -215,18 +216,42 @@ class CursorAutopilot:
             )
             time.sleep(initialization_delay)
 
-            # Send initialization keystrokes
-            initialization = platform_config.get("initialization", [])
-            if initialization and not self.args.no_send:
-                self.logger.info(f"[{platform_name}] Sending initialization keystrokes...")
-                for keystroke in initialization:
-                    keys = keystroke.get("keys", "")
-                    delay_ms = keystroke.get("delay_ms", 0)
-                    if keys:
-                        self.logger.debug(f"[{platform_name}] Sending init key: {keys}")
-                        if delay_ms > 0:
-                            time.sleep(delay_ms / 1000.0)
-                        send_keystroke(keys, platform_name)
+            # Send initialization keystrokes for initial prompts only
+            # For continuation prompts (after inactivity), we'll run the regular keystrokes instead
+            if platform_to_prompt:
+                # This is a continuation prompt after inactivity - run the regular keystrokes sequence
+                keystrokes = platform_config.get("keystrokes", [])
+                if keystrokes and not self.args.no_send:
+                    self.logger.info(
+                        f"[{platform_name}] Running keystrokes sequence after inactivity..."
+                    )
+                    for keystroke in keystrokes:
+                        keys = keystroke.get("keys", "")
+                        delay_ms = keystroke.get("delay_ms", 0)
+                        if keys:
+                            self.logger.debug(
+                                f"[{platform_name}] Sending keystroke: {keys}"
+                            )
+                            if delay_ms > 0:
+                                time.sleep(delay_ms / 1000.0)
+                            send_keystroke(keys, platform_name)
+            else:
+                # This is an initial prompt - run initialization keystrokes
+                initialization = platform_config.get("initialization", [])
+                if initialization and not self.args.no_send:
+                    self.logger.info(
+                        f"[{platform_name}] Sending initialization keystrokes..."
+                    )
+                    for keystroke in initialization:
+                        keys = keystroke.get("keys", "")
+                        delay_ms = keystroke.get("delay_ms", 0)
+                        if keys:
+                            self.logger.debug(
+                                f"[{platform_name}] Sending init key: {keys}"
+                            )
+                            if delay_ms > 0:
+                                time.sleep(delay_ms / 1000.0)
+                            send_keystroke(keys, platform_name)
 
             # Get paths for prompt generation
             prompt_file = state.get(
@@ -275,7 +300,7 @@ class CursorAutopilot:
 
             self.logger.debug(f"Prompt template for {platform_name}: {prompt_template}")
 
-            # Format the prompt
+            # Format the prompt and create prompt file in project directory
             try:
                 # Check if we're using overrides for task file and context file
                 platform_state = self.platform_manager.get_platform_state(platform_name)
@@ -312,19 +337,55 @@ class CursorAutopilot:
                             f"[{platform_name}] Context file not found: {context_file_to_use} (full path: {full_context_file_path})"
                         )
                         context_file_to_use = ""
+
                 # Format the prompt with the appropriate file paths
                 prompt_content = prompt_template.format(
                     task_file_path=task_file_to_use or "",
                     additional_context_path=context_file_to_use or "",
                 )
-                self.logger.debug(f"Formatted prompt content for {platform_name}: {prompt_content}")
+                self.logger.debug(
+                    f"Formatted prompt content for {platform_name}: {prompt_content[:200]}..."
+                )
+
+                # Create prompt file in project directory
+                prompt_filename = (
+                    "initial_prompt.txt"
+                    if not platform_to_prompt
+                    else "continuation_prompt.txt"
+                )
+                prompt_file_path = os.path.join(project_path, prompt_filename)
+
+                try:
+                    with open(prompt_file_path, "w", encoding="utf-8") as f:
+                        f.write(prompt_content)
+                    self.logger.info(
+                        f"[{platform_name}] Created {prompt_filename} in project directory: {prompt_file_path}"
+                    )
+                except Exception as e:
+                    self.logger.error(
+                        f"[{platform_name}] Failed to create prompt file {prompt_file_path}: {e}"
+                    )
+                    # Fall back to sending the prompt directly if file creation fails
+                    short_message = prompt_content
+                else:
+                    # Create short message referencing the prompt file
+                    if not platform_to_prompt:
+                        short_message = (
+                            f"review {prompt_filename}, and continue with the tasks"
+                        )
+                    else:
+                        short_message = (
+                            f"review {prompt_filename}, and continue with the tasks"
+                        )
+
             except KeyError as e:
                 self.logger.error(
                     f"[{platform_name}] Error formatting prompt template (missing key {e}). Using raw template."
                 )
                 prompt_content = prompt_template
+                short_message = prompt_content
 
-            # Send the prompt if not in no-send mode
+            # Send the short message if not in no-send mode
             if not self.args.no_send:
                 self.logger.debug(f"About to activate platform window for {platform_name}")
                 activation_success = activate_platform_window(platform_name, state)
@@ -338,9 +399,11 @@ class CursorAutopilot:
                 # Add a small delay regardless of activation success
                 time.sleep(1.0)
 
-                self.logger.debug(f"Sending keystroke string to {platform_name}: {prompt_content[:100]}...")
+                self.logger.debug(
+                    f"Sending message to {platform_name}: {short_message}"
+                )
                 send_keystroke_string(
-                    prompt_content,
+                    short_message,
                     platform_name,
                     send_message=not self.args.no_send,
                 )

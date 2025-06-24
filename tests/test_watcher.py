@@ -1,6 +1,6 @@
 import os
 import pytest
-from unittest.mock import patch, MagicMock, call
+from unittest.mock import patch, MagicMock, call, mock_open
 import time
 import hashlib
 import yaml
@@ -358,35 +358,46 @@ def test_autopilot_send_initial_prompts(mock_time, mock_open, mock_path_exists,
 @patch("src.watcher.os.path.exists")
 @patch("src.watcher.activate_platform_window")
 @patch("src.watcher.send_keystroke_string")
+@patch("src.watcher.send_keystroke")
 @patch("src.watcher.read_prompt_from_file")
-def test_send_prompt_with_relative_task_file_path(
+@patch("builtins.open", new_callable=mock_open)
+def test_send_prompt_after_inactivity_runs_keystrokes_and_creates_file(
+    mock_file_open,
     mock_read_prompt,
     mock_send_keystroke,
+    mock_send_keystroke_string,
     mock_activate_window,
     mock_path_exists,
     autopilot_send_enabled,
 ):
-    """Test that task file path resolution works correctly with relative paths"""
+    """Test that continuation prompts after inactivity run keystroke sequences and create prompt files"""
     # Setup mocks
     mock_activate_window.return_value = True
-    mock_read_prompt.return_value = "Test prompt with {task_file_path}"
+    mock_read_prompt.return_value = None  # No custom prompt file
 
     # Mock platform manager and config manager
     autopilot_send_enabled.platform_manager = MagicMock()
     autopilot_send_enabled.config_manager = MagicMock()
 
-    # Setup platform state with relative task file path
+    # Setup platform state
     platform_state = {
         "project_path": "/Users/test/project",
-        "task_file_path": "subdir/tasks.md",  # Relative path
+        "task_file_path": "tasks.md",
         "additional_context_path": "architecture.md",
         "last_activity": time.time(),
         "last_prompt_time": 0,
     }
 
+    # Setup platform config with keystrokes sequence
     platform_config = {
         "window_title": "Test Window",
         "continuation_prompt_file_path": "continuation_prompt.txt",
+        "keystrokes": [
+            {"keys": "command+a", "delay_ms": 100},
+            {"keys": "backspace", "delay_ms": 100},
+            {"keys": "command+l", "delay_ms": 300},
+        ],
+        "initialization_delay_seconds": 1,
     }
 
     autopilot_send_enabled.platform_manager.get_platform_state.return_value = (
@@ -395,58 +406,139 @@ def test_send_prompt_with_relative_task_file_path(
     autopilot_send_enabled.config_manager.get_platform_config.return_value = (
         platform_config
     )
+    autopilot_send_enabled.config_manager.config = {"general": {}}
 
     # Mock file existence checks
     def mock_exists(path):
-        # The task file should exist at the full path
-        if path == "/Users/test/project/subdir/tasks.md":
+        if path == "/Users/test/project/tasks.md":
             return True
-        # The context file should exist at the full path
         elif path == "/Users/test/project/architecture.md":
             return True
-        # Continuation prompt file
-        elif path == "/Users/test/project/continuation_prompt.txt":
-            return False
         return False
 
     mock_path_exists.side_effect = mock_exists
 
-    # Test sending prompt to specific platform
+    # Test sending continuation prompt (after inactivity)
     platform_to_prompt = {
         "name": "test_platform",
         "state": platform_state,
         "config": platform_config,
     }
 
-    # Call send_prompt
-    autopilot_send_enabled.send_prompt(platform_to_prompt)
+    # Call send_prompt for continuation (inactivity case)
+    with patch("src.watcher.time.sleep") as mock_sleep:
+        autopilot_send_enabled.send_prompt(platform_to_prompt)
 
-    # Verify that os.path.exists was called with the full path
-    expected_calls = [
-        call("/Users/test/project/subdir/tasks.md"),  # Full path for task file
-        call("/Users/test/project/architecture.md"),  # Full path for context file
-        call(
-            "/Users/test/project/continuation_prompt.txt"
-        ),  # Full path for prompt file
+    # Verify keystroke sequence was called in order
+    expected_keystroke_calls = [
+        call("command+a", "test_platform"),
+        call("backspace", "test_platform"),
+        call("command+l", "test_platform"),
     ]
 
-    # Check that path exists was called with full paths
-    assert any(
-        call_args[0][0] == "/Users/test/project/subdir/tasks.md"
-        for call_args in mock_path_exists.call_args_list
-    )
-    assert any(
-        call_args[0][0] == "/Users/test/project/architecture.md"
-        for call_args in mock_path_exists.call_args_list
+    mock_send_keystroke.assert_has_calls(expected_keystroke_calls, any_order=False)
+
+    # Verify prompt file was created
+    mock_file_open.assert_called()
+    file_write_calls = mock_file_open.return_value.write.call_args_list
+    assert len(file_write_calls) > 0
+
+    # Verify short message was sent instead of full prompt
+    mock_send_keystroke_string.assert_called()
+    call_args = mock_send_keystroke_string.call_args[0]
+    prompt_content = call_args[0]
+
+    # Should be a short message referencing the file, not the full prompt
+    assert (
+        "review continuation_prompt.txt, and continue with the tasks" == prompt_content
     )
 
-    # Verify send_keystroke_string was called with the formatted prompt containing the relative path
-    mock_send_keystroke.assert_called()
-    call_args = mock_send_keystroke.call_args[0]
+
+@patch("src.watcher.os.path.exists")
+@patch("src.watcher.activate_platform_window")
+@patch("src.watcher.send_keystroke_string")
+@patch("src.watcher.send_keystroke")
+@patch("src.watcher.read_prompt_from_file")
+@patch("builtins.open", new_callable=mock_open)
+def test_send_initial_prompt_runs_initialization_and_creates_file(
+    mock_file_open,
+    mock_read_prompt,
+    mock_send_keystroke,
+    mock_send_keystroke_string,
+    mock_activate_window,
+    mock_path_exists,
+    autopilot_send_enabled,
+):
+    """Test that initial prompts run initialization keystrokes and create prompt files"""
+    # Setup mocks
+    mock_activate_window.return_value = True
+    mock_read_prompt.return_value = None  # No custom prompt file
+
+    # Mock platform manager and config manager
+    autopilot_send_enabled.platform_manager = MagicMock()
+    autopilot_send_enabled.config_manager = MagicMock()
+
+    # Setup platform state
+    platform_state = {
+        "project_path": "/Users/test/project",
+        "task_file_path": "tasks.md",
+        "additional_context_path": "architecture.md",
+        "last_activity": time.time(),
+        "last_prompt_time": 0,
+    }
+
+    # Setup platform config with initialization sequence
+    platform_config = {
+        "window_title": "Test Window",
+        "initial_prompt_file_path": None,
+        "initialization": [
+            {"keys": "control+`", "delay_ms": 300},
+            {"keys": "command+l", "delay_ms": 300},
+        ],
+        "initialization_delay_seconds": 1,
+    }
+
+    autopilot_send_enabled.platform_manager.platform_names = ["test_platform"]
+    autopilot_send_enabled.platform_manager.get_platform_state.return_value = (
+        platform_state
+    )
+    autopilot_send_enabled.config_manager.get_platform_config.return_value = (
+        platform_config
+    )
+    autopilot_send_enabled.config_manager.config = {"general": {}}
+    autopilot_send_enabled.initial_prompt_sent = False
+
+    # Mock file existence checks
+    def mock_exists(path):
+        if path == "/Users/test/project/tasks.md":
+            return True
+        elif path == "/Users/test/project/architecture.md":
+            return True
+        return False
+
+    mock_path_exists.side_effect = mock_exists
+
+    # Call send_prompt for initial prompt (no platform_to_prompt argument)
+    with patch("src.watcher.time.sleep") as mock_sleep:
+        with patch("src.watcher.INITIAL_PROMPT_SENT_FILE", "/tmp/test_marker"):
+            with patch("builtins.open", mock_open()) as mock_marker_file:
+                autopilot_send_enabled.send_prompt()
+
+    # Verify initialization sequence was called in order
+    expected_init_calls = [
+        call("control+`", "test_platform"),
+        call("command+l", "test_platform"),
+    ]
+
+    mock_send_keystroke.assert_has_calls(expected_init_calls, any_order=False)
+
+    # Verify short message was sent instead of full prompt
+    mock_send_keystroke_string.assert_called()
+    call_args = mock_send_keystroke_string.call_args[0]
     prompt_content = call_args[0]
-    assert (
-        "subdir/tasks.md" in prompt_content
-    )  # Should contain the relative path in the prompt
+
+    # Should be a short message referencing the file, not the full prompt
+    assert "review initial_prompt.txt, and continue with the tasks" == prompt_content
 
 
 # Add more tests for other methods and classes

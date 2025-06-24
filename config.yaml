@@ -77,7 +77,7 @@ platforms:
     - keys: backspace
       delay_ms: 100
     - keys: backspace
-      delay_ms: 100q
+      delay_ms: 100
     - keys: command+l
       delay_ms: 300
     - keys: command+n
@@ -88,9 +88,9 @@ platforms:
   windsurf_meanscoop:
     type: windsurf
     window_title: meanscoop-payload
-    project_path: /Users/cheddarwhizzy/cheddar/meanscoop-payload
-    task_file_path: tasks.md
-    additional_context_path: architecture.md
+    project_path: /Users/cheddarwhizzy/cheddar/mean-scoop
+    task_file_path: mean-scoop/tasks.md
+    additional_context_path: mean-scoop/architecture.md
     initialization_delay_seconds: 12
     initialization:
     - keys: control+`
@@ -98,8 +98,6 @@ platforms:
     - keys: control+kw
       delay_ms: 300
     - keys: command+l
-      delay_ms: 300
-    - keys: command+shift+l
       delay_ms: 300
     keystrokes:
     - keys: command+a
@@ -112,9 +110,6 @@ platforms:
       delay_ms: 300
     - keys: command+shift+l
       delay_ms: 100
-    new_chat_keystrokes:
-    - keys: command+shift+l
-      delay_ms: 300
 general:
   active_platforms:
   - cursor
