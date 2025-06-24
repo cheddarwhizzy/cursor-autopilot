@@ -1,11 +1,12 @@
 import os
 import pytest
-from unittest.mock import patch, MagicMock, call
+from unittest.mock import patch, MagicMock, call, mock_open
 import time
 import hashlib
 import yaml
 import logging
 import argparse
+from queue import Queue
 
 # Import from refactored modules
 from src.config.loader import ConfigManager, load_gitignore_patterns
@@ -29,6 +30,20 @@ def mock_args():
     args.inactivity_delay = None
     args.platform = None
     return args
+
+
+@pytest.fixture
+def mock_args_send_enabled():
+    """Create mock command line arguments with sending enabled"""
+    args = argparse.Namespace()
+    args.auto = False
+    args.debug = True
+    args.no_send = False
+    args.project_path = None
+    args.inactivity_delay = None
+    args.platform = None
+    return args
+
 
 @pytest.fixture
 def mock_config():
@@ -181,6 +196,14 @@ def autopilot(mock_args):
     with patch('src.watcher.setup_colored_logging'):
         return CursorAutopilot(mock_args)
 
+
+@pytest.fixture
+def autopilot_send_enabled(mock_args_send_enabled):
+    """Create a CursorAutopilot instance with sending enabled"""
+    with patch("src.watcher.setup_colored_logging"):
+        return CursorAutopilot(mock_args_send_enabled)
+
+
 def test_load_gitignore_patterns(tmp_path, mock_gitignore):
     # Create a temporary .gitignore file
     gitignore_path = tmp_path / ".gitignore"
@@ -232,31 +255,35 @@ def test_file_filter_should_ignore_file(file_filter):
 @patch('src.file_handling.watcher.activate_window')
 @patch('src.file_handling.watcher.send_keystroke')  # Changed back to send_keystroke
 def test_platform_event_handler(mock_send_keystroke, mock_activate_window, platform_manager, config_manager, mock_args):
-    # Create event handler
-    # Create a mock vision checker function instead of using the real one
-    mock_vision_checker = MagicMock(return_value=("Is this Python code?", [{"keys": "command+s"}]))
-    
+    # Create a mock platform state
+    platform_state = {
+        "project_path": "/test/cursor",
+        "event_queue": Queue(),
+        "last_activity": time.time(),
+    }
+
+    # Create a mock file filter
+    mock_file_filter = MagicMock()
+    mock_file_filter.should_ignore_file.return_value = False
+
+    # Create event handler with the correct signature
     handler = PlatformEventHandler(
-        "cursor", 
-        platform_manager, 
-        config_manager,
-        mock_vision_checker,  # Use the mock function
-        mock_args
+        "cursor", platform_state, mock_file_filter, logging.getLogger("test")
     )
-    
+
     # Create mock event
     mock_event = MagicMock()
     mock_event.is_directory = False
     mock_event.src_path = "/test/cursor/app.py"
     mock_event.event_type = "modified"
-    
-    # Need to patch the inner _should_ignore_file method
-    with patch.object(handler, '_should_ignore_file', return_value=False):
-        # Process event
-        handler.on_any_event(mock_event)
-        
-        # Verify platform activity was updated
-        assert platform_manager.platform_states["cursor"]["last_activity"] > 0
+
+    # Process event
+    handler.on_modified(mock_event)
+
+    # Verify event was queued
+    assert not platform_state["event_queue"].empty()
+    queued_event = platform_state["event_queue"].get()
+    assert queued_event.src_path == "/test/cursor/app.py"
 
 @patch('src.watcher.ConfigManager')
 @patch('src.watcher.PlatformManager')
@@ -292,46 +319,284 @@ def test_autopilot_send_initial_prompts(mock_time, mock_open, mock_path_exists,
                                         mock_file_watcher_manager, mock_platform_manager, 
                                         mock_config_manager, mock_args):
     # Setup mocks
-    mock_cm_instance = MagicMock()
-    mock_cm_instance.config = {
-        "general": {},
-        "platforms": {
-            "cursor": {
-                "initialization": [{"keys": "command+k", "delay_ms": 100}],
-                "window_title": "Cursor"
-            }
-        }
-    }
-    mock_config_manager.return_value = mock_cm_instance
-    
-    mock_pm_instance = MagicMock()
-    mock_pm_instance.platform_names = ["cursor"]
-    mock_pm_instance.get_platform_state.return_value = {
-        "window_title": "Cursor",
-        "project_path": "/test/cursor",
-        "task_file_path": "tasks.md",
-        "initial_prompt_file_path": None,
-    }
-    mock_platform_manager.return_value = mock_pm_instance
-    
-    # Setup path exists mock
-    mock_path_exists.return_value = False  # Initial prompt not sent
-    
-    # Create autopilot
-    with patch('src.watcher.setup_colored_logging'):
-        with patch('src.watcher.activate_window'):
-            with patch('src.watcher.send_keystroke'):
-                with patch('src.watcher.send_keystroke_string'):
-                    with patch('src.watcher.read_prompt_from_file', return_value="test prompt"):
-                        autopilot = CursorAutopilot(mock_args)
-                        autopilot.config_manager = mock_cm_instance
-                        autopilot.platform_manager = mock_pm_instance
-                        
-                        # Send initial prompts
-                        autopilot.send_initial_prompts()
-    
-    # Verify file was written
-    mock_open.assert_called_once()
-    mock_path_exists.assert_called()
+    mock_time.time.return_value = 1234567890
+    mock_path_exists.return_value = False  # Initial prompt file doesn't exist
 
-# Add more tests for other methods and classes 
+    # Mock config manager
+    mock_config_inst = MagicMock()
+    mock_config_manager.return_value = mock_config_inst
+
+    # Mock platform manager
+    mock_platform_inst = MagicMock()
+    mock_platform_manager.return_value = mock_platform_inst
+    mock_platform_inst.platform_names = ["cursor"]
+    mock_platform_inst.get_platform_state.return_value = {
+        "project_path": "/test/project",
+        "task_file_path": "tasks.md",
+        "additional_context_path": "context.md",
+    }
+    mock_platform_inst.get_platform_config.return_value = {
+        "window_title": "Test Window"
+    }
+
+    # Mock file watcher manager
+    mock_file_watcher_inst = MagicMock()
+    mock_file_watcher_manager.return_value = mock_file_watcher_inst
+
+    # Create autopilot instance
+    autopilot = CursorAutopilot(mock_args)
+
+    # Mock the send_prompt method to avoid actual prompt sending
+    autopilot.send_prompt = MagicMock()
+
+    # Test initialize
+    with patch("src.watcher.setup_colored_logging"):
+        result = autopilot.initialize()
+        assert result == True
+
+
+@patch("src.watcher.os.path.exists")
+@patch("src.watcher.activate_platform_window")
+@patch("src.watcher.send_keystroke_string")
+@patch("src.watcher.send_keystroke")
+@patch("src.watcher.read_prompt_from_file")
+@patch("builtins.open", new_callable=mock_open)
+def test_send_prompt_after_inactivity_runs_keystrokes_and_creates_file(
+    mock_file_open,
+    mock_read_prompt,
+    mock_send_keystroke,
+    mock_send_keystroke_string,
+    mock_activate_window,
+    mock_path_exists,
+    autopilot_send_enabled,
+):
+    """Test that continuation prompts after inactivity run keystroke sequences and create prompt files"""
+    # Setup mocks
+    mock_activate_window.return_value = True
+    mock_read_prompt.return_value = None  # No custom prompt file
+
+    # Mock platform manager and config manager
+    autopilot_send_enabled.platform_manager = MagicMock()
+    autopilot_send_enabled.config_manager = MagicMock()
+
+    # Setup platform state
+    platform_state = {
+        "project_path": "/Users/test/project",
+        "task_file_path": "tasks.md",
+        "additional_context_path": "architecture.md",
+        "last_activity": time.time(),
+        "last_prompt_time": 0,
+    }
+
+    # Setup platform config with keystrokes sequence
+    platform_config = {
+        "window_title": "Test Window",
+        "continuation_prompt_file_path": "continuation_prompt.txt",
+        "keystrokes": [
+            {"keys": "command+a", "delay_ms": 100},
+            {"keys": "backspace", "delay_ms": 100},
+            {"keys": "command+l", "delay_ms": 300},
+        ],
+        "initialization_delay_seconds": 1,
+    }
+
+    autopilot_send_enabled.platform_manager.get_platform_state.return_value = (
+        platform_state
+    )
+    autopilot_send_enabled.config_manager.get_platform_config.return_value = (
+        platform_config
+    )
+    autopilot_send_enabled.config_manager.config = {"general": {}}
+
+    # Mock file existence checks
+    def mock_exists(path):
+        if path == "/Users/test/project/tasks.md":
+            return True
+        elif path == "/Users/test/project/architecture.md":
+            return True
+        return False
+
+    mock_path_exists.side_effect = mock_exists
+
+    # Test sending continuation prompt (after inactivity)
+    platform_to_prompt = {
+        "name": "test_platform",
+        "state": platform_state,
+        "config": platform_config,
+    }
+
+    # Call send_prompt for continuation (inactivity case)
+    with patch("src.watcher.time.sleep") as mock_sleep:
+        autopilot_send_enabled.send_prompt(platform_to_prompt)
+
+    # Verify keystroke sequence was called in order
+    expected_keystroke_calls = [
+        call("command+a", "test_platform"),
+        call("backspace", "test_platform"),
+        call("command+l", "test_platform"),
+    ]
+
+    mock_send_keystroke.assert_has_calls(expected_keystroke_calls, any_order=False)
+
+    # Verify prompt file was created
+    mock_file_open.assert_called()
+    file_write_calls = mock_file_open.return_value.write.call_args_list
+    assert len(file_write_calls) > 0
+
+    # Verify short message was sent instead of full prompt
+    mock_send_keystroke_string.assert_called()
+    call_args = mock_send_keystroke_string.call_args[0]
+    prompt_content = call_args[0]
+
+    # Should be a short message referencing the file, not the full prompt
+    assert (
+        "review continuation_prompt.txt, and continue with the tasks" == prompt_content
+    )
+
+
+@patch("src.watcher.os.path.exists")
+@patch("src.watcher.activate_platform_window")
+@patch("src.watcher.send_keystroke_string")
+@patch("src.watcher.send_keystroke")
+@patch("src.watcher.read_prompt_from_file")
+@patch("builtins.open", new_callable=mock_open)
+def test_send_initial_prompt_runs_initialization_and_creates_file(
+    mock_file_open,
+    mock_read_prompt,
+    mock_send_keystroke,
+    mock_send_keystroke_string,
+    mock_activate_window,
+    mock_path_exists,
+    autopilot_send_enabled,
+):
+    """Test that initial prompts run initialization keystrokes and create prompt files"""
+    # Setup mocks
+    mock_activate_window.return_value = True
+    mock_read_prompt.return_value = None  # No custom prompt file
+
+    # Mock platform manager and config manager
+    autopilot_send_enabled.platform_manager = MagicMock()
+    autopilot_send_enabled.config_manager = MagicMock()
+
+    # Setup platform state
+    platform_state = {
+        "project_path": "/Users/test/project",
+        "task_file_path": "tasks.md",
+        "additional_context_path": "architecture.md",
+        "last_activity": time.time(),
+        "last_prompt_time": 0,
+    }
+
+    # Setup platform config with initialization sequence
+    platform_config = {
+        "window_title": "Test Window",
+        "initial_prompt_file_path": None,
+        "initialization": [
+            {"keys": "control+`", "delay_ms": 300},
+            {"keys": "command+l", "delay_ms": 300},
+        ],
+        "initialization_delay_seconds": 1,
+    }
+
+    autopilot_send_enabled.platform_manager.platform_names = ["test_platform"]
+    autopilot_send_enabled.platform_manager.get_platform_state.return_value = (
+        platform_state
+    )
+    autopilot_send_enabled.config_manager.get_platform_config.return_value = (
+        platform_config
+    )
+    autopilot_send_enabled.config_manager.config = {"general": {}}
+    autopilot_send_enabled.initial_prompt_sent = False
+
+    # Mock file existence checks
+    def mock_exists(path):
+        if path == "/Users/test/project/tasks.md":
+            return True
+        elif path == "/Users/test/project/architecture.md":
+            return True
+        return False
+
+    mock_path_exists.side_effect = mock_exists
+
+    # Call send_prompt for initial prompt (no platform_to_prompt argument)
+    with patch("src.watcher.time.sleep") as mock_sleep:
+        with patch("src.watcher.INITIAL_PROMPT_SENT_FILE", "/tmp/test_marker"):
+            with patch("builtins.open", mock_open()) as mock_marker_file:
+                autopilot_send_enabled.send_prompt()
+
+    # Verify initialization sequence was called in order
+    expected_init_calls = [
+        call("control+`", "test_platform"),
+        call("command+l", "test_platform"),
+    ]
+
+    mock_send_keystroke.assert_has_calls(expected_init_calls, any_order=False)
+
+    # Verify short message was sent instead of full prompt
+    mock_send_keystroke_string.assert_called()
+    call_args = mock_send_keystroke_string.call_args[0]
+    prompt_content = call_args[0]
+
+    # Should be a short message referencing the file, not the full prompt
+    assert "review initial_prompt.txt, and continue with the tasks" == prompt_content
+
+
+@patch("src.watcher.os.path.exists")
+@patch("src.watcher.activate_platform_window")
+@patch("src.watcher.send_keystroke_string")
+@patch("src.watcher.send_keystroke")
+@patch("src.watcher.read_prompt_from_file")
+@patch("builtins.open", new_callable=mock_open)
+def test_important_files_bypass_gitignore(
+    mock_file_open,
+    mock_read_prompt,
+    mock_send_keystroke,
+    mock_send_keystroke_string,
+    mock_activate_window,
+    mock_path_exists,
+    autopilot_send_enabled,
+):
+    """Test that important files like tasks.md bypass gitignore patterns"""
+    from src.file_handling.filters import FileFilter
+
+    # Create a file filter with a wildcard gitignore pattern that would normally ignore everything
+    gitignore_patterns = {"*"}  # This would normally ignore all files
+    exclude_dirs = set()
+    exclude_files = set()
+
+    file_filter = FileFilter(
+        exclude_dirs=exclude_dirs,
+        exclude_files=exclude_files,
+        gitignore_patterns=gitignore_patterns,
+        use_gitignore=True,
+    )
+
+    # Test that regular files are ignored due to the * pattern
+    assert (
+        file_filter.should_ignore_file(
+            "/path/to/regular_file.js", "regular_file.js", "/path/to"
+        )
+        == True
+    )
+
+    # Test that important files bypass gitignore patterns
+    important_files = [
+        ("tasks.md", "tasks.md"),
+        ("mean-scoop/tasks.md", "mean-scoop/tasks.md"),
+        ("TODO.md", "todo.md"),  # case insensitive
+        ("README.md", "readme.md"),
+        ("architecture.md", "architecture.md"),
+        ("continuation_prompt.txt", "continuation_prompt.txt"),
+        ("initial_prompt.txt", "initial_prompt.txt"),
+    ]
+
+    for file_path, rel_path in important_files:
+        should_ignore = file_filter.should_ignore_file(
+            f"/path/to/{file_path}", rel_path, "/path/to"
+        )
+        assert (
+            should_ignore == False
+        ), f"Important file {file_path} should not be ignored"
+
+
+# Add more tests for other methods and classes

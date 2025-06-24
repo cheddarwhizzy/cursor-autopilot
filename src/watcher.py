@@ -1,9 +1,20 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.13
+import sys
 import time
 import os
-import logging
-import argparse
+import hashlib
+import json
 from datetime import datetime
+from src.actions.send_to_cursor import (
+    send_prompt,
+    launch_platform,
+    activate_platform_window,
+)
+from src.state import get_mode
+from src.generate_initial_prompt import DEFAULT_CONTINUATION_PROMPT
+import logging
+from src.utils.colored_logging import setup_colored_logging
+import argparse
 from typing import Dict, List, Optional, Tuple
 
 # Import from modules
@@ -22,6 +33,10 @@ def parse_args():
     parser.add_argument('--project-path', type=str, help='Override project path from config')
     parser.add_argument('--inactivity-delay', type=int, help='Override inactivity delay in seconds')
     parser.add_argument('--platform', type=str, help='Override platform to use (comma separated for multiple)')
+    parser.add_argument('--task-file-path', type=str, help='Override task file path from config')
+    parser.add_argument('--additional-context-path', type=str, help='Override additional context path from config')
+    parser.add_argument('--continuation-prompt', type=str, help='Override continuation prompt text')
+    parser.add_argument('--initial-prompt', type=str, help='Override initial prompt text')
     
     return parser.parse_args()
 
@@ -33,13 +48,14 @@ from src.generate_initial_prompt import (
 )
 
 # Import platform interaction modules
-from src.actions.send_to_cursor import send_prompt
 from src.actions.keystrokes import send_keystroke, send_keystroke_string
 from src.automation.window import activate_window
 from src.actions.openai_vision import check_vision_conditions
 
 # Path for the initial prompt flag file
-INITIAL_PROMPT_SENT_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".initial_prompt_sent"))
+INITIAL_PROMPT_SENT_FILE = os.path.abspath(
+    os.path.join(os.path.dirname(os.path.dirname(__file__)), ".initial_prompt_sent")
+)
 
 class CursorAutopilot:
     """
@@ -47,24 +63,24 @@ class CursorAutopilot:
     """
     def __init__(self, args):
         self.args = args
-        
+
         # Configure logging
         setup_colored_logging(debug=args.debug or True)  # Always enable debug logging for now
         self.logger = logging.getLogger('watcher')
         self.logger.setLevel(logging.DEBUG)
         self.logger.debug("CursorAutopilot initialization started")
-        
+
         # Initialize managers
         self.config_manager = ConfigManager()
         self.platform_manager = PlatformManager(self.config_manager)
-        
+
         # Initialize trackers
-        self.initial_prompt_sent = False
+        self.initial_prompt_sent = False  # Will be set in initialize()
         self.file_filter = None
-        
+
         # Log command line arguments
         self._log_command_line_args()
-    
+
     def _log_command_line_args(self):
         """Log all command line arguments"""
         if self.args.project_path:
@@ -77,7 +93,7 @@ class CursorAutopilot:
             self.logger.info(f"Inactivity delay override: {self.args.inactivity_delay} seconds")
         if self.args.platform:
             self.logger.info(f"Platform override: {self.args.platform}")
-    
+
     def initialize(self) -> bool:
         """
         Initialize the application: load config, set up platforms, etc.
@@ -87,200 +103,335 @@ class CursorAutopilot:
         if not self.config_manager.load_config(self.args):
             self.logger.error("Failed to load initial configuration. Exiting.")
             return False
-        
+
         # Initialize platform state
         if not self.platform_manager.initialize_platforms(self.args):
             self.logger.error("Failed to initialize platforms. Exiting.")
             return False
-        
-        # Initialize file filter
-        self.file_filter = FileFilter(
-            self.config_manager.exclude_dirs,
-            self.config_manager.exclude_files,
-            self.config_manager.gitignore_patterns
-        )
-        
-        # Check if initial prompt has already been sent
-        self.initial_prompt_sent = os.path.exists(INITIAL_PROMPT_SENT_FILE)
-        self.logger.debug(f"Initial prompt sent file exists: {self.initial_prompt_sent}")
-        
-        return True
-    
-    def send_initial_prompts(self) -> None:
-        """
-        Send initial prompts to all active platforms if not already sent
-        """
-        if self.initial_prompt_sent:
-            self.logger.info("Initial prompt file found. Skipping initial prompts/keystrokes.")
-            # Ensure initial activity time is set even if skipping prompts
-            current_time = time.time()
-            for platform_name in self.platform_manager.platform_names:
-                platform_state = self.platform_manager.get_platform_state(platform_name)
-                platform_state["last_activity"] = current_time
-            return
-        
-        self.logger.info("Initial prompt file not found. Sending initial prompts/keystrokes...")
-        
+
+        # File filters are now created per-platform in FileWatcherManager
+
+        # Check for initial prompt sent file in both workspace root and project directory
+        workspace_flag = os.path.exists(INITIAL_PROMPT_SENT_FILE)
+        project_flag = False
+
+        # Check in project directory for each platform
         for platform_name in self.platform_manager.platform_names:
-            platform_config = self.config_manager.get_platform_config(platform_name)
             platform_state = self.platform_manager.get_platform_state(platform_name)
-            
-            initialization = platform_config.get("initialization", [])
-            options = platform_config.get("options", {})
-            general_config = self.config_manager.config.get("general", {})
-            
-            # Get paths for prompt generation
-            initial_prompt_file = platform_state.get("initial_prompt_file_path")
-            task_file = platform_state.get("task_file_path")
-            context_file = platform_state.get("additional_context_path")
-            
             project_path = platform_state.get("project_path")
-            initial_prompt_file = os.path.join(project_path, initial_prompt_file) if initial_prompt_file else None
-            context_file = os.path.join(project_path, context_file) if context_file else None
-            task_file = os.path.join(project_path, task_file)
-            
-            # Use global initial prompt setting from general config as default base
-            default_initial_prompt_template = general_config.get("initial_prompt", DEFAULT_INITIAL_PROMPT)
-            initial_prompt_template = read_prompt_from_file(initial_prompt_file) or default_initial_prompt_template
-            self.logger.debug(f"[{platform_name}] Using initial prompt template (from file: {bool(initial_prompt_file)})")
-            
-            # Format the prompt
-            try:
-                # Make sure paths exist before formatting
-                if task_file and not os.path.exists(task_file):
-                    self.logger.warning(f"[{platform_name}] Task file not found: {task_file}")
-                    task_file = ""
-                
-                if context_file and not os.path.exists(context_file):
-                    self.logger.warning(f"[{platform_name}] Context file not found: {context_file}")
-                    context_file = ""
-                
-                # Format prompt, providing empty string if files don't exist
-                initial_prompt_content = initial_prompt_template.format(
-                    task_file_path=task_file,
-                    additional_context_path=context_file
-                )
-            except KeyError as e:
-                self.logger.error(f"[{platform_name}] Error formatting initial prompt template (missing key {e}). Using raw template.")
-                initial_prompt_content = initial_prompt_template
-            
-            self.logger.debug(f"[{platform_name}] Initialization config: {initialization}")
-            self.logger.debug(f"[{platform_name}] Final initial_prompt content length: {len(initial_prompt_content)}")
-            
-            # Activate window first
-            window_title = platform_state.get("window_title", platform_name)
-            self.logger.info(f"[{platform_name}] Activating window for initialization: {window_title}")
-            if not self.args.no_send:
-                activate_window(window_title)
-                time.sleep(1)  # Give time for window activation
-            
-            # Send initialization keystrokes
-            if initialization and not self.args.no_send:
-                self.logger.info(f"[{platform_name}] Sending initialization keystrokes...")
-                for keystroke in initialization:
-                    keys = keystroke.get("keys", "")
-                    delay_ms = keystroke.get("delay_ms", 0)
-                    if keys:
-                        self.logger.debug(f"[{platform_name}] Sending init key: {keys}")
-                        if delay_ms > 0:
-                            time.sleep(delay_ms / 1000.0)
-                        send_keystroke(keys, platform_name)
-            elif initialization and self.args.no_send:
-                self.logger.info(f"[{platform_name}] Skipping initialization keystrokes (--no-send enabled)")
-            
-            # Send initial prompt content
-            if initial_prompt_content:
-                if not self.args.no_send:
-                    self.logger.info(f"[{platform_name}] Sending initial prompt content...")
-                    # Activate window again just in case
-                    activate_window(window_title)
-                    time.sleep(0.5)
-                    send_keystroke_string(initial_prompt_content, platform_name)
-                    platform_state["last_activity"] = time.time()
-                    platform_state["last_prompt_time"] = time.time()
-                    self.platform_manager.last_global_prompt_time = time.time()
-                else:
-                    self.logger.info(f"[{platform_name}] Skipping initial prompt content (--no-send enabled)")
-                    platform_state["last_activity"] = time.time()  # Reset timer anyway
-        
-        # Create the flag file after attempting for all platforms
-        try:
-            with open(INITIAL_PROMPT_SENT_FILE, 'w') as f:
-                f.write("Initial prompt sent attempt at: " + datetime.now().isoformat())
-            self.logger.info(f"Created initial prompt sent file: {INITIAL_PROMPT_SENT_FILE}")
-            self.initial_prompt_sent = True
-        except Exception as e:
-            self.logger.error(f"Failed to create initial prompt sent file: {e}")
-    
-    def send_continuation_prompt(self, platform_to_prompt: dict) -> None:
+            if project_path:
+                project_flag_path = os.path.join(project_path, ".initial_prompt_sent")
+                if os.path.exists(project_flag_path):
+                    project_flag = True
+                    self.logger.debug(
+                        f"Found .initial_prompt_sent in project directory: {project_flag_path}"
+                    )
+                    break
+
+        self.initial_prompt_sent = workspace_flag or project_flag
+        self.logger.debug(
+            f"Initial prompt sent file exists: {self.initial_prompt_sent} (workspace: {workspace_flag}, project: {project_flag})"
+        )
+
+        return True
+
+    def _process_file_events(self) -> None:
         """
-        Send a continuation prompt to a specific platform
+        Process file events from all platform event queues and update activity timers
         """
-        platform_name = platform_to_prompt["name"]
-        state = platform_to_prompt["state"]
-        platform_config = platform_to_prompt["config"]
-        general_config = self.config_manager.config.get("general", {})
-        
-        self.logger.info(f"Sending continuation prompt to platform '{platform_name}'")
-        
-        # Prepare continuation prompt for the selected platform
-        continuation_prompt_file = state.get("continuation_prompt_file_path")
-        task_file = state.get("task_file_path")
-        context_file = platform_config.get("additional_context_path")
-        
-        project_path = state.get("project_path")
-        continuation_prompt_file = os.path.join(project_path, continuation_prompt_file) if continuation_prompt_file else None
-        context_file = os.path.join(project_path, context_file) if context_file else None
-        task_file = os.path.join(project_path, task_file)
-        
-        # Determine prompt template (File > General > Default)
-        continuation_prompt_template = read_prompt_from_file(continuation_prompt_file)
-        source = "file"
-        if not continuation_prompt_template:
-            continuation_prompt_template = general_config.get("inactivity_prompt")
-            source = "general config"
-        if not continuation_prompt_template:
-            continuation_prompt_template = DEFAULT_CONTINUATION_PROMPT
-            source = "default"
-        self.logger.debug(f"[{platform_name}] Using continuation prompt template from: {source}")
-        
-        # Format the prompt
-        try:
-            # Ensure paths exist before formatting
-            if task_file and not os.path.exists(task_file):
-                self.logger.warning(f"[{platform_name}] Task file not found for continuation prompt: {task_file}")
-                task_file = ""
-            
-            if context_file and not os.path.exists(context_file):
-                self.logger.warning(f"[{platform_name}] Context file not found for continuation prompt: {context_file}")
-                context_file = ""
-            
-            continuation_prompt_content = continuation_prompt_template.format(
-                task_file_path=task_file,
-                additional_context_path=context_file
+        for platform_name in self.platform_manager.platform_names:
+            platform_state = self.platform_manager.get_platform_state(platform_name)
+            event_queue = platform_state.get("event_queue")
+
+            if not event_queue:
+                continue
+
+            events_processed = 0
+            # Process all pending events
+            while not event_queue.empty():
+                try:
+                    event = event_queue.get_nowait()
+                    events_processed += 1
+
+                    # Get relative path for logging
+                    project_path = platform_state.get("project_path", "")
+                    try:
+                        rel_path = os.path.relpath(event.src_path, project_path)
+                    except (ValueError, AttributeError):
+                        rel_path = str(event.src_path)
+
+                    self.logger.debug(f"[{platform_name}] File activity detected: {event.event_type} - {rel_path}")
+
+                    # Update activity timer - this resets the inactivity countdown
+                    self.platform_manager.update_activity(platform_name)
+
+                except Exception as e:
+                    self.logger.error(f"Error processing file event for {platform_name}: {e}")
+                    break
+
+            if events_processed > 0:
+                self.logger.info(f"[{platform_name}] Processed {events_processed} file events - activity timer reset")
+
+    def send_prompt(self, platform_to_prompt: dict = None) -> None:
+        """
+        Send either initial or continuation prompt to platforms
+        Args:
+            platform_to_prompt: Optional dict containing platform info for continuation prompt
+        """
+        self.logger.debug(f"send_prompt called with platform_to_prompt={platform_to_prompt}")
+        if platform_to_prompt:
+            # Continuation prompt for specific platform
+            platform_name = platform_to_prompt["name"]
+            state = platform_to_prompt["state"]
+            platform_config = platform_to_prompt["config"]
+            platforms_to_process = [(platform_name, state, platform_config)]
+            self.logger.info(
+                f"Sending continuation prompt to platform '{platform_name}'"
             )
-        except KeyError as e:
-            self.logger.error(f"[{platform_name}] Error formatting continuation prompt template (missing key {e}). Using raw template.")
-            continuation_prompt_content = continuation_prompt_template
-        
-        self.logger.debug(f"[{platform_name}] Sending continuation prompt content (length: {len(continuation_prompt_content)})...")
-        
-        # Send the prompt if not in no-send mode
-        if not self.args.no_send:
-            window_title = state.get("window_title", platform_name)
-            activate_window(window_title)
-            time.sleep(0.5)
-            send_keystroke_string(continuation_prompt_content, platform_name)
         else:
-            self.logger.info(f"[{platform_name}] Skipping continuation prompt (--no-send enabled)")
-        
-        # Update timers for the prompted platform AND the global timer
-        current_time = time.time()
-        state["last_activity"] = current_time
-        state["last_prompt_time"] = current_time
-        self.platform_manager.last_global_prompt_time = current_time
-        self.logger.info(f"[{platform_name}] Continuation prompt sent. Updated activity timestamps.")
-    
+            # Initial prompts for all platforms
+            self.logger.debug(f"self.initial_prompt_sent={self.initial_prompt_sent}")
+            if self.initial_prompt_sent:
+                self.logger.info("Initial prompt file found. Skipping initial prompts.")
+                return
+            self.logger.info("Sending initial prompts to all platforms...")
+            platforms_to_process = [
+                (
+                    name,
+                    self.platform_manager.get_platform_state(name),
+                    self.config_manager.get_platform_config(name),
+                )
+                for name in self.platform_manager.platform_names
+            ]
+
+        for platform_name, state, platform_config in platforms_to_process:
+            self.logger.debug(f"Processing platform: {platform_name}, state: {state}, config: {platform_config}")
+
+            # Get initialization delay
+            initialization_delay = platform_config.get(
+                "initialization_delay_seconds", 8
+            )
+            self.logger.info(
+                f"[{platform_name}] Waiting {initialization_delay} seconds for initialization..."
+            )
+            time.sleep(initialization_delay)
+
+            # Send initialization keystrokes for initial prompts only
+            # For continuation prompts (after inactivity), we'll run the regular keystrokes instead
+            if platform_to_prompt:
+                # This is a continuation prompt after inactivity - run the regular keystrokes sequence
+                keystrokes = platform_config.get("keystrokes", [])
+                if keystrokes and not self.args.no_send:
+                    self.logger.info(
+                        f"[{platform_name}] Running keystrokes sequence after inactivity..."
+                    )
+                    for keystroke in keystrokes:
+                        keys = keystroke.get("keys", "")
+                        delay_ms = keystroke.get("delay_ms", 0)
+                        if keys:
+                            self.logger.debug(
+                                f"[{platform_name}] Sending keystroke: {keys}"
+                            )
+                            if delay_ms > 0:
+                                time.sleep(delay_ms / 1000.0)
+                            send_keystroke(keys, platform_name)
+            else:
+                # This is an initial prompt - run initialization keystrokes
+                initialization = platform_config.get("initialization", [])
+                if initialization and not self.args.no_send:
+                    self.logger.info(
+                        f"[{platform_name}] Sending initialization keystrokes..."
+                    )
+                    for keystroke in initialization:
+                        keys = keystroke.get("keys", "")
+                        delay_ms = keystroke.get("delay_ms", 0)
+                        if keys:
+                            self.logger.debug(
+                                f"[{platform_name}] Sending init key: {keys}"
+                            )
+                            if delay_ms > 0:
+                                time.sleep(delay_ms / 1000.0)
+                            send_keystroke(keys, platform_name)
+
+            # Get paths for prompt generation
+            prompt_file = state.get(
+                "initial_prompt_file_path"
+                if not platform_to_prompt
+                else "continuation_prompt_file_path"
+            )
+            task_file = state.get("task_file_path")
+            context_file = platform_config.get("additional_context_path")
+
+            project_path = state.get("project_path")
+            prompt_file = (
+                os.path.join(project_path, prompt_file) if prompt_file else None
+            )
+            context_file = (
+                os.path.join(project_path, context_file) if context_file else None
+            )
+            task_file = os.path.join(project_path, task_file) if task_file else None
+
+            # Get appropriate prompt template
+            general_config = self.config_manager.config.get("general", {})
+            if not platform_to_prompt:
+                # Initial prompt
+                if hasattr(self.args, 'initial_prompt') and self.args.initial_prompt:
+                    # Use command line override if provided
+                    prompt_template = self.args.initial_prompt
+                    self.logger.info("Using initial prompt from command line argument")
+                else:
+                    # Otherwise use the one from config file or default
+                    default_template = general_config.get(
+                        "initial_prompt", DEFAULT_INITIAL_PROMPT
+                    )
+                    prompt_template = read_prompt_from_file(prompt_file) or default_template
+            else:
+                # Continuation prompt
+                if hasattr(self.args, 'continuation_prompt') and self.args.continuation_prompt:
+                    # Use command line override if provided
+                    prompt_template = self.args.continuation_prompt
+                    self.logger.info("Using continuation prompt from command line argument")
+                else:
+                    # Otherwise use the one from config file or default
+                    default_template = general_config.get(
+                        "inactivity_prompt", DEFAULT_CONTINUATION_PROMPT
+                    )
+                    prompt_template = read_prompt_from_file(prompt_file) or default_template
+
+            self.logger.debug(f"Prompt template for {platform_name}: {prompt_template}")
+
+            # Format the prompt and create prompt file in project directory
+            try:
+                # Check if we're using overrides for task file and context file
+                platform_state = self.platform_manager.get_platform_state(platform_name)
+                # Use overridden paths if available, otherwise use the ones from the template
+                task_file_to_use = platform_state.get("task_file_path") or task_file
+                context_file_to_use = platform_state.get("additional_context_path") or context_file
+
+                # Get the project path for this platform to construct full file paths
+                project_path = platform_state.get("project_path", "")
+
+                # Check if files exist and log warnings if they don't
+                if task_file_to_use:
+                    # Construct full path for existence check
+                    full_task_file_path = (
+                        os.path.join(project_path, task_file_to_use)
+                        if not os.path.isabs(task_file_to_use)
+                        else task_file_to_use
+                    )
+                    if not os.path.exists(full_task_file_path):
+                        self.logger.warning(
+                            f"[{platform_name}] Task file not found: {task_file_to_use} (full path: {full_task_file_path})"
+                        )
+                        task_file_to_use = ""
+
+                if context_file_to_use:
+                    # Construct full path for existence check
+                    full_context_file_path = (
+                        os.path.join(project_path, context_file_to_use)
+                        if not os.path.isabs(context_file_to_use)
+                        else context_file_to_use
+                    )
+                    if not os.path.exists(full_context_file_path):
+                        self.logger.warning(
+                            f"[{platform_name}] Context file not found: {context_file_to_use} (full path: {full_context_file_path})"
+                        )
+                        context_file_to_use = ""
+
+                # Format the prompt with the appropriate file paths
+                prompt_content = prompt_template.format(
+                    task_file_path=task_file_to_use or "",
+                    additional_context_path=context_file_to_use or "",
+                )
+                self.logger.debug(
+                    f"Formatted prompt content for {platform_name}: {prompt_content[:200]}..."
+                )
+
+                # Create prompt file in project directory
+                prompt_filename = (
+                    "initial_prompt.txt"
+                    if not platform_to_prompt
+                    else "continuation_prompt.txt"
+                )
+                prompt_file_path = os.path.join(project_path, prompt_filename)
+
+                try:
+                    with open(prompt_file_path, "w", encoding="utf-8") as f:
+                        f.write(prompt_content)
+                    self.logger.info(
+                        f"[{platform_name}] Created {prompt_filename} in project directory: {prompt_file_path}"
+                    )
+                except Exception as e:
+                    self.logger.error(
+                        f"[{platform_name}] Failed to create prompt file {prompt_file_path}: {e}"
+                    )
+                    # Fall back to sending the prompt directly if file creation fails
+                    short_message = prompt_content
+                else:
+                    # Create short message referencing the prompt file
+                    if not platform_to_prompt:
+                        short_message = (
+                            f"review {prompt_filename}, and continue with the tasks"
+                        )
+                    else:
+                        short_message = (
+                            f"review {prompt_filename}, and continue with the tasks"
+                        )
+
+            except KeyError as e:
+                self.logger.error(
+                    f"[{platform_name}] Error formatting prompt template (missing key {e}). Using raw template."
+                )
+                prompt_content = prompt_template
+                short_message = prompt_content
+
+            # Send the short message if not in no-send mode
+            if not self.args.no_send:
+                self.logger.debug(f"About to activate platform window for {platform_name}")
+                activation_success = activate_platform_window(platform_name, state)
+                if not activation_success:
+                    self.logger.warning(
+                        f"Failed to activate platform window for {platform_name}, but continuing to send prompt"
+                    )
+                else:
+                    self.logger.debug(f"Successfully activated platform window for {platform_name}")
+
+                # Add a small delay regardless of activation success
+                time.sleep(1.0)
+
+                self.logger.debug(
+                    f"Sending message to {platform_name}: {short_message}"
+                )
+                send_keystroke_string(
+                    short_message,
+                    platform_name,
+                    send_message=not self.args.no_send,
+                )
+            else:
+                self.logger.info(
+                    f"[{platform_name}] Skipping prompt (--no-send enabled)"
+                )
+
+            # Update timers
+            current_time = time.time()
+            state["last_activity"] = current_time
+            state["last_prompt_time"] = current_time
+            self.platform_manager.last_global_prompt_time = current_time
+
+        # Create the flag file after sending initial prompts
+        if not platform_to_prompt and not self.initial_prompt_sent:
+            try:
+                with open(INITIAL_PROMPT_SENT_FILE, "w") as f:
+                    f.write(
+                        "Initial prompt sent attempt at: " + datetime.now().isoformat()
+                    )
+                self.logger.info(
+                    f"Created initial prompt sent file: {INITIAL_PROMPT_SENT_FILE}"
+                )
+                self.initial_prompt_sent = True
+            except Exception as e:
+                self.logger.error(f"Failed to create initial prompt sent file: {e}")
+
     def run(self) -> None:
         """
         Main execution loop
@@ -290,7 +441,7 @@ class CursorAutopilot:
             if not self.initialize():
                 self.logger.error("Initialization failed. Exiting.")
                 return
-            
+
             # Set up file watchers
             file_watcher = FileWatcherManager(
                 self.platform_manager,
@@ -298,24 +449,63 @@ class CursorAutopilot:
                 check_vision_conditions,  # Pass the vision checker function
                 self.args
             )
-            
+
             if not file_watcher.setup_watchers():
                 self.logger.error("Failed to set up file watchers. Exiting.")
                 return
-            
+
             # Start watchers
             file_watcher.start_all_watchers()
-            
-            # Send initial prompts if needed
-            self.send_initial_prompts()
-            
+
+            # Launch platforms first
+            for platform_name in self.platform_manager.platform_names:
+                platform_state = self.platform_manager.get_platform_state(platform_name)
+                platform_type = platform_state.get("platform_type", platform_name)
+                project_path = platform_state.get("project_path")
+                self.logger.info(
+                    f"Launching {platform_name} (type: {platform_type}) with project path: {project_path}"
+                )
+                if not launch_platform(platform_name, platform_type, project_path):
+                    self.logger.error(f"Failed to launch {platform_name}")
+                    return
+
+            # Check if initial prompt has been sent
+            if self.initial_prompt_sent:
+                self.logger.info(
+                    "Initial prompt file found. Sending continuation prompt..."
+                )
+                # Send continuation prompt to all platforms
+                for platform_name in self.platform_manager.platform_names:
+                    platform_state = self.platform_manager.get_platform_state(
+                        platform_name
+                    )
+                    platform_config = self.config_manager.get_platform_config(
+                        platform_name
+                    )
+                    platform_to_prompt = {
+                        "name": platform_name,
+                        "state": platform_state,
+                        "config": platform_config,
+                    }
+                    self.send_prompt(platform_to_prompt)
+            else:
+                # Send initial prompts
+                self.send_prompt()
+
             # Main loop
             self.logger.info("Entering main watcher loop...")
             stagger_delay = self.config_manager.config.get("general", {}).get("stagger_delay", 90)
-            
+            inactivity_delay = self.config_manager.config.get("general", {}).get(
+                "inactivity_delay", 120
+            )
+            last_countdown_log = 0  # Track when we last logged the countdown
+
             while True:
                 current_time = time.time()
-                
+
+                # Process file events to update activity timers
+                self._process_file_events()
+
                 # Check for configuration changes
                 if self.config_manager.check_config_changed():
                     self.logger.info("Configuration file changed, reloading...")
@@ -323,33 +513,50 @@ class CursorAutopilot:
                         self.logger.error("Failed to reload configuration, continuing with previous settings")
                     else:
                         stagger_delay = self.config_manager.config.get("general", {}).get("stagger_delay", 90)
+                        inactivity_delay = self.config_manager.config.get(
+                            "general", {}
+                        ).get("inactivity_delay", 120)
                         self.logger.warning("Config reloaded, but observer paths might be stale. Restart recommended for path changes.")
-                
+
                 # Check for inactive platforms and send continuation prompts if needed
+                self.logger.debug("Checking if continuation prompt should be sent...")
                 platform_to_prompt = self.platform_manager.should_send_prompt(stagger_delay)
+                self.logger.debug(f"should_send_prompt returned: {platform_to_prompt}")
                 if platform_to_prompt:
-                    self.send_continuation_prompt(platform_to_prompt)
-                
-                # Sleep for a short interval
+                    self.logger.info(
+                        f"Sending continuation prompt to platforms: {platform_to_prompt}"
+                    )
+                    self.send_prompt(platform_to_prompt)
+                # Sleep for a short while to prevent high CPU usage
                 time.sleep(1)
-                
+
         except KeyboardInterrupt:
-            self.logger.info("Watcher stopping due to user interrupt (Ctrl+C)")
+            self.logger.info("Shutting down...")
+            return
         except Exception as e:
-            self.logger.error(f"Unhandled error in watcher main loop: {e}", exc_info=True)
-        finally:
-            # Clean up
-            if 'file_watcher' in locals():
-                file_watcher.stop_all_watchers()
-            self.logger.info("Watcher finished.")
+            self.logger.error(f"Error in main loop: {e}", exc_info=True)
+            return
+
 
 def main():
-    # Parse command line arguments
+    """Main entry point for the script."""
     args = parse_args()
-    
-    # Create and run the autopilot
     autopilot = CursorAutopilot(args)
-    autopilot.run()
+    
+    if not autopilot.initialize():
+        autopilot.logger.error("Failed to initialize CursorAutopilot")
+        return 1
+    
+    try:
+        autopilot.run()
+    except KeyboardInterrupt:
+        autopilot.logger.info("Shutdown requested by user")
+    except Exception as e:
+        autopilot.logger.error(f"Unexpected error: {e}", exc_info=True)
+        return 1
+    
+    return 0
+
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

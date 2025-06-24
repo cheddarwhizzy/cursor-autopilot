@@ -102,58 +102,84 @@ class ConfigManager:
     def __init__(self):
         self.config = {}
         self.config_path = find_config_file()
-        self.config_mtime = os.path.getmtime(self.config_path) if os.path.exists(self.config_path) else 0
-        self.gitignore_patterns = set()
-        
-        # Standard exclusion patterns
         self.exclude_dirs = {"node_modules", ".git", "dist", "__pycache__", ".idea", "venv", ".env"}
         self.exclude_files = {'*.pyc', '*.pyo', '*.pyd', '*.so', '*.dll', '*.exe', '*.tmp', '*.log', '*.swp', '*.swo'}
-    
-    def check_config_changed(self) -> bool:
-        """
-        Check if the config file has changed since last load
-        Returns True if changed, False otherwise
-        """
-        if not os.path.exists(self.config_path):
-            return False
-            
-        current_mtime = os.path.getmtime(self.config_path)
-        if current_mtime > self.config_mtime:
-            return True
-        return False
-    
+        self.gitignore_patterns = set()
+        self.use_gitignore = True  # Default to True for backward compatibility
+        self.last_modified = 0
+
     def load_config(self, args) -> bool:
         """
         Load configuration from YAML file
-        Returns True if successful, False otherwise
+        Returns True if successful
         """
         try:
-            # Load config file
-            if not os.path.exists(self.config_path):
-                logger.error(f"Config file not found: {self.config_path}")
+            if os.path.exists(self.config_path):
+                with open(self.config_path, "r") as f:
+                    self.config = yaml.safe_load(f)
+                    self.last_modified = os.path.getmtime(self.config_path)
+
+                    # Load gitignore patterns if enabled
+                    self.use_gitignore = self.config.get("general", {}).get(
+                        "use_gitignore", True
+                    )
+                    if self.use_gitignore:
+                        self.gitignore_patterns = self._load_gitignore_patterns()
+                        logger.debug(
+                            f"Loaded {len(self.gitignore_patterns)} gitignore patterns"
+                        )
+                    else:
+                        logger.debug("Gitignore patterns disabled")
+
+                    return True
+            else:
+                logger.warning(f"Config file not found at {self.config_path}")
                 return False
-                
-            logger.debug(f"Loading config from {self.config_path}")
-            with open(self.config_path, 'r') as f:
-                self.config = yaml.safe_load(f)
-            
-            # Update mtime
-            self.config_mtime = os.path.getmtime(self.config_path)
-            
-            # Log raw config for debugging
-            logger.debug(f"Raw config: {self.config}")
-            
-            # Validate required fields
-            if not self.config.get("platforms"):
-                logger.error("No platforms configured")
-                return False
-            
-            return True
-            
         except Exception as e:
-            logger.error(f"Error loading configuration: {e}", exc_info=True)
+            logger.error(f"Error loading config: {e}")
             return False
-    
+
+    def _load_gitignore_patterns(self) -> Set[str]:
+        """
+        Load patterns from .gitignore file
+        Returns set of patterns
+        """
+        patterns = set()
+        gitignore_path = os.path.join(os.path.dirname(self.config_path), ".gitignore")
+
+        if os.path.exists(gitignore_path):
+            try:
+                with open(gitignore_path, "r") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and not line.startswith("#"):
+                            patterns.add(line)
+                logger.debug(f"Loaded {len(patterns)} patterns from {gitignore_path}")
+            except Exception as e:
+                logger.error(f"Error loading .gitignore: {e}")
+        else:
+            logger.debug(f"No .gitignore file found at {gitignore_path}")
+
+        return patterns
+
+    def check_config_changed(self) -> bool:
+        """
+        Check if config file has been modified
+        Returns True if changed
+        """
+        if os.path.exists(self.config_path):
+            current_mtime = os.path.getmtime(self.config_path)
+            if current_mtime > self.last_modified:
+                logger.debug("Config file has been modified")
+                return True
+        return False
+
+    def get_platform_config(self, platform_name: str) -> Optional[Dict[str, any]]:
+        """
+        Get configuration for a specific platform
+        """
+        return self.config.get("platforms", {}).get(platform_name)
+
     def get_active_platforms(self, args) -> List[str]:
         """
         Determine which platforms should be active based on config and command line args
@@ -186,12 +212,3 @@ class ConfigManager:
                 # Fallback to using all platforms defined
                 logger.warning("general.active_platforms not set in config, activating ALL defined platforms.")
                 return list(self.config["platforms"].keys())
-
-    def get_platform_config(self, platform_name: str) -> Dict:
-        """
-        Retrieve the static configuration for a given platform name.
-        """
-        if not self.config:
-            logger.warning("Accessing platform config before load_config called.")
-            return {}
-        return self.config.get("platforms", {}).get(platform_name, {}) 

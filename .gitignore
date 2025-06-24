@@ -4,3 +4,7 @@ initial_prompt.txt
 cursor_window.png
 .initial_prompt_sent
 .tmp/
+.coverage/
+coverage.xml
+.coverage
+logs/
