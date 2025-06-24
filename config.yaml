@@ -11,6 +11,8 @@ platforms:
       delay_ms: 300
     - keys: command+l
       delay_ms: 300
+    - keys: command+n
+      delay_ms: 300
     keystrokes:
     - keys: command+a
       delay_ms: 100
@@ -22,6 +24,9 @@ platforms:
       delay_ms: 300
     - keys: command+n
       delay_ms: 100
+    new_chat_keystrokes:
+    - keys: command+n
+      delay_ms: 300
   windsurf_mushattention:
     type: windsurf
     window_title: WindSurf - Mushattention
@@ -36,6 +41,8 @@ platforms:
       delay_ms: 300
     - keys: command+l
       delay_ms: 300
+    - keys: command+shift+l
+      delay_ms: 300
     keystrokes:
     - keys: command+a
       delay_ms: 300
@@ -47,6 +54,9 @@ platforms:
       delay_ms: 300
     - keys: command+shift+l
       delay_ms: 100
+    new_chat_keystrokes:
+    - keys: command+shift+l
+      delay_ms: 300
   cursor_autopilot:
     type: cursor
     window_title: Cursor - Autopilot
@@ -59,17 +69,22 @@ platforms:
       delay_ms: 300
     - keys: command+l
       delay_ms: 300
+    - keys: command+n
+      delay_ms: 300
     keystrokes:
     - keys: command+a
       delay_ms: 100
     - keys: backspace
       delay_ms: 100
     - keys: backspace
-      delay_ms: 100
+      delay_ms: 100q
     - keys: command+l
       delay_ms: 300
     - keys: command+n
       delay_ms: 100
+    new_chat_keystrokes:
+    - keys: command+n
+      delay_ms: 300
   windsurf_meanscoop:
     type: windsurf
     window_title: meanscoop-payload
@@ -84,6 +99,8 @@ platforms:
       delay_ms: 300
     - keys: command+l
       delay_ms: 300
+    - keys: command+shift+l
+      delay_ms: 300
     keystrokes:
     - keys: command+a
       delay_ms: 300
@@ -95,6 +112,9 @@ platforms:
       delay_ms: 300
     - keys: command+shift+l
       delay_ms: 100
+    new_chat_keystrokes:
+    - keys: command+shift+l
+      delay_ms: 300
 general:
   active_platforms:
   - cursor
