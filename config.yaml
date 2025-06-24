@@ -57,10 +57,10 @@ platforms:
     new_chat_keystrokes:
     - keys: command+shift+l
       delay_ms: 300
-  cursor_autopilot:
+  cursor_meanscoop:
     type: cursor
-    window_title: Cursor - Autopilot
-    project_path: /Users/cheddarwhizzy/cheddar/cheddarwhizzy/cursor-autopilot
+    window_title: Cursor - Mean scoop
+    project_path: /Users/cheddarwhizzy/cheddar/mean-scoop/mean-scoop
     task_file_path: tasks.md
     additional_context_path: architecture.md
     initialization_delay_seconds: 5
@@ -88,9 +88,9 @@ platforms:
   windsurf_meanscoop:
     type: windsurf
     window_title: meanscoop-payload
-    project_path: /Users/cheddarwhizzy/cheddar/mean-scoop
-    task_file_path: mean-scoop/tasks.md
-    additional_context_path: mean-scoop/architecture.md
+    project_path: /Users/cheddarwhizzy/cheddar/mean-scoop/mean-scoop
+    task_file_path: tasks.md
+    additional_context_path: architecture.md
     initialization_delay_seconds: 12
     initialization:
     - keys: control+`

@@ -37,6 +37,22 @@ class FileFilter:
         Returns:
             bool: True if the file should be ignored
         """
+        # Important files that should never be ignored (always trigger activity)
+        important_filenames = {
+            "tasks.md",
+            "todo.md",
+            "readme.md",
+            "architecture.md",
+            "continuation_prompt.txt",
+            "initial_prompt.txt",
+        }
+
+        # Check if this is an important file
+        filename = os.path.basename(file_path).lower()
+        if filename in important_filenames:
+            logger.debug(f"Never ignoring important file: {rel_path}")
+            return False
+
         # Skip files in excluded directories
         for exclude_dir in self.exclude_dirs:
             if exclude_dir in file_path.split(os.sep):

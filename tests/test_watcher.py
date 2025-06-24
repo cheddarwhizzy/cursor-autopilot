@@ -541,4 +541,62 @@ def test_send_initial_prompt_runs_initialization_and_creates_file(
     assert "review initial_prompt.txt, and continue with the tasks" == prompt_content
 
 
+@patch("src.watcher.os.path.exists")
+@patch("src.watcher.activate_platform_window")
+@patch("src.watcher.send_keystroke_string")
+@patch("src.watcher.send_keystroke")
+@patch("src.watcher.read_prompt_from_file")
+@patch("builtins.open", new_callable=mock_open)
+def test_important_files_bypass_gitignore(
+    mock_file_open,
+    mock_read_prompt,
+    mock_send_keystroke,
+    mock_send_keystroke_string,
+    mock_activate_window,
+    mock_path_exists,
+    autopilot_send_enabled,
+):
+    """Test that important files like tasks.md bypass gitignore patterns"""
+    from src.file_handling.filters import FileFilter
+
+    # Create a file filter with a wildcard gitignore pattern that would normally ignore everything
+    gitignore_patterns = {"*"}  # This would normally ignore all files
+    exclude_dirs = set()
+    exclude_files = set()
+
+    file_filter = FileFilter(
+        exclude_dirs=exclude_dirs,
+        exclude_files=exclude_files,
+        gitignore_patterns=gitignore_patterns,
+        use_gitignore=True,
+    )
+
+    # Test that regular files are ignored due to the * pattern
+    assert (
+        file_filter.should_ignore_file(
+            "/path/to/regular_file.js", "regular_file.js", "/path/to"
+        )
+        == True
+    )
+
+    # Test that important files bypass gitignore patterns
+    important_files = [
+        ("tasks.md", "tasks.md"),
+        ("mean-scoop/tasks.md", "mean-scoop/tasks.md"),
+        ("TODO.md", "todo.md"),  # case insensitive
+        ("README.md", "readme.md"),
+        ("architecture.md", "architecture.md"),
+        ("continuation_prompt.txt", "continuation_prompt.txt"),
+        ("initial_prompt.txt", "initial_prompt.txt"),
+    ]
+
+    for file_path, rel_path in important_files:
+        should_ignore = file_filter.should_ignore_file(
+            f"/path/to/{file_path}", rel_path, "/path/to"
+        )
+        assert (
+            should_ignore == False
+        ), f"Important file {file_path} should not be ignored"
+
+
 # Add more tests for other methods and classes

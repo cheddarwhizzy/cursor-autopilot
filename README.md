@@ -240,3 +240,15 @@ Environment variables take precedence over config file settings but are overridd
 ## License
 
 MIT License - See [LICENSE](./LICENSE) for details.
+
+### File Monitoring
+
+The system monitors file changes to reset inactivity timers. Key behaviors:
+
+- **Important Files**: Certain files always trigger activity regardless of gitignore patterns:
+  - `tasks.md`, `todo.md`, `readme.md`, `architecture.md`
+  - `continuation_prompt.txt`, `initial_prompt.txt`
+- **Gitignore Patterns**: Other files respect `.gitignore` patterns when `use_gitignore: true`
+- **Activity Reset**: Any change to non-ignored files resets the platform's inactivity timer
+
+This ensures that task files and other critical project files always trigger activity updates, even in projects with broad gitignore patterns like `*`.
