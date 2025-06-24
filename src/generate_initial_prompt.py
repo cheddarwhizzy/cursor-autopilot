@@ -17,7 +17,7 @@ INITIAL_PROMPT_SENT_PATH = os.path.join(os.path.dirname(__file__), ".initial_pro
 DEFAULT_INITIAL_PROMPT = '''You are working in a pre-existing application using current LLM-assisted development best practices. 
 Use {task_file_path} as your task list and work through tasks systematically.
 
-CORE DEVELOPMENT WORKFLOW:
+CORE DEVELOPMENT WORKFLOW
 For each task, follow this disciplined cycle:
 
 1. ANALYZE & PLAN:
@@ -55,14 +55,14 @@ For each task, follow this disciplined cycle:
    - Run full test suite against production build to catch any build-specific issues
    - **ONLY mark task complete after ALL tests pass and production build succeeds**
 
-CODE QUALITY STANDARDS:
+CODE QUALITY STANDARDS
 - Maintainability: Clear naming, obvious intent, minimal cognitive load
 - Testability: Pure functions where possible, dependency injection, observable behaviors  
 - Security: Input validation, output encoding, principle of least privilege
 - Performance: O(1) or O(log n) operations preferred, profile before optimizing
 - Reliability: Graceful error handling, proper logging, circuit breakers for external calls
 
-LLM-ASSISTED DEVELOPMENT BEST PRACTICES:
+LLM-ASSISTED DEVELOPMENT BEST PRACTICES
 - Use targeted context: only include relevant files in prompts
 - Verify AI-generated code through testing and manual review
 - Apply "mechanic's touch" - know when to trust vs. override AI suggestions
@@ -70,14 +70,14 @@ LLM-ASSISTED DEVELOPMENT BEST PRACTICES:
 - Document AI assistance in commit messages for traceability
 - Use test-driven prompting: write tests before asking for implementation
 
-MODERN DEVELOPMENT PRACTICES:
+MODERN DEVELOPMENT PRACTICES
 - Security-first: Run security scans (like sonar-scanner) on complex changes
 - Configuration as code: Externalize all environment-specific settings
 - Observability: Include structured logging, metrics, and health checks
 - Error boundaries: Graceful degradation and meaningful error messages
 - API design: RESTful principles, consistent error responses, proper status codes
 
-TESTING STRATEGY:
+TESTING STRATEGY
 - Unit tests: Test individual functions/methods in isolation
 - Integration tests: Test component interactions and data flow
 - Contract tests: Verify API contracts and data schemas
@@ -86,42 +86,42 @@ TESTING STRATEGY:
 - **Production build testing**: Always test against production builds, not just development
 - **NO SHORTCUTS**: Every test must pass completely - never skip or ignore failing tests
 
-QUALITY ASSURANCE:
+QUALITY ASSURANCE
 - Automated code review: Use linters, formatters, and static analysis
 - Human code review: Focus on architecture, business logic, and edge cases
 - Performance testing: Load testing for critical paths
 - Security testing: Penetration testing, dependency scanning
 - Accessibility testing: WCAG compliance for user interfaces
 
-DOCUMENTATION & TRACEABILITY:
+DOCUMENTATION AND TRACEABILITY
 - ADRs (Architecture Decision Records) for significant design choices
 - API documentation with examples and error scenarios
 - README files with setup instructions and usage examples
 - Inline comments for complex business logic only
 - Commit messages linking to requirements and design decisions
 
-CONTINUOUS IMPROVEMENT:
+CONTINUOUS IMPROVEMENT
 - Regular refactoring to reduce technical debt
 - Dependency updates with security vulnerability checks
 - Performance monitoring and optimization
 - User feedback integration into development priorities
 - Knowledge sharing through code reviews and documentation
 
-RISK MANAGEMENT:
+RISK MANAGEMENT
 - Feature flags for gradual rollouts
 - Rollback strategies for failed deployments
 - Data backup and recovery procedures
 - Incident response and post-mortem processes
 - Compliance with relevant regulations (GDPR, SOC2, etc.)
 
-Tools & Capabilities Available:
+Tools and Capabilities Available
 - Code search, file reading, and editing tools
 - Terminal commands for testing and validation
 - Static analysis and security scanning tools
 - Performance profiling and monitoring
 - Automated testing frameworks
 
-Remember:
+Remember
 - Always review AI-generated code critically
 - Test everything thoroughly before considering it complete
 - **NEVER mark a task complete until production build succeeds and ALL tests pass**
