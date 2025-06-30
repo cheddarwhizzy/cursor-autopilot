@@ -59,44 +59,45 @@ def test_send_keystrokes_to_file():
 
 def test_send_keystroke_sequence():
     """Test sending a sequence of keystrokes."""
-    with patch('src.actions.keystrokes.send_keystrokes', return_value=True) as mock_send:
+    with patch("src.actions.keystrokes.send_keystroke", return_value=True) as mock_send:
         # Define a valid keystroke sequence
         sequence = [
             {'keys': 'a', 'delay_ms': 10},
             {'keys': 'b', 'delay_ms': 20},
             {'keys': 'command+c', 'delay_ms': 30}
         ]
-        
+
         # Send the sequence
         assert send_keystroke_sequence(sequence) is True
-        
-        # Verify that send_keystrokes was called for each item in the sequence
+
+        # Verify that send_keystroke was called for each item in the sequence
         assert mock_send.call_count == 3
-        mock_send.assert_any_call('a', 10)
-        mock_send.assert_any_call('b', 20)
-        mock_send.assert_any_call('command+c', 30)
+        mock_send.assert_any_call("a", "cursor")
+        mock_send.assert_any_call("b", "cursor")
+        mock_send.assert_any_call("command+c", "cursor")
 
 def test_send_keystroke_string():
     """Test sending a multi-line string as keystrokes."""
-    with patch('pyautogui.write') as mock_write:
-        with patch('pyautogui.hotkey') as mock_hotkey:
-            with patch('time.sleep') as mock_sleep:
-                # Test single line
-                assert send_keystroke_string("Hello world") is True
-                mock_write.assert_called_with("Hello world")
-                
-                # Test multi-line string
-                assert send_keystroke_string("Hello\nworld") is True
-                mock_write.assert_any_call("Hello")
-                mock_write.assert_any_call("world")
-                mock_hotkey.assert_called_with('shift', 'return')
-                mock_sleep.assert_called_with(0.1)
+    with patch("subprocess.run") as mock_subprocess:
+        # Mock successful subprocess call
+        mock_subprocess.return_value.returncode = 0
+
+        # Test single line
+        assert send_keystroke_string("Hello world") is True
+
+        # Verify subprocess was called (AppleScript execution)
+        assert mock_subprocess.called
+
+        # Test multi-line string
+        mock_subprocess.reset_mock()
+        assert send_keystroke_string("Hello\nworld") is True
+        assert mock_subprocess.called
 
 def test_activate_window():
     """Test window activation."""
     # Test with non-existent window (should return False)
     assert activate_window('NonExistentWindow') is False
-    
+
     # Test with common windows that should exist on test systems
     if platform.system().lower() == 'windows':
         common_window = 'Notepad'
@@ -104,10 +105,36 @@ def test_activate_window():
         common_window = 'Terminal'
     elif platform.system().lower() == 'linux':
         common_window = 'Terminal'
-    
+
     # This will be skipped if activate_window cannot find the window
     # which is preferable to failing tests on different environments
     if activate_window(common_window) is True:
         assert True  # Window activated successfully
     else:
-        pytest.skip(f"Could not activate {common_window} - skipping this validation") 
+        pytest.skip(f"Could not activate {common_window} - skipping this validation")
+
+
+def test_config_keystrokes_parsing():
+    """Test that keystrokes from config file are parsed correctly."""
+    from src.actions.keystrokes import send_keystroke
+
+    with patch("subprocess.run") as mock_subprocess:
+        # Mock successful subprocess call
+        mock_subprocess.return_value.returncode = 0
+
+        # Test keystrokes from config.yaml
+        test_keystrokes = [
+            "command+a",
+            "backspace",
+            "command+l",
+            "command+n",
+            "command+shift+l",
+            "control+`",
+        ]
+
+        for keystroke in test_keystrokes:
+            result = send_keystroke(keystroke, "cursor")
+            assert result is True, f"Failed to send keystroke: {keystroke}"
+
+        # Verify that subprocess was called for each keystroke
+        assert mock_subprocess.call_count == len(test_keystrokes)

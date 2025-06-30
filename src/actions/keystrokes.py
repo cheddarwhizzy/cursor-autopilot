@@ -89,41 +89,103 @@ def send_keystroke(key_combo: str, platform: str = "cursor") -> bool:
     logger.debug(f"[{platform}] Sending keystroke: {key_combo}")
 
     try:
-        # Normalize key combo format
+        # Parse key combination
         if "+" in key_combo:
             parts = key_combo.split("+")
-            modifier = parts[0]
-            key = parts[1]
+            # The last part is the key, everything before are modifiers
+            key = parts[-1]
+            modifiers = parts[:-1]
 
-            # Map to specific key codes based on platform
+            # Map modifiers to AppleScript syntax
+            modifier_map = {
+                "command": "command down",
+                "cmd": "command down",
+                "control": "control down",
+                "ctrl": "control down",
+                "option": "option down",
+                "alt": "option down",
+                "shift": "shift down",
+            }
+
+            # Convert modifiers to AppleScript format
+            applescript_modifiers = []
+            for modifier in modifiers:
+                if modifier.lower() in modifier_map:
+                    applescript_modifiers.append(modifier_map[modifier.lower()])
+                else:
+                    logger.warning(f"Unknown modifier: {modifier}")
+                    applescript_modifiers.append(f"{modifier} down")
+
+            # Handle special keys that need mapping
+            key_map = {
+                "enter": "return",
+                "`": '"`"',  # Backtick needs to be quoted
+                "space": '" "',  # Space needs to be quoted
+                "tab": "tab",
+                "escape": "escape",
+                "delete": "delete",
+                "backspace": "delete",
+            }
+
+            # Map the key if needed
+            if key.lower() in key_map:
+                applescript_key = key_map[key.lower()]
+            else:
+                # Quote the key for AppleScript
+                applescript_key = f'"{key}"'
+
+            # Build the AppleScript
+            if len(applescript_modifiers) == 1:
+                modifier_clause = applescript_modifiers[0]
+            else:
+                modifier_clause = "{" + ", ".join(applescript_modifiers) + "}"
+
             script = f"""
             tell application "System Events"
                 tell process "{app_name}"
-                    keystroke "{key}" using {modifier} down
+                    keystroke {applescript_key} using {modifier_clause}
                 end tell
             end tell
             """
         else:
-            # Single key
-            key = key_combo
+            # Single key - handle special keys
+            key_map = {
+                "enter": "return",
+                "`": '"`"',  # Backtick needs to be quoted
+                "space": '" "',  # Space needs to be quoted
+                "tab": "tab",
+                "escape": "escape",
+                "delete": "delete",
+                "backspace": "delete",
+            }
+
+            if key_combo.lower() in key_map:
+                applescript_key = key_map[key_combo.lower()]
+            else:
+                applescript_key = f'"{key_combo}"'
+
             script = f"""
             tell application "System Events"
                 tell process "{app_name}"
-                    keystroke "{key}"
+                    keystroke {applescript_key}
                 end tell
             end tell
             """
+
+        logger.debug(f"[{platform}] Generated AppleScript: {script.strip()}")
 
         result = subprocess.run(
             ["osascript", "-e", script], capture_output=True, text=True
         )
         if result.returncode != 0:
-            logger.error(f"AppleScript error: {result.stderr}")
+            logger.error(
+                f"AppleScript error for keystroke '{key_combo}': {result.stderr}"
+            )
             return False
 
         return True
     except Exception as e:
-        logger.error(f"Error sending keystroke: {e}")
+        logger.error(f"Error sending keystroke '{key_combo}': {e}")
         return False
 
 
