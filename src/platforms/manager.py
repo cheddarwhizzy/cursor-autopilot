@@ -81,6 +81,17 @@ class PlatformManager:
                     )
                     logger.debug(f"Using inactivity delay for {platform_name}: {inactivity_delay}")
 
+                # Get regular keystroke interval - platform-specific, fallback to general, fallback to default 30s
+                regular_keystroke_interval = platform_config.get(
+                    "regular_keystroke_interval",
+                    self.config_manager.config.get("general", {}).get(
+                        "regular_keystroke_interval", 30
+                    ),
+                )
+                logger.debug(
+                    f"Using regular keystroke interval for {platform_name}: {regular_keystroke_interval}s"
+                )
+
                 # Get task file path - apply command line override if specified
                 if hasattr(args, 'task_file_path') and args.task_file_path:
                     task_file_path = args.task_file_path
@@ -114,8 +125,10 @@ class PlatformManager:
                     "platform_type": platform_type,
                     "project_path": project_path,
                     "inactivity_delay": inactivity_delay,
+                    "regular_keystroke_interval": regular_keystroke_interval,
                     "last_activity": time.time(),  # Initialize activity time
                     "last_prompt_time": 0.0,
+                    "last_regular_keystroke_time": 0.0,  # Initialize regular keystroke time
                     "watch_handler": None,  # Placeholder for watchdog handler
                     "observer": None,  # Placeholder for watchdog observer
                     # Add other per-platform state vars as needed
@@ -131,7 +144,7 @@ class PlatformManager:
                         "window_title", None
                     ),  # Important for activation
                     "continuation_prompt_override": continuation_prompt,
-                    "initial_prompt_override": initial_prompt
+                    "initial_prompt_override": initial_prompt,
                 }
                 logger.debug(f"State for {platform_name}: {self.platform_states[platform_name]}")
 
@@ -252,3 +265,49 @@ class PlatformManager:
         else:
             logger.debug(f"Stagger delay ({stagger_delay}s) not yet passed. Time since last global prompt: {time_since_last_global_prompt:.1f}s. Waiting.")
             return None 
+
+    def get_platforms_needing_regular_keystrokes(self) -> List[Dict]:
+        """
+        Get a list of platforms that need regular keystrokes sent based on their interval
+        Returns a list of dicts with platform details
+        """
+        current_time = time.time()
+        platforms_needing_keystrokes = []
+
+        for platform_name, state in self.platform_states.items():
+            # Check if platform has regular keystrokes configured
+            platform_config = self.config_manager.get_platform_config(platform_name)
+            regular_keystrokes = platform_config.get("regular_keystrokes", [])
+
+            if not regular_keystrokes:
+                continue  # Skip platforms without regular keystrokes
+
+            regular_keystroke_interval = state.get("regular_keystroke_interval", 30)
+            last_regular_keystroke_time = state.get("last_regular_keystroke_time", 0)
+            elapsed_time = current_time - last_regular_keystroke_time
+
+            if elapsed_time >= regular_keystroke_interval:
+                logger.debug(
+                    f"[{platform_name}] Regular keystrokes needed (elapsed: {elapsed_time:.1f}s >= interval: {regular_keystroke_interval}s)"
+                )
+                platforms_needing_keystrokes.append(
+                    {
+                        "name": platform_name,
+                        "state": state,
+                        "config": platform_config,
+                        "regular_keystrokes": regular_keystrokes,
+                    }
+                )
+
+        return platforms_needing_keystrokes
+
+    def update_regular_keystroke_time(self, platform_name: str) -> None:
+        """
+        Update the last regular keystroke time for a platform
+        """
+        current_time = time.time()
+        if platform_name in self.platform_states:
+            self.platform_states[platform_name][
+                "last_regular_keystroke_time"
+            ] = current_time
+            logger.debug(f"Updated last_regular_keystroke_time for {platform_name}")

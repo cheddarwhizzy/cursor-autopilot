@@ -432,6 +432,72 @@ class CursorAutopilot:
             except Exception as e:
                 self.logger.error(f"Failed to create initial prompt sent file: {e}")
 
+    def send_regular_keystrokes(self, platforms_data: List[Dict]) -> None:
+        """
+        Send regular keystrokes to platforms that need them.
+
+        Args:
+            platforms_data: List of platform data dicts containing name, state, config, and regular_keystrokes
+        """
+        if not platforms_data:
+            return
+
+        for platform_data in platforms_data:
+            platform_name = platform_data["name"]
+            state = platform_data["state"]
+            platform_config = platform_data["config"]
+            regular_keystrokes = platform_data["regular_keystrokes"]
+
+            try:
+                self.logger.info(f"[{platform_name}] Sending regular keystrokes...")
+
+                # Activate platform window first
+                if not self.args.no_send:
+                    activation_success = activate_platform_window(platform_name, state)
+                    if not activation_success:
+                        self.logger.warning(
+                            f"[{platform_name}] Failed to activate window for regular keystrokes, but continuing..."
+                        )
+                    else:
+                        self.logger.debug(
+                            f"[{platform_name}] Successfully activated window for regular keystrokes"
+                        )
+
+                    # Small delay after activation
+                    time.sleep(0.5)
+
+                # Send each regular keystroke
+                for keystroke in regular_keystrokes:
+                    keys = keystroke.get("keys", "")
+                    delay_ms = keystroke.get("delay_ms", 0)
+
+                    if keys and not self.args.no_send:
+                        self.logger.debug(
+                            f"[{platform_name}] Sending regular keystroke: {keys}"
+                        )
+
+                        if delay_ms > 0:
+                            time.sleep(delay_ms / 1000.0)
+
+                        send_keystroke(keys, platform_name)
+                    elif self.args.no_send:
+                        self.logger.info(
+                            f"[{platform_name}] Would send regular keystroke: {keys} (--no-send enabled)"
+                        )
+
+                # Update the regular keystroke timestamp
+                self.platform_manager.update_regular_keystroke_time(platform_name)
+
+                self.logger.info(
+                    f"[{platform_name}] Regular keystrokes sent successfully"
+                )
+
+            except Exception as e:
+                self.logger.error(
+                    f"[{platform_name}] Error sending regular keystrokes: {e}",
+                    exc_info=True,
+                )
+
     def run(self) -> None:
         """
         Main execution loop
@@ -527,6 +593,24 @@ class CursorAutopilot:
                         f"Sending continuation prompt to platforms: {platform_to_prompt}"
                     )
                     self.send_prompt(platform_to_prompt)
+
+                # Check for platforms needing regular keystrokes
+                self.logger.debug(
+                    "Checking for platforms needing regular keystrokes..."
+                )
+                platforms_needing_keystrokes = (
+                    self.platform_manager.get_platforms_needing_regular_keystrokes()
+                )
+                self.logger.debug(
+                    f"get_platforms_needing_regular_keystrokes returned: {len(platforms_needing_keystrokes)} platforms"
+                )
+                if platforms_needing_keystrokes:
+                    platform_names = [p["name"] for p in platforms_needing_keystrokes]
+                    self.logger.info(
+                        f"Sending regular keystrokes to platforms: {platform_names}"
+                    )
+                    self.send_regular_keystrokes(platforms_needing_keystrokes)
+
                 # Sleep for a short while to prevent high CPU usage
                 time.sleep(1)
 

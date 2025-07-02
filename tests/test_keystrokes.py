@@ -138,3 +138,90 @@ def test_config_keystrokes_parsing():
 
         # Verify that subprocess was called for each keystroke
         assert mock_subprocess.call_count == len(test_keystrokes)
+
+
+def test_option_enter_keystroke():
+    """Test that option+enter (used in regular keystrokes) works correctly."""
+    from src.actions.keystrokes import send_keystroke
+
+    with patch("subprocess.run") as mock_subprocess:
+        # Mock successful subprocess call
+        mock_subprocess.return_value.returncode = 0
+
+        # Test the specific keystroke from config (option+enter for Windsurf)
+        result = send_keystroke("option+enter", "windsurf")
+        assert result is True, "Failed to send option+enter keystroke"
+
+        # Verify subprocess was called
+        assert mock_subprocess.called
+
+        # Check that the AppleScript was generated correctly
+        call_args = mock_subprocess.call_args
+        args = call_args[0]  # Positional arguments
+        cmd_list = args[0]  # The command list passed to subprocess.run
+
+        # The AppleScript should be the third element in the command list
+        assert (
+            len(cmd_list) >= 3
+        ), f"Expected at least 3 cmd args, got {len(cmd_list)}: {cmd_list}"
+        applescript = cmd_list[2]  # Third argument to osascript -e
+
+        # Should contain "option down" and "return" (enter maps to return)
+        assert "option down" in applescript
+        assert "return" in applescript
+        assert "Windsurf" in applescript
+
+
+def test_regular_keystroke_functionality():
+    """Test the regular keystroke platform manager functionality."""
+    from src.platforms.manager import PlatformManager
+    from src.config.loader import ConfigManager
+    from unittest.mock import MagicMock
+    import time
+
+    # Create mock config manager
+    config_manager = MagicMock()
+    config_manager.config = {"general": {"regular_keystroke_interval": 30}}
+
+    # Create mock platform config
+    def mock_get_platform_config(platform_name):
+        if platform_name == "windsurf_test":
+            return {"regular_keystrokes": [{"keys": "option+enter", "delay_ms": 100}]}
+        return {}
+
+    config_manager.get_platform_config = mock_get_platform_config
+
+    # Create platform manager
+    platform_manager = PlatformManager(config_manager)
+
+    # Create mock platform state with regular keystrokes
+    current_time = time.time()
+    platform_manager.platform_states = {
+        "windsurf_test": {
+            "regular_keystroke_interval": 30,
+            "last_regular_keystroke_time": current_time
+            - 35,  # 35 seconds ago (should trigger)
+        },
+        "cursor_test": {
+            "regular_keystroke_interval": 30,
+            "last_regular_keystroke_time": current_time
+            - 10,  # 10 seconds ago (should not trigger)
+        },
+    }
+
+    # Test get_platforms_needing_regular_keystrokes
+    platforms_needing = platform_manager.get_platforms_needing_regular_keystrokes()
+
+    # Should only return windsurf_test since it has regular_keystrokes config and time elapsed
+    assert len(platforms_needing) == 1
+    assert platforms_needing[0]["name"] == "windsurf_test"
+    assert "regular_keystrokes" in platforms_needing[0]
+    assert len(platforms_needing[0]["regular_keystrokes"]) == 1
+    assert platforms_needing[0]["regular_keystrokes"][0]["keys"] == "option+enter"
+
+    # Test update_regular_keystroke_time
+    platform_manager.update_regular_keystroke_time("windsurf_test")
+    updated_time = platform_manager.platform_states["windsurf_test"][
+        "last_regular_keystroke_time"
+    ]
+    assert updated_time > current_time - 5  # Should be very recent

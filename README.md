@@ -194,61 +194,39 @@ platforms:
 general:
   active_platforms: ["cursor_meanscoop", "windsurf_mushattention"]
   inactivity_delay: 300  # Default inactivity delay in seconds
+  regular_keystroke_interval: 30  # Default interval for regular keystrokes (seconds)
   debug: false  # Enable debug logging
   send_message: true  # Enable sending messages to the IDE
   use_gitignore: true  # Respect .gitignore files
 ```
 
-### Prompt Configuration
+### Regular Keystrokes
 
-You can configure prompts in the config file or override them via command line:
+The system supports sending regular keystrokes at configurable intervals. This is useful for platforms like Windsurf that require periodic interaction to continue processing (e.g., using `option+enter` to continue with AI assistance).
 
 ```yaml
+# Global default interval (can be overridden per platform)
 general:
-  # Default initial prompt (used when no file is specified)
-  initial_prompt: |
-    Review the tasks in {task_file_path} and additional context in {additional_context_path}.
-    Start working on the first task.
-    
-  # Default continuation prompt (used when no file is specified)
-  inactivity_prompt: |
-    Continue with the next task from {task_file_path}.
-    Focus on completing one task at a time.
+  regular_keystroke_interval: 30  # Seconds between regular keystrokes
 
-# Platform-specific prompt overrides
+# Platform-specific configuration
 platforms:
-  cursor_meanscoop:
-    # Path to a file containing the initial prompt (relative to project_path)
-    initial_prompt_file_path: "prompts/initial_prompt.txt"
-    
-    # Path to a file containing the continuation prompt (relative to project_path)
-    continuation_prompt_file_path: "prompts/continuation_prompt.txt"
+  windsurf_meanscoop:
+    regular_keystroke_interval: 30  # Override global default for this platform
+    regular_keystrokes:
+      - keys: "option+enter"  # Windsurf continue hotkey
+        delay_ms: 100
 ```
 
-### Environment Variables
+**Key Features:**
+- **Configurable Interval**: Set how often regular keystrokes are sent (5-300 seconds)
+- **Platform-Specific**: Each platform can have its own interval and keystrokes
+- **Independent of Inactivity**: Regular keystrokes are sent regardless of file activity
+- **Windsurf Optimized**: Specifically designed for Windsurf's `option+enter` continue functionality
 
-You can also use environment variables to override configuration:
+**Configuration Options:**
+- `regular_keystroke_interval`: Time in seconds between keystroke sends (global default: 30)
+- `regular_keystrokes`: Array of keystroke objects to send at each interval
+- Only platforms with `regular_keystrokes` defined will have regular keystrokes sent
 
-```bash
-export CURSOR_AUTOPILOT_PROJECT_PATH="/path/to/project"
-export CURSOR_AUTOPILOT_PLATFORM="cursor_meanscoop"
-./run.sh
-```
-
-Environment variables take precedence over config file settings but are overridden by command line arguments.
-
-## License
-
-MIT License - See [LICENSE](./LICENSE) for details.
-
-### File Monitoring
-
-The system monitors file changes to reset inactivity timers. Key behaviors:
-
-- **Important Files**: Certain files always trigger activity regardless of gitignore patterns:
-  - `tasks.md`, `todo.md`, `readme.md`, `architecture.md`
-  - `continuation_prompt.txt`, `initial_prompt.txt`
-- **Gitignore Patterns**: Other files respect `.gitignore` patterns when `use_gitignore: true`
-- **Activity Reset**: Any change to non-ignored files resets the platform's inactivity timer
-
-This ensures that task files and other critical project files always trigger activity updates, even in projects with broad gitignore patterns like `*`.
+### Prompt Configuration

@@ -110,6 +110,9 @@ platforms:
       delay_ms: 300
     - keys: command+shift+l
       delay_ms: 100
+    regular_keystrokes:
+    - keys: option+enter
+      delay_ms: 100
 general:
   active_platforms:
   - cursor
