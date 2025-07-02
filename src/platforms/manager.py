@@ -16,7 +16,7 @@ class PlatformManager:
         self.platform_names = []  # List of active platform names
         self.platform_states = {}  # Dict to hold state per platform
         self.last_global_prompt_time = 0.0  # Track time of the last prompt sent to any platform
-    
+
     def initialize_platforms(self, args) -> bool:
         """
         Initialize platforms based on config and command line args
@@ -28,43 +28,47 @@ class PlatformManager:
             if not self.platform_names:
                 logger.error("No valid platforms to initialize")
                 return False
-            
+
             logger.debug(f"Final active platforms: {self.platform_names}")
-            
+
             # Initialize state for each active platform
             self.platform_states = {}
             all_project_paths = set()  # To load gitignore patterns later
-            
+
             for platform_name in self.platform_names:
                 logger.debug(f"Initializing state for platform: {platform_name}")
                 platform_config = self.config_manager.get_platform_config(platform_name)
                 if not platform_config:
                     logger.error(f"Configuration missing for active platform {platform_name}")
                     return False
-                
+
+                # Get platform type - either from 'type' field or assume it's the platform name itself
+                platform_type = platform_config.get("type", platform_name)
+                logger.debug(f"Platform type for {platform_name}: {platform_type}")
+
                 # Get project path - apply command line override if specified
                 if args.project_path:
                     project_path = args.project_path
                     logger.info(f"Using project path override from command line for {platform_name}: {project_path}")
                 else:
                     project_path = platform_config.get("project_path", "")
-                
+
                 logger.debug(f"Raw project path for {platform_name}: {project_path}")
-                
+
                 if not project_path:
                     logger.error(f"Project path not configured for platform {platform_name}")
                     return False
-                
+
                 # Expand user directory
                 project_path = os.path.expanduser(project_path)
                 logger.debug(f"Expanded project path for {platform_name}: {project_path}")
-                
+
                 if not os.path.exists(project_path):
                     logger.error(f"Project path does not exist for platform {platform_name}: {project_path}")
                     return False
-                
+
                 all_project_paths.add(project_path)
-                
+
                 # Get inactivity delay - apply command line override if specified
                 if args.inactivity_delay:
                     inactivity_delay = args.inactivity_delay
@@ -76,46 +80,99 @@ class PlatformManager:
                         self.config_manager.config.get("general", {}).get("inactivity_delay", 120)
                     )
                     logger.debug(f"Using inactivity delay for {platform_name}: {inactivity_delay}")
-                
+
+                # Get regular keystroke interval - platform-specific, fallback to general, fallback to default 30s
+                regular_keystroke_interval = platform_config.get(
+                    "regular_keystroke_interval",
+                    self.config_manager.config.get("general", {}).get(
+                        "regular_keystroke_interval", 30
+                    ),
+                )
+                logger.debug(
+                    f"Using regular keystroke interval for {platform_name}: {regular_keystroke_interval}s"
+                )
+
+                # Get task file path - apply command line override if specified
+                if hasattr(args, 'task_file_path') and args.task_file_path:
+                    task_file_path = args.task_file_path
+                    logger.info(f"Using task file path override from command line for {platform_name}: {task_file_path}")
+                else:
+                    task_file_path = platform_config.get("task_file_path", "tasks.md")
+
+                # Get additional context path - apply command line override if specified
+                if hasattr(args, 'additional_context_path') and args.additional_context_path:
+                    additional_context_path = args.additional_context_path
+                    logger.info(f"Using additional context path override from command line for {platform_name}: {additional_context_path}")
+                else:
+                    additional_context_path = platform_config.get("additional_context_path", "")
+
+                # Get continuation prompt - apply command line override if specified
+                if hasattr(args, 'continuation_prompt') and args.continuation_prompt:
+                    continuation_prompt = args.continuation_prompt
+                    logger.info(f"Using continuation prompt override from command line for {platform_name}")
+                else:
+                    continuation_prompt = None
+
+                # Get initial prompt - apply command line override if specified
+                if hasattr(args, 'initial_prompt') and args.initial_prompt:
+                    initial_prompt = args.initial_prompt
+                    logger.info(f"Using initial prompt override from command line for {platform_name}")
+                else:
+                    initial_prompt = None
+
                 # Populate state for this platform
                 self.platform_states[platform_name] = {
+                    "platform_type": platform_type,
                     "project_path": project_path,
                     "inactivity_delay": inactivity_delay,
+                    "regular_keystroke_interval": regular_keystroke_interval,
                     "last_activity": time.time(),  # Initialize activity time
                     "last_prompt_time": 0.0,
+                    "last_regular_keystroke_time": 0.0,  # Initialize regular keystroke time
                     "watch_handler": None,  # Placeholder for watchdog handler
                     "observer": None,  # Placeholder for watchdog observer
                     # Add other per-platform state vars as needed
-                    "task_file_path": platform_config.get("task_file_path", "tasks.md"),
-                    "continuation_prompt_file_path": platform_config.get("continuation_prompt_file_path", "continuation_prompt.txt"),
-                    "initial_prompt_file_path": platform_config.get("initial_prompt_file_path", None),  # Optional
-                    "window_title": platform_config.get("window_title", None)  # Important for activation
+                    "task_file_path": task_file_path,
+                    "additional_context_path": additional_context_path,
+                    "continuation_prompt_file_path": platform_config.get(
+                        "continuation_prompt_file_path", "continuation_prompt.txt"
+                    ),
+                    "initial_prompt_file_path": platform_config.get(
+                        "initial_prompt_file_path", None
+                    ),  # Optional
+                    "window_title": platform_config.get(
+                        "window_title", None
+                    ),  # Important for activation
+                    "continuation_prompt_override": continuation_prompt,
+                    "initial_prompt_override": initial_prompt,
                 }
                 logger.debug(f"State for {platform_name}: {self.platform_states[platform_name]}")
-            
+
             # Load gitignore patterns from first platform's path
             # A more robust solution might merge patterns or handle ignores per-path
             first_project_path = self.platform_states[self.platform_names[0]]["project_path"]
             logger.info(f"Loading gitignore patterns based on project path: {first_project_path}")
             self.config_manager.gitignore_patterns = load_gitignore_patterns(first_project_path)
-            
+
             # Log combined configuration overview
             logger.info("Configuration loaded successfully for multiple platforms:")
             for platform_name in self.platform_names:
                 state = self.platform_states[platform_name]
-                logger.info(f"  Platform: {platform_name}")
+                logger.info(
+                    f"  Platform: {platform_name} (Type: {state['platform_type']})"
+                )
                 logger.info(f"    Project Path: {state['project_path']}")
                 logger.info(f"    Inactivity Delay: {state['inactivity_delay']}s")
                 logger.info(f"    Window Title: {state.get('window_title', 'N/A')}")
-            
+
             logger.info(f"Loaded {len(self.config_manager.gitignore_patterns)} gitignore patterns (from {first_project_path})")
-            
+
             return True
-            
+
         except Exception as e:
             logger.error(f"Error initializing platforms: {e}", exc_info=True)
             return False
-    
+
     def get_platform_state(self, platform_name: str) -> Dict:
         """
         Retrieve the dynamic state for a given platform name
@@ -124,7 +181,7 @@ class PlatformManager:
             logger.warning("Accessing platform state before initialization")
             return {}
         return self.platform_states.get(platform_name, {})
-    
+
     def update_activity(self, platform_name: str) -> None:
         """
         Update the last activity time for a platform
@@ -132,7 +189,7 @@ class PlatformManager:
         if platform_name in self.platform_states:
             self.platform_states[platform_name]["last_activity"] = time.time()
             logger.debug(f"Updated last_activity for {platform_name}")
-    
+
     def update_prompt_time(self, platform_name: str) -> None:
         """
         Update the last prompt time for a platform and the global prompt time
@@ -142,7 +199,7 @@ class PlatformManager:
             self.platform_states[platform_name]["last_prompt_time"] = current_time
             self.last_global_prompt_time = current_time
             logger.debug(f"Updated prompt times for {platform_name} and global")
-    
+
     def get_inactive_platforms(self) -> List[Dict]:
         """
         Get a list of platforms that have been inactive for longer than their inactivity delay
@@ -150,12 +207,12 @@ class PlatformManager:
         """
         current_time = time.time()
         inactive_platforms = []
-        
+
         for platform_name, state in self.platform_states.items():
             inactivity_delay = state.get("inactivity_delay", 120)
             last_activity = state.get("last_activity", current_time)
             elapsed_time = current_time - last_activity
-            
+
             if elapsed_time > inactivity_delay:
                 logger.debug(f"[{platform_name}] Inactivity detected (elapsed: {elapsed_time:.1f}s > delay: {inactivity_delay}s)")
                 inactive_platforms.append({
@@ -164,34 +221,93 @@ class PlatformManager:
                     "state": state,
                     "config": self.config_manager.get_platform_config(platform_name)
                 })
-        
+
         return inactive_platforms
-    
+
     def should_send_prompt(self, stagger_delay: int) -> Optional[Dict]:
         """
         Check if a prompt should be sent based on stagger delay and inactive platforms
         Returns platform to prompt if conditions are met, None otherwise
         """
         inactive_platforms = self.get_inactive_platforms()
-        
+
         if not inactive_platforms:
+            # Log countdown for each platform
+            current_time = time.time()
+            for platform_name, state in self.platform_states.items():
+                last_activity = state.get("last_activity", current_time)
+                inactivity_delay = state.get("inactivity_delay", 120)
+                elapsed_time = current_time - last_activity
+                remaining_time = max(0, inactivity_delay - elapsed_time)
+
+                # Log every 15 seconds
+                if int(remaining_time) % 15 == 0 and remaining_time > 0:
+                    logger.info(
+                        f"[{platform_name}] Inactivity countdown: {int(remaining_time)} seconds until next prompt"
+                    )
             return None
-        
+
         logger.info(f"Inactive platforms: {[p['name'] for p in inactive_platforms]}")
-        
+
         # Check if stagger delay has passed since the last global prompt
         current_time = time.time()
         time_since_last_global_prompt = current_time - self.last_global_prompt_time
-        
+
         if time_since_last_global_prompt >= stagger_delay:
             logger.info(f"Stagger delay ({stagger_delay}s) passed. Time since last prompt: {time_since_last_global_prompt:.1f}s")
-            
+
             # Select the platform that has been inactive the longest
             inactive_platforms.sort(key=lambda p: p["last_activity"])
             platform_to_prompt = inactive_platforms[0]
             logger.info(f"Selected platform '{platform_to_prompt['name']}' for continuation prompt (inactive longest).")
-            
+
             return platform_to_prompt
         else:
             logger.debug(f"Stagger delay ({stagger_delay}s) not yet passed. Time since last global prompt: {time_since_last_global_prompt:.1f}s. Waiting.")
             return None 
+
+    def get_platforms_needing_regular_keystrokes(self) -> List[Dict]:
+        """
+        Get a list of platforms that need regular keystrokes sent based on their interval
+        Returns a list of dicts with platform details
+        """
+        current_time = time.time()
+        platforms_needing_keystrokes = []
+
+        for platform_name, state in self.platform_states.items():
+            # Check if platform has regular keystrokes configured
+            platform_config = self.config_manager.get_platform_config(platform_name)
+            regular_keystrokes = platform_config.get("regular_keystrokes", [])
+
+            if not regular_keystrokes:
+                continue  # Skip platforms without regular keystrokes
+
+            regular_keystroke_interval = state.get("regular_keystroke_interval", 30)
+            last_regular_keystroke_time = state.get("last_regular_keystroke_time", 0)
+            elapsed_time = current_time - last_regular_keystroke_time
+
+            if elapsed_time >= regular_keystroke_interval:
+                logger.debug(
+                    f"[{platform_name}] Regular keystrokes needed (elapsed: {elapsed_time:.1f}s >= interval: {regular_keystroke_interval}s)"
+                )
+                platforms_needing_keystrokes.append(
+                    {
+                        "name": platform_name,
+                        "state": state,
+                        "config": platform_config,
+                        "regular_keystrokes": regular_keystrokes,
+                    }
+                )
+
+        return platforms_needing_keystrokes
+
+    def update_regular_keystroke_time(self, platform_name: str) -> None:
+        """
+        Update the last regular keystroke time for a platform
+        """
+        current_time = time.time()
+        if platform_name in self.platform_states:
+            self.platform_states[platform_name][
+                "last_regular_keystroke_time"
+            ] = current_time
+            logger.debug(f"Updated last_regular_keystroke_time for {platform_name}")

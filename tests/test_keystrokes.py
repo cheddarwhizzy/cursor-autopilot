@@ -59,44 +59,45 @@ def test_send_keystrokes_to_file():
 
 def test_send_keystroke_sequence():
     """Test sending a sequence of keystrokes."""
-    with patch('src.actions.keystrokes.send_keystrokes', return_value=True) as mock_send:
+    with patch("src.actions.keystrokes.send_keystroke", return_value=True) as mock_send:
         # Define a valid keystroke sequence
         sequence = [
             {'keys': 'a', 'delay_ms': 10},
             {'keys': 'b', 'delay_ms': 20},
             {'keys': 'command+c', 'delay_ms': 30}
         ]
-        
+
         # Send the sequence
         assert send_keystroke_sequence(sequence) is True
-        
-        # Verify that send_keystrokes was called for each item in the sequence
+
+        # Verify that send_keystroke was called for each item in the sequence
         assert mock_send.call_count == 3
-        mock_send.assert_any_call('a', 10)
-        mock_send.assert_any_call('b', 20)
-        mock_send.assert_any_call('command+c', 30)
+        mock_send.assert_any_call("a", "cursor")
+        mock_send.assert_any_call("b", "cursor")
+        mock_send.assert_any_call("command+c", "cursor")
 
 def test_send_keystroke_string():
     """Test sending a multi-line string as keystrokes."""
-    with patch('pyautogui.write') as mock_write:
-        with patch('pyautogui.hotkey') as mock_hotkey:
-            with patch('time.sleep') as mock_sleep:
-                # Test single line
-                assert send_keystroke_string("Hello world") is True
-                mock_write.assert_called_with("Hello world")
-                
-                # Test multi-line string
-                assert send_keystroke_string("Hello\nworld") is True
-                mock_write.assert_any_call("Hello")
-                mock_write.assert_any_call("world")
-                mock_hotkey.assert_called_with('shift', 'return')
-                mock_sleep.assert_called_with(0.1)
+    with patch("subprocess.run") as mock_subprocess:
+        # Mock successful subprocess call
+        mock_subprocess.return_value.returncode = 0
+
+        # Test single line
+        assert send_keystroke_string("Hello world") is True
+
+        # Verify subprocess was called (AppleScript execution)
+        assert mock_subprocess.called
+
+        # Test multi-line string
+        mock_subprocess.reset_mock()
+        assert send_keystroke_string("Hello\nworld") is True
+        assert mock_subprocess.called
 
 def test_activate_window():
     """Test window activation."""
     # Test with non-existent window (should return False)
     assert activate_window('NonExistentWindow') is False
-    
+
     # Test with common windows that should exist on test systems
     if platform.system().lower() == 'windows':
         common_window = 'Notepad'
@@ -104,10 +105,123 @@ def test_activate_window():
         common_window = 'Terminal'
     elif platform.system().lower() == 'linux':
         common_window = 'Terminal'
-    
+
     # This will be skipped if activate_window cannot find the window
     # which is preferable to failing tests on different environments
     if activate_window(common_window) is True:
         assert True  # Window activated successfully
     else:
-        pytest.skip(f"Could not activate {common_window} - skipping this validation") 
+        pytest.skip(f"Could not activate {common_window} - skipping this validation")
+
+
+def test_config_keystrokes_parsing():
+    """Test that keystrokes from config file are parsed correctly."""
+    from src.actions.keystrokes import send_keystroke
+
+    with patch("subprocess.run") as mock_subprocess:
+        # Mock successful subprocess call
+        mock_subprocess.return_value.returncode = 0
+
+        # Test keystrokes from config.yaml
+        test_keystrokes = [
+            "command+a",
+            "backspace",
+            "command+l",
+            "command+n",
+            "command+shift+l",
+            "control+`",
+        ]
+
+        for keystroke in test_keystrokes:
+            result = send_keystroke(keystroke, "cursor")
+            assert result is True, f"Failed to send keystroke: {keystroke}"
+
+        # Verify that subprocess was called for each keystroke
+        assert mock_subprocess.call_count == len(test_keystrokes)
+
+
+def test_option_enter_keystroke():
+    """Test that option+enter (used in regular keystrokes) works correctly."""
+    from src.actions.keystrokes import send_keystroke
+
+    with patch("subprocess.run") as mock_subprocess:
+        # Mock successful subprocess call
+        mock_subprocess.return_value.returncode = 0
+
+        # Test the specific keystroke from config (option+enter for Windsurf)
+        result = send_keystroke("option+enter", "windsurf")
+        assert result is True, "Failed to send option+enter keystroke"
+
+        # Verify subprocess was called
+        assert mock_subprocess.called
+
+        # Check that the AppleScript was generated correctly
+        call_args = mock_subprocess.call_args
+        args = call_args[0]  # Positional arguments
+        cmd_list = args[0]  # The command list passed to subprocess.run
+
+        # The AppleScript should be the third element in the command list
+        assert (
+            len(cmd_list) >= 3
+        ), f"Expected at least 3 cmd args, got {len(cmd_list)}: {cmd_list}"
+        applescript = cmd_list[2]  # Third argument to osascript -e
+
+        # Should contain "option down" and "return" (enter maps to return)
+        assert "option down" in applescript
+        assert "return" in applescript
+        assert "Windsurf" in applescript
+
+
+def test_regular_keystroke_functionality():
+    """Test the regular keystroke platform manager functionality."""
+    from src.platforms.manager import PlatformManager
+    from src.config.loader import ConfigManager
+    from unittest.mock import MagicMock
+    import time
+
+    # Create mock config manager
+    config_manager = MagicMock()
+    config_manager.config = {"general": {"regular_keystroke_interval": 30}}
+
+    # Create mock platform config
+    def mock_get_platform_config(platform_name):
+        if platform_name == "windsurf_test":
+            return {"regular_keystrokes": [{"keys": "option+enter", "delay_ms": 100}]}
+        return {}
+
+    config_manager.get_platform_config = mock_get_platform_config
+
+    # Create platform manager
+    platform_manager = PlatformManager(config_manager)
+
+    # Create mock platform state with regular keystrokes
+    current_time = time.time()
+    platform_manager.platform_states = {
+        "windsurf_test": {
+            "regular_keystroke_interval": 30,
+            "last_regular_keystroke_time": current_time
+            - 35,  # 35 seconds ago (should trigger)
+        },
+        "cursor_test": {
+            "regular_keystroke_interval": 30,
+            "last_regular_keystroke_time": current_time
+            - 10,  # 10 seconds ago (should not trigger)
+        },
+    }
+
+    # Test get_platforms_needing_regular_keystrokes
+    platforms_needing = platform_manager.get_platforms_needing_regular_keystrokes()
+
+    # Should only return windsurf_test since it has regular_keystrokes config and time elapsed
+    assert len(platforms_needing) == 1
+    assert platforms_needing[0]["name"] == "windsurf_test"
+    assert "regular_keystrokes" in platforms_needing[0]
+    assert len(platforms_needing[0]["regular_keystrokes"]) == 1
+    assert platforms_needing[0]["regular_keystrokes"][0]["keys"] == "option+enter"
+
+    # Test update_regular_keystroke_time
+    platform_manager.update_regular_keystroke_time("windsurf_test")
+    updated_time = platform_manager.platform_states["windsurf_test"][
+        "last_regular_keystroke_time"
+    ]
+    assert updated_time > current_time - 5  # Should be very recent
