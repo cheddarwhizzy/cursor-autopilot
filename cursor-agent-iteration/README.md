@@ -6,13 +6,13 @@ A self-managing engineering loop for any repository type using Cursor Agent CLI.
 
 ### One-liner (Recommended)
 ```bash
-curl -fsSL https://raw.githubusercontent.com/your-repo/cursor-autopilot/main/cursor-agent-iteration/install-curl.sh | bash
+curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/cursor-cli-headleess-agent/cursor-agent-iteration/install-curl.sh | bash
 ```
 
 ### Option 2: Manual Installation
 ```bash
 # Clone or download this repository
-git clone https://github.com/your-repo/cursor-autopilot.git
+git clone https://github.com/cheddarwhizzy/cursor-autopilot.git
 cd cursor-autopilot/cursor-agent-iteration
 
 # Copy files to your project
@@ -59,7 +59,20 @@ This will:
 
 ## 📁 Generated Files
 
-After initialization, you'll get these control files:
+### During Bootstrap (curl command):
+- `prompts/initialize-iteration-universal.md` - Universal initialization prompt
+- `scripts/init-iterate.sh` - Initialization script
+- `architecture.md` - System architecture documentation (initial)
+- `progress.md` - Progress tracking (initial)
+- `decisions.md` - Architectural Decision Records (initial)
+- `test_plan.md` - Test coverage plans (initial)
+- `qa_checklist.md` - Quality assurance checklist (initial)
+- `CHANGELOG.md` - Conventional commits log (initial)
+- `context.md` - Project context (if not existing)
+
+### After `make iterate-init`:
+- `prompts/iterate.md` - Tailored iteration prompt (auto-generated)
+- `tasks.md` - Task backlog with acceptance criteria
 
 | File | Purpose |
 |------|---------|
@@ -222,7 +235,7 @@ The system tracks:
 
 ```bash
 # 1. Install the system
-curl -fsSL https://raw.githubusercontent.com/your-repo/cursor-autopilot/main/cursor-agent-iteration/install-curl.sh | bash
+curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/cursor-cli-headleess-agent/cursor-agent-iteration/install-curl.sh | bash
 
 # 2. Initialize for your repository
 make iterate-init

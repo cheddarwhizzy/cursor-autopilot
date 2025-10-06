@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # One-liner installer for Cursor Agent Iteration System
-# Usage: curl -fsSL https://raw.githubusercontent.com/your-repo/cursor-autopilot/main/cursor-agent-iteration/install-curl.sh | bash
+# Usage: curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/cursor-cli-headleess-agent/cursor-agent-iteration/install-curl.sh | bash
 
 set -euo pipefail
 
@@ -23,7 +23,7 @@ fi
 
 # Download and run the bootstrap script directly
 echo -e "${CYAN}📥 Downloading and running bootstrap...${NC}"
-curl -fsSL https://raw.githubusercontent.com/your-repo/cursor-autopilot/main/cursor-agent-iteration/bootstrap.sh | bash
+curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/cursor-cli-headleess-agent/cursor-agent-iteration/bootstrap.sh | bash
 
 echo ""
 echo -e "${GREEN}🎉 Installation complete!${NC}"

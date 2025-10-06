@@ -7,7 +7,7 @@ This document provides real-world examples of how to use the Cursor Agent Iterat
 ### Basic Installation
 ```bash
 # One-liner installation
-curl -fsSL https://raw.githubusercontent.com/your-repo/cursor-autopilot/main/cursor-agent-iteration/install-curl.sh | bash
+curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/cursor-cli-headleess-agent/cursor-agent-iteration/install-curl.sh | bash
 
 # Initialize the system
 make iterate-init
@@ -189,7 +189,7 @@ make iterate-custom PROMPT="Update the quality gates in prompts/iterate.md to in
 
 ```bash
 # 1. Install the system
-curl -fsSL https://raw.githubusercontent.com/your-repo/cursor-autopilot/main/cursor-agent-iteration/install-curl.sh | bash
+curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/cursor-cli-headleess-agent/cursor-agent-iteration/install-curl.sh | bash
 
 # 2. Initialize for your repository
 make iterate-init

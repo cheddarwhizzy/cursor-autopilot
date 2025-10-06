@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Cursor Agent Iteration System - Bootstrap Script
-# Usage: curl -fsSL https://raw.githubusercontent.com/your-repo/cursor-autopilot/main/cursor-agent-iteration/bootstrap.sh | bash
+# Usage: curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/cursor-cli-headleess-agent/cursor-agent-iteration/bootstrap.sh | bash
 
 set -euo pipefail
 
@@ -49,7 +49,7 @@ Hard requirements
   - **Go**: `go vet`, `golangci-lint`, `go test -race -cover`, `gofmt`, `go mod tidy`
   - **Rust**: `cargo clippy`, `cargo test`, `cargo fmt`, `cargo audit`
   - **Java**: `mvn test`, `mvn spotbugs:check`, `mvn checkstyle:check`, `mvn pmd:check`
-  - **Infrastructure**: `terraform validate`, `terraform plan`, `ansible-lint`, `dockerfile-lint`
+  - **Infrastructure**: `terraform validate`, `terraform plan`, `ansible-lint`, `dockerfile-lint`, `helm lint`
   - **Shell**: `shellcheck`, `bashate`
 - Respect **client/server boundary**: secrets server‑side only; no env leakage into client bundles.
 - Always read and maintain the control files on each run: `architecture.md`, `tasks.md`, `progress.md`, `decisions.md`, `test_plan.md`, `qa_checklist.md`, `CHANGELOG.md`.
@@ -229,6 +229,174 @@ tasks-update:
 EOF
 fi
 
+# Create initial control files
+echo -e "${CYAN}📋 Creating control files...${NC}"
+
+# Create architecture.md
+cat > architecture.md << 'EOF'
+# Architecture Documentation
+
+This file will be automatically updated by the iteration system as the project evolves.
+
+## Current State
+- Repository structure detected during bootstrap
+- Technology stack analysis pending
+
+## Components
+- To be populated by iteration system
+
+## Data Flow
+- To be documented during development
+
+## Dependencies
+- To be analyzed and documented
+
+---
+*This file is managed by the Cursor Agent Iteration System*
+EOF
+
+# Create progress.md
+cat > progress.md << 'EOF'
+# Progress Tracking
+
+This file tracks the progress of the iteration system.
+
+## Bootstrap Completed
+- **Date**: $(date)
+- **Repository**: $(pwd)
+- **Git Branch**: $(git branch --show-current 2>/dev/null || echo "unknown")
+- **Status**: Bootstrap completed successfully
+
+## Tasks Completed
+- [x] Bootstrap iteration system
+- [x] Initialize control files
+- [x] Set up directory structure
+
+## Next Steps
+1. Run `make iterate-init` to analyze repository and generate tasks
+2. Run `make iterate` to start working on tasks
+
+---
+*This file is automatically updated by the iteration system*
+EOF
+
+# Create decisions.md
+cat > decisions.md << 'EOF'
+# Architectural Decision Records (ADRs)
+
+This file tracks important architectural decisions made during development.
+
+## ADR-001: Cursor Agent Iteration System
+- **Date**: $(date)
+- **Status**: Accepted
+- **Context**: Implemented self-managing engineering loop using Cursor Agent CLI
+- **Decision**: Use cursor-agent for automated code generation and iteration
+- **Consequences**: 
+  - Automated task management and execution
+  - Quality gate enforcement
+  - Progress tracking and documentation
+
+---
+*This file is automatically updated by the iteration system*
+EOF
+
+# Create test_plan.md
+cat > test_plan.md << 'EOF'
+# Test Plan
+
+This file tracks test coverage plans and requirements.
+
+## Coverage Targets
+- **Python**: ≥ 70% line coverage (pytest)
+- **TypeScript/JavaScript**: ≥ 80% line coverage (jest/vitest)
+- **Go**: ≥ 80% line coverage (go test)
+- **Rust**: ≥ 80% line coverage (cargo test)
+- **Java**: ≥ 70% line coverage (JUnit/TestNG)
+- **Infrastructure**: Validation and security scanning
+
+## Test Strategy
+- Unit tests for all business logic
+- Integration tests for API endpoints
+- E2E tests for critical user flows
+- Security tests for authentication and authorization
+
+---
+*This file is automatically updated by the iteration system*
+EOF
+
+# Create qa_checklist.md
+cat > qa_checklist.md << 'EOF'
+# Quality Assurance Checklist
+
+This file tracks quality gates and validation criteria.
+
+## Code Quality Gates
+- [ ] **Linting**: All code passes linting rules
+- [ ] **Formatting**: Code is properly formatted
+- [ ] **Type Checking**: All types are properly defined
+- [ ] **Testing**: Adequate test coverage
+- [ ] **Security**: No security vulnerabilities
+- [ ] **Documentation**: Code is properly documented
+
+## Technology-Specific Gates
+- **Python**: ruff, black, mypy, pytest
+- **TypeScript/JavaScript**: tsc, eslint, jest/vitest
+- **Go**: go vet, golangci-lint, go test
+- **Rust**: cargo clippy, cargo test, cargo fmt
+- **Java**: mvn spotbugs, mvn checkstyle, mvn test
+- **Infrastructure**: terraform validate, ansible-lint, dockerfile-lint
+
+---
+*This file is automatically updated by the iteration system*
+EOF
+
+# Create CHANGELOG.md
+cat > CHANGELOG.md << 'EOF'
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Added
+- Cursor Agent Iteration System bootstrap
+- Universal technology detection
+- Quality gate enforcement
+- Progress tracking and documentation
+
+---
+*This file is automatically updated by the iteration system*
+EOF
+
+# Create context.md (if it doesn't exist)
+if [[ ! -f "context.md" ]]; then
+cat > context.md << 'EOF'
+# Project Context
+
+This file provides context about the project for the iteration system.
+
+## Project Overview
+- **Repository**: $(pwd)
+- **Primary Languages**: To be detected during initialization
+- **Frameworks**: To be detected during initialization
+- **Infrastructure**: To be detected during initialization
+
+## Development Environment
+- **OS**: $(uname -s)
+- **Shell**: $(basename $SHELL)
+- **Git**: $(git --version 2>/dev/null || echo "Not available")
+
+## Key Files
+- To be populated during repository analysis
+
+---
+*This file is automatically updated by the iteration system*
+EOF
+fi
+
 # Create comprehensive README
 echo -e "${CYAN}📚 Creating documentation...${NC}"
 cat > CURSOR_ITERATION_README.md << 'EOF'
@@ -239,7 +407,7 @@ A self-managing engineering loop for any repository type using Cursor Agent CLI.
 ## 🚀 Installation
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/your-repo/cursor-autopilot/main/cursor-agent-iteration/bootstrap.sh | bash
+curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/cursor-cli-headleess-agent/cursor-agent-iteration/bootstrap.sh | bash
 ```
 
 ## ⚡ Quick Start
@@ -317,21 +485,21 @@ make iterate-custom PROMPT="Diagnose and fix quality gate failures"
 
 ### Go Project
 ```bash
-curl -fsSL https://raw.githubusercontent.com/your-repo/cursor-autopilot/main/cursor-agent-iteration/bootstrap.sh | bash
+curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/cursor-cli-headleess-agent/cursor-agent-iteration/bootstrap.sh | bash
 make iterate-init  # Detects Go, creates Go-specific tasks
 make iterate       # Runs Go quality gates (go vet, golangci-lint, go test)
 ```
 
 ### Rust Project
 ```bash
-curl -fsSL https://raw.githubusercontent.com/your-repo/cursor-autopilot/main/cursor-agent-iteration/bootstrap.sh | bash
+curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/cursor-cli-headleess-agent/cursor-agent-iteration/bootstrap.sh | bash
 make iterate-init  # Detects Rust, creates Rust-specific tasks
 make iterate       # Runs Rust quality gates (cargo clippy, cargo test, cargo fmt)
 ```
 
 ### Infrastructure Project
 ```bash
-curl -fsSL https://raw.githubusercontent.com/your-repo/cursor-autopilot/main/cursor-agent-iteration/bootstrap.sh | bash
+curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/cursor-cli-headleess-agent/cursor-agent-iteration/bootstrap.sh | bash
 make iterate-init  # Detects Terraform/Ansible, creates infrastructure tasks
 make iterate       # Runs infrastructure quality gates (terraform validate, ansible-lint)
 ```
@@ -343,6 +511,17 @@ EOF
 
 echo ""
 echo -e "${GREEN}✅ Bootstrap complete!${NC}"
+echo ""
+echo -e "${CYAN}📋 Created Files:${NC}"
+echo -e "   - ${YELLOW}prompts/initialize-iteration-universal.md${NC} - Universal initialization prompt"
+echo -e "   - ${YELLOW}scripts/init-iterate.sh${NC} - Initialization script"
+echo -e "   - ${YELLOW}architecture.md${NC} - Architecture documentation"
+echo -e "   - ${YELLOW}progress.md${NC} - Progress tracking"
+echo -e "   - ${YELLOW}decisions.md${NC} - Architectural Decision Records"
+echo -e "   - ${YELLOW}test_plan.md${NC} - Test coverage plans"
+echo -e "   - ${YELLOW}qa_checklist.md${NC} - Quality assurance checklist"
+echo -e "   - ${YELLOW}CHANGELOG.md${NC} - Conventional commits log"
+echo -e "   - ${YELLOW}context.md${NC} - Project context (if not existing)"
 echo ""
 echo -e "${CYAN}📋 Next Steps:${NC}"
 echo -e "   1. ${YELLOW}make iterate-init${NC}     # Initialize and analyze your repository"

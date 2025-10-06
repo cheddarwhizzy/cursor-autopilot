@@ -6,7 +6,7 @@ Get up and running with the Cursor Agent Iteration System in under 5 minutes.
 
 ```bash
 # One-liner installation
-curl -fsSL https://raw.githubusercontent.com/your-repo/cursor-autopilot/main/cursor-agent-iteration/install-curl.sh | bash
+curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/cursor-cli-headleess-agent/cursor-agent-iteration/install-curl.sh | bash
 ```
 
 ## ⚡ Quick Start (2 minutes)
