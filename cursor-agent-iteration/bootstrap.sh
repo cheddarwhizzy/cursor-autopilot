@@ -500,6 +500,7 @@ chmod +x scripts/check-complete.sh scripts/iterate-loop.sh scripts/add-feature.s
 
 # Check if Makefile exists, if not create one
 # Note: If Makefile exists, we check for existing targets to avoid duplicates
+# We also ensure all cursor-agent-iteration targets are present
 if [[ ! -f "Makefile" ]]; then
     echo -e "${YELLOW}📝 Creating Makefile...${NC}"
     cat > Makefile << 'EOF'
@@ -569,15 +570,27 @@ archive-completed:
 	@./scripts/archive-completed.sh
 EOF
 else
-    echo -e "${CYAN}📝 Checking existing Makefile targets...${NC}"
+    echo -e "${CYAN}📝 Checking existing Makefile for missing targets...${NC}"
     
-    # Check if cursor-agent-iteration targets already exist
-    if grep -q "## iterate-init:" Makefile; then
-        echo -e "${YELLOW}⚠️  Cursor Agent Iteration targets already exist in Makefile${NC}"
-        echo -e "${CYAN}📝 Skipping Makefile update to avoid duplicates${NC}"
+    # Define all required targets
+    REQUIRED_TARGETS=("iterate-init" "iterate" "iterate-custom" "tasks-update" "iterate-complete" "iterate-loop" "add-feature" "archive-completed")
+    MISSING_TARGETS=()
+    
+    # Check which targets are missing
+    for target in "${REQUIRED_TARGETS[@]}"; do
+        if ! grep -q "## $target:" Makefile; then
+            MISSING_TARGETS+=("$target")
+        fi
+    done
+    
+    if [[ ${#MISSING_TARGETS[@]} -eq 0 ]]; then
+        echo -e "${GREEN}✅ All cursor-agent-iteration targets already exist in Makefile${NC}"
+        echo -e "${CYAN}📝 No Makefile updates needed${NC}"
     else
-        echo -e "${CYAN}📝 Adding Makefile targets...${NC}"
-        # Add iteration targets to existing Makefile
+        echo -e "${YELLOW}⚠️  Missing targets found: ${MISSING_TARGETS[*]}${NC}"
+        echo -e "${CYAN}📝 Adding missing targets to existing Makefile...${NC}"
+        
+        # Add missing targets to existing Makefile
         cat >> Makefile << 'EOF'
 
 ## iterate-init: Initialize universal iteration system
@@ -625,6 +638,7 @@ archive-completed:
 	@echo "Archiving completed tasks..."
 	@./scripts/archive-completed.sh
 EOF
+        echo -e "${GREEN}✅ Added missing targets to Makefile${NC}"
     fi
 fi
 
