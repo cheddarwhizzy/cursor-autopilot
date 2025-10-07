@@ -214,15 +214,22 @@ Detected stacks and inferred setup.
 ### Next Steps
 
 1. Commit generated files.
-2. Run the iteration loop:
+2. Add features to populate tasks:
 
    ```bash
-   cursor agent run prompts/iterate.md
+   make add-feature  # Add new feature/requirements to architect and create tasks
    ```
-3. Verify control loop with:
+3. Check task status:
 
    ```bash
-   ./verify-control-loop.sh
+   make task-status  # Show current task status (will be empty until features added)
+   ```
+4. Run the iteration loop:
+
+   ```bash
+   make iterate  # Process the next task
+   # OR
+   make iterate-loop  # Run continuously until all tasks complete
    ```
 
 ---
