@@ -685,208 +685,9 @@ EOF
     echo -e "${GREEN}✅ Added fresh cursor-agent-iteration targets to Makefile${NC}"
 fi
 
-# Create initial control files
-echo -e "${CYAN}📋 Creating control files...${NC}"
-
-# Create architecture.md (only if it doesn't exist)
-if [[ ! -f "architecture.md" ]]; then
-    echo -e "${YELLOW}📝 Creating architecture.md...${NC}"
-    cat > architecture.md << 'EOF'
-# Architecture Documentation
-
-This file will be automatically updated by the iteration system as the project evolves.
-
-## Current State
-- Repository structure detected during bootstrap
-- Technology stack analysis pending
-
-## Components
-- To be populated by iteration system
-
-## Data Flow
-- To be documented during development
-
-## Dependencies
-- To be analyzed and documented
-
----
-*This file is managed by the Cursor Agent Iteration System*
-EOF
-else
-    echo -e "${GREEN}✅ architecture.md already exists - preserving existing content${NC}"
-fi
-
-# Create progress.md (only if it doesn't exist)
-if [[ ! -f "progress.md" ]]; then
-    echo -e "${YELLOW}📝 Creating progress.md...${NC}"
-    cat > progress.md << 'EOF'
-# Progress Tracking
-
-This file tracks the progress of the iteration system.
-
-## Bootstrap Completed
-- **Date**: $(date)
-- **Repository**: $(pwd)
-- **Git Branch**: $(git branch --show-current 2>/dev/null || echo "unknown")
-- **Status**: Bootstrap completed successfully
-
-## Tasks Completed
-- [x] Bootstrap iteration system
-- [x] Initialize control files
-- [x] Set up directory structure
-
-## Next Steps
-1. Run `make iterate-init` to analyze repository and generate tasks
-2. Run `make iterate` to start working on tasks
-
----
-*This file is automatically updated by the iteration system*
-EOF
-else
-    echo -e "${GREEN}✅ progress.md already exists - preserving existing content${NC}"
-fi
-
-# Create decisions.md (only if it doesn't exist)
-if [[ ! -f "decisions.md" ]]; then
-    echo -e "${YELLOW}📝 Creating decisions.md...${NC}"
-    cat > decisions.md << 'EOF'
-# Architectural Decision Records (ADRs)
-
-This file tracks important architectural decisions made during development.
-
-## ADR-001: Cursor Agent Iteration System
-- **Date**: $(date)
-- **Status**: Accepted
-- **Context**: Implemented self-managing engineering loop using Cursor Agent CLI
-- **Decision**: Use cursor-agent for automated code generation and iteration
-- **Consequences**: 
-  - Automated task management and execution
-  - Quality gate enforcement
-  - Progress tracking and documentation
-
----
-*This file is automatically updated by the iteration system*
-EOF
-else
-    echo -e "${GREEN}✅ decisions.md already exists - preserving existing content${NC}"
-fi
-
-# Create test_plan.md (only if it doesn't exist)
-if [[ ! -f "test_plan.md" ]]; then
-    echo -e "${YELLOW}📝 Creating test_plan.md...${NC}"
-    cat > test_plan.md << 'EOF'
-# Test Plan
-
-This file tracks test coverage plans and requirements.
-
-## Coverage Targets
-- **Python**: ≥ 70% line coverage (pytest)
-- **TypeScript/JavaScript**: ≥ 80% line coverage (jest/vitest)
-- **Go**: ≥ 80% line coverage (go test)
-- **Rust**: ≥ 80% line coverage (cargo test)
-- **Java**: ≥ 70% line coverage (JUnit/TestNG)
-- **Infrastructure**: Validation and security scanning
-
-## Test Strategy
-- Unit tests for all business logic
-- Integration tests for API endpoints
-- E2E tests for critical user flows
-- Security tests for authentication and authorization
-
----
-*This file is automatically updated by the iteration system*
-EOF
-else
-    echo -e "${GREEN}✅ test_plan.md already exists - preserving existing content${NC}"
-fi
-
-# Create qa_checklist.md (only if it doesn't exist)
-if [[ ! -f "qa_checklist.md" ]]; then
-    echo -e "${YELLOW}📝 Creating qa_checklist.md...${NC}"
-    cat > qa_checklist.md << 'EOF'
-# Quality Assurance Checklist
-
-This file tracks quality gates and validation criteria.
-
-## Code Quality Gates
-- [ ] **Linting**: All code passes linting rules
-- [ ] **Formatting**: Code is properly formatted
-- [ ] **Type Checking**: All types are properly defined
-- [ ] **Testing**: Adequate test coverage
-- [ ] **Security**: No security vulnerabilities
-- [ ] **Documentation**: Code is properly documented
-
-## Technology-Specific Gates
-- **Python**: ruff, black, mypy, pytest
-- **TypeScript/JavaScript**: tsc, eslint, jest/vitest
-- **Go**: go vet, golangci-lint, go test
-- **Rust**: cargo clippy, cargo test, cargo fmt
-- **Java**: mvn spotbugs, mvn checkstyle, mvn test
-- **Infrastructure**: terraform validate, ansible-lint, dockerfile-lint
-
----
-*This file is automatically updated by the iteration system*
-EOF
-else
-    echo -e "${GREEN}✅ qa_checklist.md already exists - preserving existing content${NC}"
-fi
-
-# Create CHANGELOG.md (only if it doesn't exist)
-if [[ ! -f "CHANGELOG.md" ]]; then
-    echo -e "${YELLOW}📝 Creating CHANGELOG.md...${NC}"
-    cat > CHANGELOG.md << 'EOF'
-# Changelog
-
-All notable changes to this project will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-## [Unreleased]
-
-### Added
-- Cursor Agent Iteration System bootstrap
-- Universal technology detection
-- Quality gate enforcement
-- Progress tracking and documentation
-- Smart Makefile handling with duplicate prevention
-- Task status command for progress monitoring
-- Simplified command interface (removed iterate-custom and tasks-update)
-- Feature-first architecture approach
-
----
-*This file is automatically updated by the iteration system*
-EOF
-else
-    echo -e "${GREEN}✅ CHANGELOG.md already exists - preserving existing content${NC}"
-fi
-
-# Create context.md (if it doesn't exist)
-if [[ ! -f "context.md" ]]; then
-    echo -e "${YELLOW}📝 Creating context.md...${NC}"
-    cat > context.md << 'EOF'
-# Project Context
-
-This file provides context about the project for the iteration system.
-
-## Project Overview
-- **Repository**: $(pwd)
-- **Primary Languages**: To be detected during initialization
-- **Frameworks**: To be detected during initialization
-- **Infrastructure**: To be detected during initialization
-
-## Development Environment
-- **OS**: $(uname -s)
-- **Shell**: $(basename $SHELL)
-- **Git**: $(git --version 2>/dev/null || echo "Not available")
-
-## Key Files
-- To be populated during repository analysis
-
----
-*This file is automatically updated by the iteration system*
-EOF
-fi
+# Note: Control files (architecture.md, decisions.md, test_plan.md, etc.) are created
+# by 'make iterate-init' with project-specific analysis, not by bootstrap.sh
+echo -e "${CYAN}📋 Control files are managed by 'make iterate-init' - preserving existing project analysis${NC}"
 
 # Create comprehensive README
 echo -e "${CYAN}📚 Creating documentation...${NC}"
@@ -1026,13 +827,17 @@ echo -e "   - ${YELLOW}scripts/check-complete.sh${NC} - Completion checker"
 echo -e "   - ${YELLOW}scripts/iterate-loop.sh${NC} - Continuous loop script"
 echo -e "   - ${YELLOW}scripts/add-feature.sh${NC} - Feature addition script"
 echo -e "   - ${YELLOW}scripts/archive-completed.sh${NC} - Task archiving script"
+echo -e "   - ${YELLOW}Makefile${NC} - Updated with cursor-agent-iteration targets"
+echo -e "   - ${YELLOW}CURSOR_ITERATION_README.md${NC} - Complete documentation"
+echo ""
+echo -e "${CYAN}📋 Control Files (created by 'make iterate-init'):${NC}"
 echo -e "   - ${YELLOW}architecture.md${NC} - Architecture documentation"
 echo -e "   - ${YELLOW}progress.md${NC} - Progress tracking"
 echo -e "   - ${YELLOW}decisions.md${NC} - Architectural Decision Records"
 echo -e "   - ${YELLOW}test_plan.md${NC} - Test coverage plans"
 echo -e "   - ${YELLOW}qa_checklist.md${NC} - Quality assurance checklist"
 echo -e "   - ${YELLOW}CHANGELOG.md${NC} - Conventional commits log"
-echo -e "   - ${YELLOW}context.md${NC} - Project context (if not existing)"
+echo -e "   - ${YELLOW}context.md${NC} - Project context"
 echo ""
 echo -e "${CYAN}📋 Next Steps:${NC}"
 echo -e "   ${YELLOW}make help${NC}              # Show all available commands"
