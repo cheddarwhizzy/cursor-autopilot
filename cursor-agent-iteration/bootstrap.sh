@@ -593,30 +593,68 @@ else
         echo -e "${CYAN}📁 Created backup: Makefile.backup${NC}"
         
         # Remove existing cursor-agent-iteration targets
-        # This is complex because we need to remove target definitions and their content
-        # We'll use a more sophisticated approach with awk or sed
+        # Use a simple and reliable approach: create a new Makefile without cursor targets
         
         # Create a temporary file with the cleaned Makefile
         TEMP_MAKEFILE=$(mktemp)
         
-        # Process the Makefile to remove cursor-agent-iteration targets
-        awk '
-        BEGIN { skip = 0 }
-        /^## (iterate-init|iterate|iterate-custom|tasks-update|iterate-complete|iterate-loop|add-feature|archive-completed):/ {
-            skip = 1
-            next
-        }
-        /^## [^:]*:/ && skip == 1 {
-            skip = 0
-        }
-        /^[^#[:space:]]/ && skip == 1 {
-            skip = 0
-        }
-        skip == 0 { print }
-        ' Makefile > "$TEMP_MAKEFILE"
-        
+        # Create a Python script to clean the Makefile
+        python3 << 'EOF'
+import re
+
+# Read the Makefile
+with open('Makefile', 'r') as f:
+    lines = f.readlines()
+
+# Cursor agent iteration targets to remove
+cursor_targets = [
+    'iterate-init', 'iterate', 'iterate-custom', 'tasks-update',
+    'iterate-complete', 'iterate-loop', 'add-feature', 'archive-completed'
+]
+
+# Pattern to match cursor target definitions
+target_pattern = r'^## (' + '|'.join(cursor_targets) + r'):'
+
+# Clean the Makefile
+cleaned_lines = []
+skip_mode = False
+in_cursor_target = False
+
+for line in lines:
+    # Check if this is a cursor target definition
+    if re.match(target_pattern, line):
+        in_cursor_target = True
+        skip_mode = True
+        continue
+    
+    # Check if this is another target definition (end of cursor target block)
+    if skip_mode and re.match(r'^## [^:]*:', line):
+        in_cursor_target = False
+        skip_mode = False
+        cleaned_lines.append(line)
+        continue
+    
+    # Check if this is a regular target definition (end of cursor target block)
+    if skip_mode and re.match(r'^[a-zA-Z0-9_-]+:', line):
+        in_cursor_target = False
+        skip_mode = False
+        cleaned_lines.append(line)
+        continue
+    
+    # Skip lines that are part of cursor target blocks
+    if skip_mode:
+        continue
+    
+    # Keep all other lines
+    cleaned_lines.append(line)
+
+# Write the cleaned Makefile
+with open('Makefile.clean', 'w') as f:
+    f.writelines(cleaned_lines)
+EOF
+
         # Move the cleaned Makefile back
-        mv "$TEMP_MAKEFILE" Makefile
+        mv Makefile.clean Makefile
         
         echo -e "${GREEN}✅ Removed old cursor-agent-iteration targets${NC}"
     else
