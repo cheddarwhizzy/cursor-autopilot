@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Cursor Agent Iteration System - Bootstrap Script
-# Usage: curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/cursor-cli-headleess-agent/cursor-agent-iteration/bootstrap.sh | bash
+# Usage: curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/main/cursor-agent-iteration/bootstrap.sh | bash
 
 set -euo pipefail
 
@@ -701,7 +701,7 @@ A self-managing engineering loop for any repository type using Cursor Agent CLI.
 ## 🚀 Installation
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/cursor-cli-headleess-agent/cursor-agent-iteration/bootstrap.sh | bash
+curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/main/cursor-agent-iteration/bootstrap.sh | bash
 ```
 
 ## ⚡ Quick Start
@@ -792,7 +792,7 @@ make add-feature  # Add a new feature to trigger fresh analysis
 
 ### Go Project
 ```bash
-curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/cursor-cli-headleess-agent/cursor-agent-iteration/bootstrap.sh | bash
+curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/main/cursor-agent-iteration/bootstrap.sh | bash
 make iterate-init  # Detects Go, analyzes codebase
 make add-feature   # Add features with Go-specific architecture
 make iterate       # Runs Go quality gates (go vet, golangci-lint, go test)
@@ -800,7 +800,7 @@ make iterate       # Runs Go quality gates (go vet, golangci-lint, go test)
 
 ### Rust Project
 ```bash
-curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/cursor-cli-headleess-agent/cursor-agent-iteration/bootstrap.sh | bash
+curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/main/cursor-agent-iteration/bootstrap.sh | bash
 make iterate-init  # Detects Rust, analyzes codebase
 make add-feature   # Add features with Rust-specific architecture
 make iterate       # Runs Rust quality gates (cargo clippy, cargo test, cargo fmt)
@@ -808,7 +808,7 @@ make iterate       # Runs Rust quality gates (cargo clippy, cargo test, cargo fm
 
 ### Infrastructure Project
 ```bash
-curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/cursor-cli-headleess-agent/cursor-agent-iteration/bootstrap.sh | bash
+curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/main/cursor-agent-iteration/bootstrap.sh | bash
 make iterate-init  # Detects Terraform/Ansible, analyzes codebase
 make add-feature   # Add features with infrastructure architecture
 make iterate       # Runs infrastructure quality gates (terraform validate, ansible-lint)
