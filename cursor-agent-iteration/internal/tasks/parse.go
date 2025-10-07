@@ -86,6 +86,20 @@ func StatusReport(md string) string {
     var b strings.Builder
     b.WriteString("📊 Task Status Overview\n")
     b.WriteString("======================\n\n")
+    
+    // Show current task status at the top
+    current := GetCurrentTask(md)
+    if current != nil {
+        b.WriteString(fmt.Sprintf("🎯 CURRENT TASK: %s (%d/%d criteria completed)\n\n", current.Title, current.ACChecked, current.ACTotal))
+    } else if len(ts) > 0 {
+        next := GetNextPendingTask(md)
+        if next != nil {
+            b.WriteString(fmt.Sprintf("🎯 NEXT TASK: %s\n\n", next.Title))
+        } else {
+            b.WriteString("🎯 ALL TASKS COMPLETED! 🎉\n\n")
+        }
+    }
+    
     b.WriteString(fmt.Sprintf("Total Tasks: %d\n", total))
     b.WriteString(fmt.Sprintf("✅ Completed: %d\n", done))
     b.WriteString(fmt.Sprintf("🔄 In Progress: %d\n", prog))
@@ -97,8 +111,12 @@ func StatusReport(md string) string {
     }
     if prog > 0 {
         b.WriteString("🔄 In Progress Tasks:\n")
-        b.WriteString(strings.Join(progL, "\n"))
-        b.WriteString("\n\n")
+        for _, t := range ts {
+            if t.ACChecked > 0 && t.ACChecked < t.ACTotal {
+                b.WriteString(fmt.Sprintf("  - %s (%d/%d criteria completed)\n", t.Title, t.ACChecked, t.ACTotal))
+            }
+        }
+        b.WriteString("\n")
     }
     if pend > 0 {
         b.WriteString("⏳ Pending Tasks (next 5):\n")
