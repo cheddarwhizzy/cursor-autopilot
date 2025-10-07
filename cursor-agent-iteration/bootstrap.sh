@@ -688,8 +688,10 @@ fi
 # Create initial control files
 echo -e "${CYAN}📋 Creating control files...${NC}"
 
-# Create architecture.md
-cat > architecture.md << 'EOF'
+# Create architecture.md (only if it doesn't exist)
+if [[ ! -f "architecture.md" ]]; then
+    echo -e "${YELLOW}📝 Creating architecture.md...${NC}"
+    cat > architecture.md << 'EOF'
 # Architecture Documentation
 
 This file will be automatically updated by the iteration system as the project evolves.
@@ -710,9 +712,14 @@ This file will be automatically updated by the iteration system as the project e
 ---
 *This file is managed by the Cursor Agent Iteration System*
 EOF
+else
+    echo -e "${GREEN}✅ architecture.md already exists - preserving existing content${NC}"
+fi
 
-# Create progress.md
-cat > progress.md << 'EOF'
+# Create progress.md (only if it doesn't exist)
+if [[ ! -f "progress.md" ]]; then
+    echo -e "${YELLOW}📝 Creating progress.md...${NC}"
+    cat > progress.md << 'EOF'
 # Progress Tracking
 
 This file tracks the progress of the iteration system.
@@ -735,9 +742,14 @@ This file tracks the progress of the iteration system.
 ---
 *This file is automatically updated by the iteration system*
 EOF
+else
+    echo -e "${GREEN}✅ progress.md already exists - preserving existing content${NC}"
+fi
 
-# Create decisions.md
-cat > decisions.md << 'EOF'
+# Create decisions.md (only if it doesn't exist)
+if [[ ! -f "decisions.md" ]]; then
+    echo -e "${YELLOW}📝 Creating decisions.md...${NC}"
+    cat > decisions.md << 'EOF'
 # Architectural Decision Records (ADRs)
 
 This file tracks important architectural decisions made during development.
@@ -755,9 +767,14 @@ This file tracks important architectural decisions made during development.
 ---
 *This file is automatically updated by the iteration system*
 EOF
+else
+    echo -e "${GREEN}✅ decisions.md already exists - preserving existing content${NC}"
+fi
 
-# Create test_plan.md
-cat > test_plan.md << 'EOF'
+# Create test_plan.md (only if it doesn't exist)
+if [[ ! -f "test_plan.md" ]]; then
+    echo -e "${YELLOW}📝 Creating test_plan.md...${NC}"
+    cat > test_plan.md << 'EOF'
 # Test Plan
 
 This file tracks test coverage plans and requirements.
@@ -779,9 +796,14 @@ This file tracks test coverage plans and requirements.
 ---
 *This file is automatically updated by the iteration system*
 EOF
+else
+    echo -e "${GREEN}✅ test_plan.md already exists - preserving existing content${NC}"
+fi
 
-# Create qa_checklist.md
-cat > qa_checklist.md << 'EOF'
+# Create qa_checklist.md (only if it doesn't exist)
+if [[ ! -f "qa_checklist.md" ]]; then
+    echo -e "${YELLOW}📝 Creating qa_checklist.md...${NC}"
+    cat > qa_checklist.md << 'EOF'
 # Quality Assurance Checklist
 
 This file tracks quality gates and validation criteria.
@@ -805,9 +827,14 @@ This file tracks quality gates and validation criteria.
 ---
 *This file is automatically updated by the iteration system*
 EOF
+else
+    echo -e "${GREEN}✅ qa_checklist.md already exists - preserving existing content${NC}"
+fi
 
-# Create CHANGELOG.md
-cat > CHANGELOG.md << 'EOF'
+# Create CHANGELOG.md (only if it doesn't exist)
+if [[ ! -f "CHANGELOG.md" ]]; then
+    echo -e "${YELLOW}📝 Creating CHANGELOG.md...${NC}"
+    cat > CHANGELOG.md << 'EOF'
 # Changelog
 
 All notable changes to this project will be documented in this file.
@@ -830,10 +857,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 *This file is automatically updated by the iteration system*
 EOF
+else
+    echo -e "${GREEN}✅ CHANGELOG.md already exists - preserving existing content${NC}"
+fi
 
 # Create context.md (if it doesn't exist)
 if [[ ! -f "context.md" ]]; then
-cat > context.md << 'EOF'
+    echo -e "${YELLOW}📝 Creating context.md...${NC}"
+    cat > context.md << 'EOF'
 # Project Context
 
 This file provides context about the project for the iteration system.
