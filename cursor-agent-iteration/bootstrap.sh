@@ -813,6 +813,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Universal technology detection
 - Quality gate enforcement
 - Progress tracking and documentation
+- Smart Makefile handling with duplicate prevention
+- Task status command for progress monitoring
+- Simplified command interface (removed iterate-custom and tasks-update)
+- Feature-first architecture approach
 
 ---
 *This file is automatically updated by the iteration system*
@@ -863,7 +867,13 @@ curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/curs
 # 1. Initialize the system (analyzes your repo)
 make iterate-init
 
-# 2. Start working on tasks
+# 2. Add features with proper architecture analysis
+make add-feature
+
+# 3. Check task status
+make task-status
+
+# 4. Start working on tasks
 make iterate
 ```
 
@@ -885,30 +895,37 @@ The system automatically detects and supports:
 
 | Command | Description | Example |
 |---------|-------------|---------|
+| `make help` | Show all available commands | `make help` |
 | `make iterate-init` | Initialize and analyze repository | `make iterate-init` |
+| `make add-feature` | Add new feature with architecture analysis | `make add-feature` |
+| `make task-status` | Show current task status and progress | `make task-status` |
 | `make iterate` | Run the next task | `make iterate` |
-| `make iterate-custom` | Run with custom focus | `make iterate-custom PROMPT="Work on security"` |
-| `make tasks-update` | Add new tasks | `make tasks-update PROMPT="Add API tasks"` |
+| `make iterate-loop` | Run iterations until all tasks complete | `make iterate-loop` |
+| `make iterate-complete` | Check if all tasks are completed | `make iterate-complete` |
+| `make archive-completed` | Archive completed tasks | `make archive-completed` |
 
 ## 🎯 How It Works
 
 1. **Repository Analysis**: Detects languages, frameworks, and structure
-2. **Task Generation**: Creates realistic, technology-specific tasks
-3. **Quality Gates**: Enforces appropriate standards for each detected stack
-4. **Iteration Loop**: Runs Plan → Implement → Test → Validate → Document → Commit
-5. **Progress Tracking**: Updates control files automatically
+2. **Feature Architecture**: Add features with proper codebase analysis and design
+3. **Task Creation**: Creates realistic, technology-specific tasks from features
+4. **Quality Gates**: Enforces appropriate standards for each detected stack
+5. **Iteration Loop**: Runs Plan → Implement → Test → Validate → Document → Commit
+6. **Progress Tracking**: Updates control files automatically
 
 ## 📁 Generated Files
 
 After `make iterate-init`:
 - `prompts/iterate.md` - Tailored iteration prompt
-- `tasks.md` - Technology-specific task backlog
 - `architecture.md` - System architecture documentation
 - `progress.md` - Progress tracking and evidence
 - `decisions.md` - Architectural Decision Records
 - `test_plan.md` - Test coverage plans
 - `qa_checklist.md` - Quality assurance checklist
 - `CHANGELOG.md` - Conventional commits log
+
+After `make add-feature`:
+- `tasks.md` - Technology-specific task backlog (created from features)
 
 ## 🚨 Troubleshooting
 
@@ -925,7 +942,7 @@ make iterate-init
 
 ### Quality gates failing?
 ```bash
-make iterate-custom PROMPT="Diagnose and fix quality gate failures"
+make add-feature  # Add a new feature to trigger fresh analysis
 ```
 
 ## 📚 Examples
@@ -933,21 +950,24 @@ make iterate-custom PROMPT="Diagnose and fix quality gate failures"
 ### Go Project
 ```bash
 curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/cursor-cli-headleess-agent/cursor-agent-iteration/bootstrap.sh | bash
-make iterate-init  # Detects Go, creates Go-specific tasks
+make iterate-init  # Detects Go, analyzes codebase
+make add-feature   # Add features with Go-specific architecture
 make iterate       # Runs Go quality gates (go vet, golangci-lint, go test)
 ```
 
 ### Rust Project
 ```bash
 curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/cursor-cli-headleess-agent/cursor-agent-iteration/bootstrap.sh | bash
-make iterate-init  # Detects Rust, creates Rust-specific tasks
+make iterate-init  # Detects Rust, analyzes codebase
+make add-feature   # Add features with Rust-specific architecture
 make iterate       # Runs Rust quality gates (cargo clippy, cargo test, cargo fmt)
 ```
 
 ### Infrastructure Project
 ```bash
 curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/cursor-cli-headleess-agent/cursor-agent-iteration/bootstrap.sh | bash
-make iterate-init  # Detects Terraform/Ansible, creates infrastructure tasks
+make iterate-init  # Detects Terraform/Ansible, analyzes codebase
+make add-feature   # Add features with infrastructure architecture
 make iterate       # Runs infrastructure quality gates (terraform validate, ansible-lint)
 ```
 
