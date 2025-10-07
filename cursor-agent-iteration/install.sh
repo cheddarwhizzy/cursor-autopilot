@@ -81,7 +81,7 @@ Specification for `tasks.md` generation
   - CI: add quality gates (ruff/black/mypy/pytest/coverage, tsc/eslint/tests), cache deps, artifact test reports.
   - Observability: add structured logging and minimal tracing where appropriate.
 - Each task must have: Context, Acceptance Criteria (checkboxes), Tests (unit/integration/E2E), Expected files to touch, and an unchecked box.
-- Include a first task named **"Setup Verification: Run the loop end‑to‑end"** to prove the system works.
+- Create `tasks.md` as an empty template that will be populated later using `make add-feature`.
 
 Repository analysis checklist (to inform both files)
 - Python env: detect `pyproject.toml`, `poetry.lock`, `requirements*.txt`, `uv.lock`, `setup.cfg`.

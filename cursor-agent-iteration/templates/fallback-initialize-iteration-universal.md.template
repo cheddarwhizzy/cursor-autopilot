@@ -20,6 +20,7 @@ Hard requirements
 
 Deliverables this run
 - Patches that create `prompts/iterate.md` and `tasks.md`.
+- Create all control files: `architecture.md`, `progress.md`, `decisions.md`, `test_plan.md`, `qa_checklist.md`, `CHANGELOG.md`, `context.md`.
 - A short summary of detected stacks, test commands, and coverage targets.
 
 Specification for `prompts/iterate.md`
@@ -47,18 +48,10 @@ Specification for `prompts/iterate.md`
   - Control files updates (snippets of changes)
 
 Specification for `tasks.md` generation
-- Create if missing; otherwise merge additively.
-- Include 4–8 realistic, **repo‑specific** tasks spanning detected technologies. Examples (adapt them to this repo):
-  - **Python**: add/strengthen type hints and `mypy` config, convert dynamic dicts to TypedDict/dataclasses/pydantic models, add hypothesis property tests, improve logging/metrics, harden error handling
-  - **TypeScript/JavaScript**: add `zod` schemas at API boundaries, ensure `tsc --noEmit` under `strict`, add integration tests, ensure no secrets in client bundles
-  - **Go**: add comprehensive error handling, improve logging with structured logs, add benchmarks, implement graceful shutdown, add integration tests
-  - **Rust**: improve error handling with `thiserror`/`anyhow`, add comprehensive tests, implement proper logging, add performance benchmarks
-  - **Java**: improve exception handling, add comprehensive unit tests, implement proper logging, add integration tests
-  - **Infrastructure**: add validation, improve security scanning, add comprehensive testing, implement proper monitoring
-  - **CI/CD**: add quality gates, cache deps, artifact test reports, security scanning
-  - **Observability**: add structured logging, minimal tracing, metrics collection
+- Create if missing as an empty template; otherwise merge additively.
+- Create `tasks.md` as an empty template file with basic structure.
+- Tasks will be added later using `make add-feature` to populate with specific feature requirements.
 - Each task must have: Context, Acceptance Criteria (checkboxes), Tests (unit/integration/E2E), Expected files to touch, and an unchecked box.
-- Include a first task named **"Setup Verification: Run the loop end‑to‑end"** to prove the system works.
 
 Repository analysis checklist (to inform both files)
 - **Languages**: detect `pyproject.toml`, `package.json`, `go.mod`, `Cargo.toml`, `pom.xml`, `build.gradle`, `requirements.txt`, `Gemfile`, `composer.json`
