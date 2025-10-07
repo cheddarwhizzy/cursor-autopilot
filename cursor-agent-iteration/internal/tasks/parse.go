@@ -26,7 +26,25 @@ func parseTasks(md string) []Task {
     var tasks []Task
     var cur *Task
     inAC := false
+    inCurrentTasks := false
+    
     for _, line := range lines {
+        // Check if we've reached the "## Current Tasks" section
+        if strings.TrimSpace(line) == "## Current Tasks" {
+            inCurrentTasks = true
+            continue
+        }
+        
+        // Only parse tasks if we're in the Current Tasks section
+        if !inCurrentTasks {
+            continue
+        }
+        
+        // Stop parsing if we hit another major section (##)
+        if strings.HasPrefix(strings.TrimSpace(line), "## ") && strings.TrimSpace(line) != "## Current Tasks" {
+            break
+        }
+        
         if m := reTaskHeader.FindStringSubmatch(line); m != nil {
             if cur != nil {
                 tasks = append(tasks, *cur)
