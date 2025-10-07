@@ -570,28 +570,61 @@ archive-completed:
 	@./scripts/archive-completed.sh
 EOF
 else
-    echo -e "${CYAN}📝 Checking existing Makefile for missing targets...${NC}"
+    echo -e "${CYAN}📝 Updating existing Makefile with cursor-agent-iteration targets...${NC}"
     
-    # Define all required targets
-    REQUIRED_TARGETS=("iterate-init" "iterate" "iterate-custom" "tasks-update" "iterate-complete" "iterate-loop" "add-feature" "archive-completed")
-    MISSING_TARGETS=()
+    # Define all cursor-agent-iteration targets
+    CURSOR_TARGETS=("iterate-init" "iterate" "iterate-custom" "tasks-update" "iterate-complete" "iterate-loop" "add-feature" "archive-completed")
     
-    # Check which targets are missing
-    for target in "${REQUIRED_TARGETS[@]}"; do
-        if ! grep -q "## $target:" Makefile; then
-            MISSING_TARGETS+=("$target")
+    # Check if any cursor-agent-iteration targets exist
+    CURSOR_TARGETS_EXIST=false
+    for target in "${CURSOR_TARGETS[@]}"; do
+        if grep -q "## $target:" Makefile; then
+            CURSOR_TARGETS_EXIST=true
+            break
         fi
     done
     
-    if [[ ${#MISSING_TARGETS[@]} -eq 0 ]]; then
-        echo -e "${GREEN}✅ All cursor-agent-iteration targets already exist in Makefile${NC}"
-        echo -e "${CYAN}📝 No Makefile updates needed${NC}"
-    else
-        echo -e "${YELLOW}⚠️  Missing targets found: ${MISSING_TARGETS[*]}${NC}"
-        echo -e "${CYAN}📝 Adding missing targets to existing Makefile...${NC}"
+    if [[ "$CURSOR_TARGETS_EXIST" == "true" ]]; then
+        echo -e "${YELLOW}🔄 Found existing cursor-agent-iteration targets${NC}"
+        echo -e "${CYAN}📝 Removing old targets and adding fresh ones...${NC}"
         
-        # Add missing targets to existing Makefile
-        cat >> Makefile << 'EOF'
+        # Create a backup
+        cp Makefile Makefile.backup
+        
+        # Remove existing cursor-agent-iteration targets
+        # This is complex because we need to remove target definitions and their content
+        # We'll use a more sophisticated approach with awk or sed
+        
+        # Create a temporary file with the cleaned Makefile
+        TEMP_MAKEFILE=$(mktemp)
+        
+        # Process the Makefile to remove cursor-agent-iteration targets
+        awk '
+        BEGIN { skip = 0 }
+        /^## (iterate-init|iterate|iterate-custom|tasks-update|iterate-complete|iterate-loop|add-feature|archive-completed):/ {
+            skip = 1
+            next
+        }
+        /^## [^:]*:/ && skip == 1 {
+            skip = 0
+        }
+        /^[^#[:space:]]/ && skip == 1 {
+            skip = 0
+        }
+        skip == 0 { print }
+        ' Makefile > "$TEMP_MAKEFILE"
+        
+        # Move the cleaned Makefile back
+        mv "$TEMP_MAKEFILE" Makefile
+        
+        echo -e "${GREEN}✅ Removed old cursor-agent-iteration targets${NC}"
+    else
+        echo -e "${CYAN}📝 No existing cursor-agent-iteration targets found${NC}"
+    fi
+    
+    # Add fresh cursor-agent-iteration targets
+    echo -e "${CYAN}📝 Adding fresh cursor-agent-iteration targets...${NC}"
+    cat >> Makefile << 'EOF'
 
 ## iterate-init: Initialize universal iteration system
 iterate-init:
@@ -638,8 +671,7 @@ archive-completed:
 	@echo "Archiving completed tasks..."
 	@./scripts/archive-completed.sh
 EOF
-        echo -e "${GREEN}✅ Added missing targets to Makefile${NC}"
-    fi
+    echo -e "${GREEN}✅ Added fresh cursor-agent-iteration targets to Makefile${NC}"
 fi
 
 # Create initial control files
