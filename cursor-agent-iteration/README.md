@@ -54,6 +54,10 @@ This will:
 |---------|-------------|---------|
 | `make iterate-init` | Initialize the iteration system | `make iterate-init` |
 | `make iterate` | Run the next task in backlog | `make iterate` |
+| `make iterate-loop` | Run iterations until all tasks complete | `make iterate-loop` |
+| `make add-feature` | Add new feature/requirements | `make add-feature` |
+| `make archive-completed` | Archive completed tasks | `make archive-completed` |
+| `make iterate-complete` | Check if all tasks are completed | `make iterate-complete` |
 | `make iterate-custom` | Run with custom prompt | `make iterate-custom PROMPT="Work on security tasks"` |
 | `make tasks-update` | Update task list | `make tasks-update PROMPT="Add GraphQL API tasks"` |
 
@@ -132,9 +136,85 @@ The system enforces quality gates based on detected technologies:
 
 1. **Repository Analysis**: Detects languages, frameworks, and structure
 2. **Task Generation**: Creates realistic, repo-specific tasks
-3. **Iteration Loop**: Runs the engineering cycle:
+3. **Quality Gates**: Enforces appropriate standards for each detected stack
+4. **Iteration Loop**: Runs the engineering cycle:
    - Plan → Implement → Test → Validate → Document → Commit
-4. **Progress Tracking**: Updates control files with evidence and decisions
+5. **Progress Tracking**: Updates control files with evidence and decisions
+6. **Completion Detection**: Automatically detects when all tasks are completed
+
+## 🔄 Continuous Loop Mode
+
+For fully automated development, use the continuous loop mode:
+
+```bash
+make iterate-loop
+```
+
+This will:
+- Run iterations continuously until all tasks are completed
+- Show progress after each iteration
+- Stop automatically when all tasks are done
+- Update control files with completion status
+- Provide safety limits to prevent infinite loops
+
+### Manual Completion Check
+
+Check if all tasks are completed:
+```bash
+make iterate-complete
+```
+
+This will show:
+- Total number of tasks
+- Number of completed tasks
+- Number of remaining tasks
+- Completion status
+
+## 🚀 Feature Addition Workflow
+
+Add new features and requirements to your project:
+
+```bash
+make add-feature
+```
+
+This will:
+- Prompt you for multiline feature description
+- Analyze current codebase structure
+- Design architecture for the new feature
+- Create detailed implementation tasks
+- Update all relevant control files
+- Plan testing and integration requirements
+
+### Example Feature Addition
+
+```bash
+make add-feature
+# Enter your feature description (multiline, press Ctrl+D when done):
+# 
+# Implement a real-time notification system with WebSockets
+# - Support multiple notification types (email, push, in-app)
+# - Scalable architecture with Redis for message queuing
+# - Authentication and authorization for notifications
+# - Real-time delivery with fallback mechanisms
+# - Admin dashboard for notification management
+# 
+# The system will then analyze your codebase and create comprehensive tasks.
+```
+
+### Task Management
+
+Keep your `tasks.md` focused on current work:
+
+```bash
+make archive-completed
+```
+
+This will:
+- Move completed tasks to `completed_tasks/` folder
+- Keep `tasks.md` minimal and current
+- Update progress tracking
+- Maintain task history for reference
 
 ## 📚 Advanced Usage
 
@@ -233,6 +313,7 @@ The system tracks:
 
 ## 🔄 Example Workflow
 
+### Fully Automated (Recommended)
 ```bash
 # 1. Install the system
 curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/cursor-cli-headleess-agent/cursor-agent-iteration/install-curl.sh | bash
@@ -240,13 +321,41 @@ curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/curs
 # 2. Initialize for your repository
 make iterate-init
 
-# 3. Start working on tasks
+# 3. Run until all tasks are completed
+make iterate-loop
+```
+
+### Adding New Features
+```bash
+# 1. Add a new feature
+make add-feature
+# Enter your feature description (multiline)
+
+# 2. Run iterations until all tasks complete
+make iterate-loop
+
+# 3. Archive completed tasks (optional)
+make archive-completed
+```
+
+### Manual Control
+```bash
+# 1. Install the system
+curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/cursor-cli-headleess-agent/cursor-agent-iteration/install-curl.sh | bash
+
+# 2. Initialize for your repository
+make iterate-init
+
+# 3. Check completion status
+make iterate-complete
+
+# 4. Run individual iterations
 make iterate
 
-# 4. Add new tasks as needed
+# 5. Add new tasks as needed
 make tasks-update PROMPT="Add tasks for implementing real-time notifications with WebSockets"
 
-# 5. Continue iterating
+# 6. Continue iterating
 make iterate
 ```
 
@@ -268,5 +377,5 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 **Ready to start?** Run the one-liner installer and begin the engineering iteration loop!
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/your-repo/cursor-autopilot/main/cursor-agent-iteration/install-curl.sh | bash
+curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/cursor-cli-headleess-agent/cursor-agent-iteration/install-curl.sh | bash
 ```

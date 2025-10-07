@@ -154,13 +154,357 @@ EOF
 # Make the script executable
 chmod +x scripts/init-iterate.sh
 
+# Create the completion check script
+cat > scripts/check-complete.sh << 'EOF'
+#!/usr/bin/env bash
+# Check if all tasks are completed
+
+set -euo pipefail
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
+
+# Check if tasks.md exists
+if [[ ! -f "tasks.md" ]]; then
+    echo -e "${RED}❌ tasks.md not found. Run 'make iterate-init' first.${NC}"
+    exit 1
+fi
+
+# Count total tasks and completed tasks
+TOTAL_TASKS=$(grep -c "^- \[" tasks.md || echo "0")
+COMPLETED_TASKS=$(grep -c "^- \[x\]" tasks.md || echo "0")
+REMAINING_TASKS=$((TOTAL_TASKS - COMPLETED_TASKS))
+
+echo -e "${CYAN}📊 Task Status:${NC}"
+echo -e "   Total tasks: ${YELLOW}$TOTAL_TASKS${NC}"
+echo -e "   Completed: ${GREEN}$COMPLETED_TASKS${NC}"
+echo -e "   Remaining: ${RED}$REMAINING_TASKS${NC}"
+
+if [[ $REMAINING_TASKS -eq 0 && $TOTAL_TASKS -gt 0 ]]; then
+    echo -e "${GREEN}✅ All tasks completed!${NC}"
+    echo -e "${CYAN}🎉 Project iteration cycle is complete!${NC}"
+    
+    # Update progress.md with completion
+    if [[ -f "progress.md" ]]; then
+        echo "" >> progress.md
+        echo "## 🎉 All Tasks Completed" >> progress.md
+        echo "- **Date**: $(date)" >> progress.md
+        echo "- **Status**: All $TOTAL_TASKS tasks completed successfully" >> progress.md
+        echo "- **Next Steps**: Project ready for next phase or new feature development" >> progress.md
+    fi
+    
+    # Update CHANGELOG.md with completion
+    if [[ -f "CHANGELOG.md" ]]; then
+        # Add completion entry to CHANGELOG
+        sed -i.tmp '/## \[Unreleased\]/a\
+\
+### Completed\
+- All iteration tasks completed successfully\
+- Project ready for next development phase' CHANGELOG.md
+        rm -f CHANGELOG.md.tmp
+    fi
+    
+    exit 0
+else
+    echo -e "${YELLOW}⏳ Tasks remaining. Continue with 'make iterate'.${NC}"
+    exit 1
+fi
+EOF
+
+# Create the continuous loop script
+cat > scripts/iterate-loop.sh << 'EOF'
+#!/usr/bin/env bash
+# Continuous iteration loop until all tasks are completed
+
+set -euo pipefail
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
+
+ITERATION_COUNT=0
+MAX_ITERATIONS=50  # Safety limit to prevent infinite loops
+
+echo -e "${BLUE}🔄 Starting continuous iteration loop${NC}"
+echo -e "${YELLOW}Press Ctrl+C to stop at any time${NC}"
+echo ""
+
+# Trap Ctrl+C to show final status
+trap 'echo -e "\n${YELLOW}🛑 Stopped by user${NC}"; ./scripts/check-complete.sh; exit 0' INT
+
+while true; do
+    ITERATION_COUNT=$((ITERATION_COUNT + 1))
+    
+    echo -e "${CYAN}🔄 Iteration #$ITERATION_COUNT${NC}"
+    echo "=================================="
+    
+    # Check if we've hit the safety limit
+    if [[ $ITERATION_COUNT -gt $MAX_ITERATIONS ]]; then
+        echo -e "${RED}⚠️  Maximum iterations ($MAX_ITERATIONS) reached. Stopping for safety.${NC}"
+        echo -e "${YELLOW}If tasks are still remaining, you may need to run 'make iterate' manually.${NC}"
+        break
+    fi
+    
+    # Check completion status first
+    if ./scripts/check-complete.sh; then
+        echo -e "${GREEN}🎉 All tasks completed! Loop finished successfully.${NC}"
+        break
+    fi
+    
+    echo ""
+    echo -e "${CYAN}⚡ Running iteration...${NC}"
+    
+    # Run the iteration
+    if make iterate; then
+        echo -e "${GREEN}✅ Iteration #$ITERATION_COUNT completed successfully${NC}"
+    else
+        echo -e "${RED}❌ Iteration #$ITERATION_COUNT failed${NC}"
+        echo -e "${YELLOW}⚠️  Stopping loop due to iteration failure${NC}"
+        echo -e "${CYAN}💡 You may need to fix issues manually and run 'make iterate' again${NC}"
+        break
+    fi
+    
+    echo ""
+    echo -e "${CYAN}📊 Current status:${NC}"
+    ./scripts/check-complete.sh || true
+    echo ""
+    
+    # Small delay between iterations
+    sleep 2
+done
+
+echo ""
+echo -e "${BLUE}🏁 Iteration loop finished${NC}"
+echo -e "${CYAN}📊 Final status:${NC}"
+./scripts/check-complete.sh || true
+EOF
+
+# Create the add-feature script
+cat > scripts/add-feature.sh << 'EOF'
+#!/usr/bin/env bash
+# Add new feature/requirements to the project
+
+set -euo pipefail
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
+
+echo -e "${BLUE}🚀 Add New Feature/Requirements${NC}"
+echo ""
+
+# Check if cursor-agent is available
+if ! command -v cursor-agent >/dev/null 2>&1; then
+    echo -e "${RED}❌ cursor-agent not found. Please install it first.${NC}"
+    echo -e "${YELLOW}Run: curl https://cursor.com/install -fsS | bash${NC}"
+    exit 1
+fi
+
+# Check if tasks.md exists
+if [[ ! -f "tasks.md" ]]; then
+    echo -e "${RED}❌ tasks.md not found. Run 'make iterate-init' first.${NC}"
+    exit 1
+fi
+
+echo -e "${CYAN}📝 Please describe the new feature/requirements:${NC}"
+echo -e "${YELLOW}(You can use multiple lines. Press Ctrl+D when finished)${NC}"
+echo ""
+
+# Read multiline input
+FEATURE_DESCRIPTION=$(cat)
+
+if [[ -z "$FEATURE_DESCRIPTION" ]]; then
+    echo -e "${RED}❌ No feature description provided.${NC}"
+    exit 1
+fi
+
+echo ""
+echo -e "${CYAN}🔍 Analyzing current codebase and designing architecture...${NC}"
+
+# Create a comprehensive prompt for feature analysis
+FEATURE_PROMPT="
+SYSTEM
+You are a staff-level engineer tasked with adding a new feature to an existing project. Your job is to:
+
+1. Analyze the current codebase structure and technology stack
+2. Design the architecture for the new feature
+3. Plan the integration with existing components
+4. Create detailed implementation tasks
+5. Identify testing requirements
+6. Consider security, performance, and maintainability
+
+NEW FEATURE REQUIREMENTS:
+$FEATURE_DESCRIPTION
+
+DELIVERABLES:
+1. Update architecture.md with new feature design
+2. Add comprehensive tasks to tasks.md for implementing this feature
+3. Update test_plan.md with testing requirements
+4. Add any new dependencies to decisions.md as ADRs
+
+REQUIREMENTS:
+- Analyze the existing codebase structure first
+- Design the feature to integrate seamlessly with existing architecture
+- Break down implementation into logical, testable tasks
+- Include acceptance criteria for each task
+- Consider edge cases and error handling
+- Plan for testing (unit, integration, e2e as appropriate)
+- Update documentation appropriately
+
+CONTEXT:
+Current repository structure, existing technologies, and current tasks are available in the control files.
+
+USER
+Please analyze the codebase and add the new feature: $FEATURE_DESCRIPTION
+
+Design the architecture, create implementation tasks, and update all relevant control files.
+"
+
+echo -e "${CYAN}⚡ Generating feature architecture and tasks...${NC}"
+
+# Run cursor-agent with the feature prompt
+cursor-agent --print --force "$FEATURE_PROMPT"
+
+echo ""
+echo -e "${GREEN}✅ Feature added successfully!${NC}"
+echo ""
+echo -e "${CYAN}📋 Next Steps:${NC}"
+echo -e "   1. ${YELLOW}make iterate-complete${NC}     # Check current task status"
+echo -e "   2. ${YELLOW}make iterate-loop${NC}         # Run iterations until all tasks complete"
+echo -e "   3. ${YELLOW}make archive-completed${NC}    # Archive completed tasks (optional)"
+echo ""
+echo -e "${CYAN}📚 Updated Files:${NC}"
+echo -e "   - ${YELLOW}architecture.md${NC} - Updated with new feature design"
+echo -e "   - ${YELLOW}tasks.md${NC} - Added new implementation tasks"
+echo -e "   - ${YELLOW}test_plan.md${NC} - Updated with testing requirements"
+echo -e "   - ${YELLOW}decisions.md${NC} - Added architectural decisions"
+EOF
+
+# Create the archive-completed script
+cat > scripts/archive-completed.sh << 'EOF'
+#!/usr/bin/env bash
+# Archive completed tasks to keep tasks.md minimal
+
+set -euo pipefail
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
+
+echo -e "${BLUE}📦 Archiving Completed Tasks${NC}"
+echo ""
+
+# Check if tasks.md exists
+if [[ ! -f "tasks.md" ]]; then
+    echo -e "${RED}❌ tasks.md not found.${NC}"
+    exit 1
+fi
+
+# Create completed_tasks directory if it doesn't exist
+mkdir -p completed_tasks
+
+# Get current date for archive file
+ARCHIVE_DATE=$(date +"%Y-%m-%d_%H-%M-%S")
+ARCHIVE_FILE="completed_tasks/completed_${ARCHIVE_DATE}.md"
+
+# Count completed tasks
+COMPLETED_TASKS=$(grep -c "^- \[x\]" tasks.md || echo "0")
+
+if [[ $COMPLETED_TASKS -eq 0 ]]; then
+    echo -e "${YELLOW}⚠️  No completed tasks found to archive.${NC}"
+    exit 0
+fi
+
+echo -e "${CYAN}📊 Found $COMPLETED_TASKS completed tasks to archive${NC}"
+
+# Extract completed tasks
+echo "# Completed Tasks - $ARCHIVE_DATE" > "$ARCHIVE_FILE"
+echo "" >> "$ARCHIVE_FILE"
+echo "Archived from tasks.md on $(date)" >> "$ARCHIVE_FILE"
+echo "" >> "$ARCHIVE_FILE"
+grep -A 20 "^- \[x\]" tasks.md >> "$ARCHIVE_FILE" || true
+
+# Remove completed tasks from tasks.md
+# This is more complex - we need to remove the completed task and all its content until the next task
+TEMP_FILE=$(mktemp)
+
+# Process tasks.md line by line
+in_completed_task=false
+task_content=()
+
+while IFS= read -r line; do
+    if [[ $line =~ ^- \[x\] ]]; then
+        # Start of completed task
+        in_completed_task=true
+        task_content=("$line")
+    elif [[ $line =~ ^- \[ \] ]] && [[ $in_completed_task == true ]]; then
+        # Start of new incomplete task - end of completed task
+        in_completed_task=false
+        # Don't include this line in task_content, it belongs to the next task
+    elif [[ $in_completed_task == true ]]; then
+        # Part of completed task
+        task_content+=("$line")
+    else
+        # Not part of a completed task
+        if [[ $in_completed_task == false ]]; then
+            echo "$line" >> "$TEMP_FILE"
+        fi
+    fi
+done < tasks.md
+
+# Handle case where the last task was completed
+if [[ $in_completed_task == true ]]; then
+    # Don't add anything to TEMP_FILE - the completed task is already archived
+    true
+fi
+
+# Replace tasks.md with the filtered version
+mv "$TEMP_FILE" tasks.md
+
+echo -e "${GREEN}✅ Archived $COMPLETED_TASKS completed tasks to $ARCHIVE_FILE${NC}"
+echo -e "${CYAN}📁 Archive location: completed_tasks/${NC}"
+
+# Update progress.md
+if [[ -f "progress.md" ]]; then
+    echo "" >> progress.md
+    echo "## 📦 Task Archive - $ARCHIVE_DATE" >> progress.md
+    echo "- **Tasks Archived**: $COMPLETED_TASKS" >> progress.md
+    echo "- **Archive File**: $ARCHIVE_FILE" >> progress.md
+    echo "- **Reason**: Keep tasks.md focused on current work" >> progress.md
+fi
+
+# Show remaining tasks
+REMAINING_TASKS=$(grep -c "^- \[ \]" tasks.md || echo "0")
+echo -e "${CYAN}📊 Remaining tasks: $REMAINING_TASKS${NC}"
+EOF
+
+# Make the scripts executable
+chmod +x scripts/check-complete.sh scripts/iterate-loop.sh scripts/add-feature.sh scripts/archive-completed.sh
+
 # Check if Makefile exists, if not create one
 if [[ ! -f "Makefile" ]]; then
     echo -e "${YELLOW}📝 Creating Makefile...${NC}"
     cat > Makefile << 'EOF'
 # Makefile for Cursor Agent Iteration System
 
-.PHONY: help iterate-init iterate iterate-custom tasks-update
+.PHONY: help iterate-init iterate iterate-custom tasks-update iterate-complete iterate-loop add-feature archive-completed
 
 ## help: Show this help message
 help:
@@ -172,6 +516,10 @@ help:
 	@echo "Examples:"
 	@echo "  make iterate-init    # Initialize the iteration system"
 	@echo "  make iterate         # Run the next task"
+	@echo "  make iterate-loop    # Run iterations until all tasks complete"
+	@echo "  make add-feature     # Add new feature/requirements"
+	@echo "  make archive-completed # Archive completed tasks"
+	@echo "  make iterate-complete # Check if all tasks are completed"
 	@echo "  make iterate-custom  # Run with custom prompt"
 
 ## iterate-init: Initialize universal iteration system
@@ -197,6 +545,17 @@ tasks-update:
 	@echo "Updating task list..."
 	@cursor-agent --print --force "Update tasks.md based on: $(PROMPT)"
 	@echo "Task list updated!"
+
+## iterate-complete: Check if all tasks are completed
+iterate-complete:
+	@echo "Checking completion status..."
+	@./scripts/check-complete.sh
+
+## iterate-loop: Run iterations until all tasks are completed
+iterate-loop:
+	@echo "Starting continuous iteration loop..."
+	@echo "Press Ctrl+C to stop at any time"
+	@./scripts/iterate-loop.sh
 EOF
 else
     echo -e "${CYAN}📝 Adding Makefile targets...${NC}"
@@ -226,6 +585,27 @@ tasks-update:
 	@echo "Updating task list..."
 	@cursor-agent --print --force "Update tasks.md based on: $(PROMPT)"
 	@echo "Task list updated!"
+
+## iterate-complete: Check if all tasks are completed
+iterate-complete:
+	@echo "Checking completion status..."
+	@./scripts/check-complete.sh
+
+## iterate-loop: Run iterations until all tasks are completed
+iterate-loop:
+	@echo "Starting continuous iteration loop..."
+	@echo "Press Ctrl+C to stop at any time"
+	@./scripts/iterate-loop.sh
+
+## add-feature: Add new feature/requirements to the project
+add-feature:
+	@echo "Adding new feature/requirements..."
+	@./scripts/add-feature.sh
+
+## archive-completed: Move completed tasks to archive
+archive-completed:
+	@echo "Archiving completed tasks..."
+	@./scripts/archive-completed.sh
 EOF
 fi
 
@@ -515,6 +895,10 @@ echo ""
 echo -e "${CYAN}📋 Created Files:${NC}"
 echo -e "   - ${YELLOW}prompts/initialize-iteration-universal.md${NC} - Universal initialization prompt"
 echo -e "   - ${YELLOW}scripts/init-iterate.sh${NC} - Initialization script"
+echo -e "   - ${YELLOW}scripts/check-complete.sh${NC} - Completion checker"
+echo -e "   - ${YELLOW}scripts/iterate-loop.sh${NC} - Continuous loop script"
+echo -e "   - ${YELLOW}scripts/add-feature.sh${NC} - Feature addition script"
+echo -e "   - ${YELLOW}scripts/archive-completed.sh${NC} - Task archiving script"
 echo -e "   - ${YELLOW}architecture.md${NC} - Architecture documentation"
 echo -e "   - ${YELLOW}progress.md${NC} - Progress tracking"
 echo -e "   - ${YELLOW}decisions.md${NC} - Architectural Decision Records"
