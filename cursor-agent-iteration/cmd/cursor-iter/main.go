@@ -9,11 +9,54 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+	"syscall"
 	"time"
 
 	"github.com/cheddarwhizzy/cursor-autopilot/cursor-agent-iteration/internal/runner"
 	"github.com/cheddarwhizzy/cursor-autopilot/cursor-agent-iteration/internal/tasks"
 )
+
+// Global mutex for file operations to prevent race conditions
+var fileMutex sync.Mutex
+
+// FileLock represents a file lock
+type FileLock struct {
+	file *os.File
+}
+
+// LockFile creates an exclusive lock on a file
+func LockFile(filePath string) (*FileLock, error) {
+	fileMutex.Lock()
+
+	file, err := os.OpenFile(filePath, os.O_CREATE|os.O_RDWR, 0644)
+	if err != nil {
+		fileMutex.Unlock()
+		return nil, fmt.Errorf("failed to open file %s: %v", filePath, err)
+	}
+
+	// Try to acquire exclusive lock
+	err = syscall.Flock(int(file.Fd()), syscall.LOCK_EX|syscall.LOCK_NB)
+	if err != nil {
+		file.Close()
+		fileMutex.Unlock()
+		return nil, fmt.Errorf("failed to lock file %s: %v", filePath, err)
+	}
+
+	return &FileLock{file: file}, nil
+}
+
+// Unlock releases the file lock
+func (fl *FileLock) Unlock() error {
+	if fl.file != nil {
+		syscall.Flock(int(fl.file.Fd()), syscall.LOCK_UN)
+		err := fl.file.Close()
+		fileMutex.Unlock()
+		return err
+	}
+	fileMutex.Unlock()
+	return nil
+}
 
 func usage() {
 	fmt.Println("cursor-iter - task utilities")
@@ -25,6 +68,7 @@ func usage() {
 	fmt.Println("  cursor-iter iterate-loop                 # loops until completion")
 	fmt.Println("  cursor-iter add-feature                  # uses prompts/add-feature.md")
 	fmt.Println("  cursor-iter add-feature --file <path>    # read feature description from file")
+	fmt.Println("  cursor-iter add-feature --prompt \"desc\"  # provide feature description as argument")
 	fmt.Println("  cursor-iter validate-tasks [--fix]       # validate/fix tasks.md structure")
 	fmt.Println("  cursor-iter reset                       # remove all control files")
 }
@@ -171,14 +215,25 @@ func main() {
 		// Minimal loop invoking iterate until tasks are complete
 		file := resolveTasksFile()
 		for i := 1; i <= 50; i++ { // safety cap
+			// Acquire file lock before reading tasks
+			lock, err := LockFile(file)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "[%s] ⚠️ Could not acquire file lock: %v\n", ts(), err)
+				fmt.Fprintf(os.Stderr, "[%s] 💡 Another process may be modifying tasks.md. Retrying...\n", ts())
+				time.Sleep(2 * time.Second)
+				continue
+			}
+
 			b, err := os.ReadFile(file)
 			if err != nil {
+				lock.Unlock()
 				fmt.Fprintf(os.Stderr, "error reading tasks file: %v\n", err)
 				os.Exit(1)
 			}
 			content := string(b)
 
 			if tasks.Complete(content) {
+				lock.Unlock()
 				fmt.Printf("[%s] ✅ All tasks completed successfully!\n", ts())
 				return
 			}
@@ -192,8 +247,9 @@ func main() {
 			if nextTask != nil {
 				updatedContent, err := tasks.MarkTaskInProgress(content)
 				if err == nil {
-					// Write the updated content back to the file
+					// Write the updated content back to the file while holding the lock
 					if err := os.WriteFile(file, []byte(updatedContent), 0644); err != nil {
+						lock.Unlock()
 						fmt.Fprintf(os.Stderr, "[%s] ⚠️ Warning: could not update task status: %v\n", ts(), err)
 					} else {
 						fmt.Printf("[%s] 📝 Marked task '%s' as in-progress\n", ts(), nextTask.Title)
@@ -201,13 +257,16 @@ func main() {
 				}
 			}
 
+			// Release lock before running cursor-agent
+			lock.Unlock()
+
 			fmt.Printf("[%s] 🔄 Starting iteration...\n", ts())
 			if err := runner.CursorAgentWithDebug(debug, "--print", "--force", "Please execute the engineering iteration loop as defined in prompts/iterate.md."); err != nil {
 				fmt.Fprintf(os.Stderr, "[%s] ❌ iteration failed: %v\n", ts(), err)
 				os.Exit(1)
 			}
 
-			// Check progress after iteration
+			// Check progress after iteration (without lock for quick read)
 			b2, err := os.ReadFile(file)
 			if err == nil {
 				newContent := string(b2)
@@ -217,6 +276,12 @@ func main() {
 		}
 		fmt.Printf("[%s] ⚠️ Reached max iterations (%d) without completion\n", ts(), 50)
 	case "add-feature":
+		fs := flag.NewFlagSet("add-feature", flag.ExitOnError)
+		file := fs.String("file", "", "read feature description from file")
+		prompt := fs.String("prompt", "", "provide feature description as command line argument")
+		dbg := fs.Bool("debug", debug, "enable verbose logging")
+		_ = fs.Parse(os.Args[2:])
+
 		promptFile := "./prompts/add-feature.md"
 
 		// Try to fetch from GitHub if not present locally
@@ -233,22 +298,24 @@ func main() {
 
 		var featureDesc string
 
-		// Check if feature description is provided via file
-		if len(os.Args) > 2 && os.Args[2] == "--file" && len(os.Args) > 3 {
+		// Check if feature description is provided via --prompt flag
+		if *prompt != "" {
+			featureDesc = *prompt
+			fmt.Printf("✅ Using feature description from --prompt flag (%d characters)\n", len(featureDesc))
+		} else if *file != "" {
 			// Read from file
-			filePath := os.Args[3]
-			fileData, err := os.ReadFile(filePath)
+			fileData, err := os.ReadFile(*file)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error reading file %s: %v\n", filePath, err)
+				fmt.Fprintf(os.Stderr, "Error reading file %s: %v\n", *file, err)
 				os.Exit(1)
 			}
 			featureDesc = string(fileData)
-			fmt.Printf("✅ Loaded feature description from %s (%d characters)\n", filePath, len(featureDesc))
+			fmt.Printf("✅ Loaded feature description from %s (%d characters)\n", *file, len(featureDesc))
 		} else {
 			// Interactive input
 			fmt.Print("Enter feature description (press Enter twice when done):\n")
 			fmt.Print("Tip: For long descriptions, you can paste multi-line text. Press Enter twice to finish.\n")
-			fmt.Print("Alternative: Use --file <path> to read from a file\n")
+			fmt.Print("Alternative: Use --file <path> to read from a file or --prompt \"description\"\n")
 
 			scanner := bufio.NewScanner(os.Stdin)
 			var lines []string
@@ -296,12 +363,29 @@ func main() {
 		promptContent := strings.ReplaceAll(string(data), "{{FEATURE_DESCRIPTION}}", featureDesc)
 
 		fmt.Printf("[%s] Analyzing feature and creating architecture/tasks...\n", ts())
-		if debug {
+		if *dbg {
 			fmt.Printf("[%s] add-feature using prompt=%s with feature: %s\n", ts(), promptFile, featureDesc)
 		}
-		if err := runner.CursorAgentWithDebug(debug, "--print", "--force", promptContent); err != nil {
+
+		// Check if iterate-loop might be running and warn user
+		tasksFile := resolveTasksFile()
+		if _, err := os.Stat(tasksFile); err == nil {
+			lock, err := LockFile(tasksFile)
+			if err != nil {
+				fmt.Printf("[%s] ⚠️ Warning: Could not acquire exclusive lock on %s\n", ts(), tasksFile)
+				fmt.Printf("[%s] 💡 This might mean iterate-loop is running. Proceeding anyway...\n", ts())
+			} else {
+				// We got the lock, release it immediately
+				lock.Unlock()
+				fmt.Printf("[%s] ✅ Acquired file lock successfully - safe to proceed\n", ts())
+			}
+		}
+
+		if err := runner.CursorAgentWithDebug(*dbg, "--print", "--force", promptContent); err != nil {
 			os.Exit(1)
 		}
+
+		fmt.Printf("[%s] ✅ Feature analysis complete! Tasks should be added to %s\n", ts(), tasksFile)
 	case "reset":
 		// Remove all control files
 		controlFiles := []string{
