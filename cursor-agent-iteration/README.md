@@ -6,7 +6,7 @@ A self-managing engineering loop for any repository type using Cursor Agent CLI.
 
 ### One-liner (Recommended)
 ```bash
-curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/cursor-cli-headleess-agent/cursor-agent-iteration/install-curl.sh | bash
+curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/main/cursor-agent-iteration/install-curl.sh | bash
 ```
 
 ### Option 2: Manual Installation
@@ -316,7 +316,7 @@ The system tracks:
 ### Fully Automated (Recommended)
 ```bash
 # 1. Install the system
-curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/cursor-cli-headleess-agent/cursor-agent-iteration/install-curl.sh | bash
+curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/main/cursor-agent-iteration/install-curl.sh | bash
 
 # 2. Initialize for your repository
 make iterate-init
@@ -341,7 +341,7 @@ make archive-completed
 ### Manual Control
 ```bash
 # 1. Install the system
-curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/cursor-cli-headleess-agent/cursor-agent-iteration/install-curl.sh | bash
+curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/main/cursor-agent-iteration/install-curl.sh | bash
 
 # 2. Initialize for your repository
 make iterate-init
@@ -377,5 +377,5 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 **Ready to start?** Run the one-liner installer and begin the engineering iteration loop!
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/cursor-cli-headleess-agent/cursor-agent-iteration/install-curl.sh | bash
+curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/main/cursor-agent-iteration/install-curl.sh | bash
 ```
