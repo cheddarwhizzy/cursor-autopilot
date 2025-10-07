@@ -143,6 +143,7 @@ func main() {
         // Replace placeholder with user input
         promptContent := strings.ReplaceAll(string(data), "{{FEATURE_DESCRIPTION}}", featureDesc)
         
+        fmt.Printf("[%s] Analyzing feature and creating architecture/tasks...\n", ts())
         if debug { fmt.Printf("[%s] add-feature using prompt=%s with feature: %s\n", ts(), promptFile, featureDesc) }
         if err := runner.CursorAgentWithDebug(debug, "--print", "--force", promptContent); err != nil {
             os.Exit(1)
