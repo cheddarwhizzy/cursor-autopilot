@@ -28,6 +28,7 @@ Before proposing changes:
 * Parse `architecture.md`, `tasks.md`, and `test_plan.md` to understand the current system.
 * Summarize existing modules, data flows, and technology stack.
 * Detect affected areas and dependencies.
+* **Use Context7 to get up-to-date documentation for any frameworks, libraries, or technologies used in this feature.**
 * Output a short **context summary** before generating modifications.
 
 # 2. Feature Specification
@@ -61,6 +62,7 @@ You must produce:
 * Plan for error handling and edge cases.
 * Each task must have acceptance criteria and tests.
 * Reference relevant ADRs or create new ones for new dependencies.
+* **Always use Context7 to reference the latest documentation and best practices for any technologies or frameworks involved.**
 
 # 5. Task Structure
 
