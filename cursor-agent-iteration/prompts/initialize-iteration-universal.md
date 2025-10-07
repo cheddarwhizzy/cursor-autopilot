@@ -89,7 +89,7 @@ Rules:
 1. Patches that create or update:
 
    * `prompts/iterate.md`
-   * `tasks.md` (as empty template - tasks will be added via `make add-feature`)
+   * `tasks.md` (as empty template - tasks will be added via `cursor-iter add-feature`)
 2. Ensure all control files exist.
 3. Produce a **short summary** of detected stacks, test commands, and coverage targets.
 
@@ -164,7 +164,7 @@ Use emojis to track progress:
 * ✅ Complete
 * ⚠️ Blocked
 
-**Note:** Create `tasks.md` as an empty template file. Tasks will be added later using `make add-feature` to populate with specific feature requirements.
+**Note:** Create `tasks.md` as an empty template file. Tasks will be added later using `cursor-iter add-feature` to populate with specific feature requirements.
 
 ---
 
@@ -207,7 +207,7 @@ Detected stacks and inferred setup.
 +++ b/tasks.md
 +## Tasks
 +
-+*Tasks will be added here using `make add-feature`*
++*Tasks will be added here using `cursor-iter add-feature`*
 +
 ```
 
@@ -217,19 +217,19 @@ Detected stacks and inferred setup.
 2. Add features to populate tasks:
 
    ```bash
-   make add-feature  # Add new feature/requirements to architect and create tasks
+   cursor-iter add-feature  # Add new feature/requirements to architect and create tasks
    ```
 3. Check task status:
 
    ```bash
-   make task-status  # Show current task status (will be empty until features added)
+   cursor-iter task-status  # Show current task status (will be empty until features added)
    ```
 4. Run the iteration loop:
 
    ```bash
-   make iterate  # Process the next task
+   cursor-iter iterate  # Process the next task
    # OR
-   make iterate-loop  # Run continuously until all tasks complete
+   cursor-iter iterate-loop  # Run continuously until all tasks complete
    ```
 
 ---
