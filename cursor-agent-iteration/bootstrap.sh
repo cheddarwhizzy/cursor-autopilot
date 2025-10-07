@@ -590,6 +590,7 @@ else
         
         # Create a backup
         cp Makefile Makefile.backup
+        echo -e "${CYAN}📁 Created backup: Makefile.backup${NC}"
         
         # Remove existing cursor-agent-iteration targets
         # This is complex because we need to remove target definitions and their content
