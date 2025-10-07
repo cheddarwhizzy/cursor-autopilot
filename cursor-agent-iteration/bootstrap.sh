@@ -148,7 +148,7 @@ cursor-agent --print --force --model "$MODEL" "$(cat "$PROMPT_FILE")"
 
 echo "✅ Created/updated: prompts/iterate.md, tasks.md"
 echo "➡️  Start the loop with:"
-echo "   cursor-agent --print --force --prompt prompts/iterate.md"
+echo "   make iterate"
 EOF
 
 # Make the script executable
