@@ -499,6 +499,7 @@ EOF
 chmod +x scripts/check-complete.sh scripts/iterate-loop.sh scripts/add-feature.sh scripts/archive-completed.sh
 
 # Check if Makefile exists, if not create one
+# Note: If Makefile exists, we check for existing targets to avoid duplicates
 if [[ ! -f "Makefile" ]]; then
     echo -e "${YELLOW}📝 Creating Makefile...${NC}"
     cat > Makefile << 'EOF'
@@ -558,9 +559,16 @@ iterate-loop:
 	@./scripts/iterate-loop.sh
 EOF
 else
-    echo -e "${CYAN}📝 Adding Makefile targets...${NC}"
-    # Add iteration targets to existing Makefile
-    cat >> Makefile << 'EOF'
+    echo -e "${CYAN}📝 Checking existing Makefile targets...${NC}"
+    
+    # Check if cursor-agent-iteration targets already exist
+    if grep -q "## iterate-init:" Makefile; then
+        echo -e "${YELLOW}⚠️  Cursor Agent Iteration targets already exist in Makefile${NC}"
+        echo -e "${CYAN}📝 Skipping Makefile update to avoid duplicates${NC}"
+    else
+        echo -e "${CYAN}📝 Adding Makefile targets...${NC}"
+        # Add iteration targets to existing Makefile
+        cat >> Makefile << 'EOF'
 
 ## iterate-init: Initialize universal iteration system
 iterate-init:
@@ -607,6 +615,7 @@ archive-completed:
 	@echo "Archiving completed tasks..."
 	@./scripts/archive-completed.sh
 EOF
+    fi
 fi
 
 # Create initial control files
