@@ -114,6 +114,20 @@ func main() {
             progress := tasks.GetTaskProgress(content)
             fmt.Printf("[%s] Iteration #%d - %s\n", ts(), i, progress)
             
+            // Mark the next task as in-progress if there's a pending task
+            nextTask := tasks.GetNextPendingTask(content)
+            if nextTask != nil {
+                updatedContent, err := tasks.MarkTaskInProgress(content)
+                if err == nil {
+                    // Write the updated content back to the file
+                    if err := os.WriteFile(file, []byte(updatedContent), 0644); err != nil {
+                        fmt.Fprintf(os.Stderr, "[%s] ⚠️ Warning: could not update task status: %v\n", ts(), err)
+                    } else {
+                        fmt.Printf("[%s] 📝 Marked task '%s' as in-progress\n", ts(), nextTask.Title)
+                    }
+                }
+            }
+            
             fmt.Printf("[%s] 🔄 Starting iteration...\n", ts())
             if err := runner.CursorAgentWithDebug(debug, "--print", "--force", "Please execute the engineering iteration loop as defined in prompts/iterate.md."); err != nil {
                 fmt.Fprintf(os.Stderr, "[%s] ❌ iteration failed: %v\n", ts(), err)
