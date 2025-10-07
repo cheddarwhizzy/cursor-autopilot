@@ -80,6 +80,8 @@ Each implementation task must follow:
   **Labels:** `[type:feature] [area:<module>]`
   **Dependencies:** ADR IDs or external systems
 
+**CRITICAL:** All tasks must be added under the `## Current Tasks` section in tasks.md. Do not create new section headers. If no `## Current Tasks` section exists, create it as the main section for all tasks.
+
 ---
 
 # 6. Testing and Validation
@@ -124,7 +126,15 @@ List all tasks formatted as described above.
 ```diff
 --- a/tasks.md
 +++ b/tasks.md
-<content>
++## Current Tasks
++
++### Task: <First Task Title>
++<task content>
++
++### Task: <Second Task Title>
++<task content>
++
++... (all tasks must be under ## Current Tasks section)
 ```
 
 ```diff

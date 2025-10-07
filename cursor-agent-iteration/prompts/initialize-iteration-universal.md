@@ -205,7 +205,7 @@ Detected stacks and inferred setup.
 ```diff
 --- a/tasks.md
 +++ b/tasks.md
-+## Tasks
++## Current Tasks
 +
 +*Tasks will be added here using `cursor-iter add-feature`*
 +
