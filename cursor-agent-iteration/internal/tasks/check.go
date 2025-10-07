@@ -24,22 +24,22 @@ func Complete(md string) bool {
     return true
 }
 
-// GetCurrentTask returns the first in-progress task (has some but not all AC checked)
+// GetCurrentTask returns the first in-progress task (has emoji status or some AC checked)
 func GetCurrentTask(md string) *Task {
     ts := parseTasks(md)
     for _, t := range ts {
-        if t.ACChecked > 0 && t.ACChecked < t.ACTotal {
+        if t.Status == "in-progress" || (t.ACChecked > 0 && t.ACChecked < t.ACTotal) {
             return &t
         }
     }
     return nil
 }
 
-// GetNextPendingTask returns the first pending task (no AC checked)
+// GetNextPendingTask returns the first pending task (no status emoji and no AC checked)
 func GetNextPendingTask(md string) *Task {
     ts := parseTasks(md)
     for _, t := range ts {
-        if t.ACChecked == 0 {
+        if t.Status == "pending" && t.ACChecked == 0 {
             return &t
         }
     }

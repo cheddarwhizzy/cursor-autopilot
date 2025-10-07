@@ -19,6 +19,7 @@ type Task struct {
     Title     string
     ACTotal   int
     ACChecked int
+    Status    string // "pending", "in-progress", "completed", "blocked"
 }
 
 func parseTasks(md string) []Task {
@@ -49,7 +50,22 @@ func parseTasks(md string) []Task {
             if cur != nil {
                 tasks = append(tasks, *cur)
             }
-            cur = &Task{Title: strings.TrimSpace(m[1])}
+            title := strings.TrimSpace(m[1])
+            
+            // Determine status from emoji in title
+            status := "pending"
+            if strings.Contains(title, "🔄") {
+                status = "in-progress"
+                title = strings.TrimSpace(strings.Replace(title, "🔄", "", 1))
+            } else if strings.Contains(title, "✅") {
+                status = "completed"
+                title = strings.TrimSpace(strings.Replace(title, "✅", "", 1))
+            } else if strings.Contains(title, "⚠️") {
+                status = "blocked"
+                title = strings.TrimSpace(strings.Replace(title, "⚠️", "", 1))
+            }
+            
+            cur = &Task{Title: title, Status: status}
             inAC = false
             continue
         }
@@ -90,12 +106,15 @@ func StatusReport(md string) string {
     for _, t := range ts {
         total++
         switch {
-        case t.ACTotal > 0 && t.ACChecked == t.ACTotal:
+        case t.Status == "completed" || (t.ACTotal > 0 && t.ACChecked == t.ACTotal):
             done++
             doneL = append(doneL, fmt.Sprintf("  - %s", t.Title))
-        case t.ACChecked > 0:
+        case t.Status == "in-progress" || t.ACChecked > 0:
             prog++
-            progL = append(progL, fmt.Sprintf("  - %s", t.Title))
+            progL = append(progL, fmt.Sprintf("  - %s (%d/%d criteria completed)", t.Title, t.ACChecked, t.ACTotal))
+        case t.Status == "blocked":
+            pend++
+            pendL = append(pendL, fmt.Sprintf("  - ⚠️ %s (blocked)", t.Title))
         default:
             pend++
             pendL = append(pendL, fmt.Sprintf("  - %s", t.Title))
@@ -129,12 +148,8 @@ func StatusReport(md string) string {
     }
     if prog > 0 {
         b.WriteString("🔄 In Progress Tasks:\n")
-        for _, t := range ts {
-            if t.ACChecked > 0 && t.ACChecked < t.ACTotal {
-                b.WriteString(fmt.Sprintf("  - %s (%d/%d criteria completed)\n", t.Title, t.ACChecked, t.ACTotal))
-            }
-        }
-        b.WriteString("\n")
+        b.WriteString(strings.Join(progL, "\n"))
+        b.WriteString("\n\n")
     }
     if pend > 0 {
         b.WriteString("⏳ Pending Tasks (next 5):\n")
