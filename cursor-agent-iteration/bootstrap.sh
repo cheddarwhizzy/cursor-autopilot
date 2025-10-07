@@ -147,8 +147,9 @@ echo "⚙️  Generating prompts/iterate.md + tasks.md (universal detection)"
 cursor-agent --print --force --model "$MODEL" "$(cat "$PROMPT_FILE")"
 
 echo "✅ Created/updated: prompts/iterate.md, tasks.md"
-echo "➡️  Start the loop with:"
-echo "   make iterate"
+echo "➡️  Next steps:"
+echo "   make iterate      # Start working on existing tasks"
+echo "   make add-feature  # Add new feature/requirements to architect"
 EOF
 
 # Make the script executable
