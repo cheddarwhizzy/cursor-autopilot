@@ -4,7 +4,10 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -21,6 +24,7 @@ func usage() {
     fmt.Println("  cursor-iter iterate                      # runs iteration using prompts/iterate.md")
     fmt.Println("  cursor-iter iterate-loop                 # loops until completion")
     fmt.Println("  cursor-iter add-feature                  # uses prompts/add-feature.md")
+    fmt.Println("  cursor-iter add-feature --file <path>    # read feature description from file")
     fmt.Println("  cursor-iter reset                       # remove all control files")
 }
 
@@ -77,6 +81,13 @@ func main() {
         dbg := fs.Bool("debug", debug, "enable verbose logging")
         _ = fs.Parse(os.Args[2:])
         promptFile := "./prompts/initialize-iteration-universal.md"
+        
+        // Try to fetch from GitHub if not present locally
+        if err := fetchPromptFromGitHub(promptFile); err != nil {
+            fmt.Fprintf(os.Stderr, "failed to fetch prompt: %v\n", err)
+            os.Exit(1)
+        }
+        
         data, err := os.ReadFile(promptFile)
         if err != nil {
             fmt.Fprintf(os.Stderr, "missing prompt %s: %v\n", promptFile, err)
@@ -145,33 +156,79 @@ func main() {
         fmt.Printf("[%s] ⚠️ Reached max iterations (%d) without completion\n", ts(), 50)
     case "add-feature":
         promptFile := "./prompts/add-feature.md"
+        
+        // Try to fetch from GitHub if not present locally
+        if err := fetchPromptFromGitHub(promptFile); err != nil {
+            fmt.Fprintf(os.Stderr, "failed to fetch prompt: %v\n", err)
+            os.Exit(1)
+        }
+        
         data, err := os.ReadFile(promptFile)
         if err != nil {
             fmt.Fprintf(os.Stderr, "missing prompt %s: %v\n", promptFile, err)
             os.Exit(1)
         }
         
-        // Prompt user for feature description
-        fmt.Print("Enter feature description (press Enter twice when done):\n")
         var featureDesc string
-        scanner := bufio.NewScanner(os.Stdin)
-        var lines []string
-        emptyLineCount := 0
         
-        for scanner.Scan() {
-            line := scanner.Text()
-            if line == "" {
-                emptyLineCount++
-                if emptyLineCount >= 2 {
-                    break
-                }
-                lines = append(lines, line)
-            } else {
-                emptyLineCount = 0
-                lines = append(lines, line)
+        // Check if feature description is provided via file
+        if len(os.Args) > 2 && os.Args[2] == "--file" && len(os.Args) > 3 {
+            // Read from file
+            filePath := os.Args[3]
+            fileData, err := os.ReadFile(filePath)
+            if err != nil {
+                fmt.Fprintf(os.Stderr, "Error reading file %s: %v\n", filePath, err)
+                os.Exit(1)
             }
+            featureDesc = string(fileData)
+            fmt.Printf("✅ Loaded feature description from %s (%d characters)\n", filePath, len(featureDesc))
+        } else {
+            // Interactive input
+            fmt.Print("Enter feature description (press Enter twice when done):\n")
+            fmt.Print("Tip: For long descriptions, you can paste multi-line text. Press Enter twice to finish.\n")
+            fmt.Print("Alternative: Use --file <path> to read from a file\n")
+            
+            scanner := bufio.NewScanner(os.Stdin)
+            var lines []string
+            emptyLineCount := 0
+            lineCount := 0
+            
+            for scanner.Scan() {
+                line := scanner.Text()
+                lineCount++
+                
+                // Show progress every 10 lines for long inputs
+                if lineCount%10 == 0 {
+                    fmt.Printf("... %d lines entered (press Enter twice to finish)\n", lineCount)
+                }
+                
+                if line == "" {
+                    emptyLineCount++
+                    if emptyLineCount >= 2 {
+                        break
+                    }
+                    lines = append(lines, line)
+                } else {
+                    emptyLineCount = 0
+                    lines = append(lines, line)
+                }
+            }
+            
+            if err := scanner.Err(); err != nil {
+                fmt.Fprintf(os.Stderr, "Error reading input: %v\n", err)
+                os.Exit(1)
+            }
+            
+            featureDesc = strings.Join(lines, "\n")
+            
+            // Validate input
+            if len(strings.TrimSpace(featureDesc)) == 0 {
+                fmt.Fprintf(os.Stderr, "Error: Feature description cannot be empty\n")
+                os.Exit(1)
+            }
+            
+            fmt.Printf("✅ Received %d lines of feature description\n", lineCount)
         }
-        featureDesc = strings.Join(lines, "\n")
         
         // Replace placeholder with user input
         promptContent := strings.ReplaceAll(string(data), "{{FEATURE_DESCRIPTION}}", featureDesc)
@@ -236,5 +293,58 @@ func envOr(k, def string) string {
 }
 
 func ts() string { return time.Now().Format("15:04:05") }
+
+// fetchPromptFromGitHub fetches a prompt file from GitHub if it doesn't exist locally
+func fetchPromptFromGitHub(promptFile string) error {
+	// Check if file already exists locally
+	if _, err := os.Stat(promptFile); err == nil {
+		return nil // File exists, no need to fetch
+	}
+
+	// Extract the filename from the path
+	filename := filepath.Base(promptFile)
+	
+	// GitHub repository details
+	owner := "cheddarwhizzy"
+	repo := "cursor-autopilot"
+	branch := "main"
+	
+	// Construct GitHub raw URL
+	url := fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/cursor-agent-iteration/prompts/%s", 
+		owner, repo, branch, filename)
+	
+	fmt.Printf("[%s] Fetching %s from GitHub...\n", ts(), filename)
+	
+	// Make HTTP request
+	resp, err := http.Get(url)
+	if err != nil {
+		return fmt.Errorf("failed to fetch %s from GitHub: %v", filename, err)
+	}
+	defer resp.Body.Close()
+	
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to fetch %s: HTTP %d", filename, resp.StatusCode)
+	}
+	
+	// Create directory if it doesn't exist
+	dir := filepath.Dir(promptFile)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("failed to create directory %s: %v", dir, err)
+	}
+	
+	// Read response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response body: %v", err)
+	}
+	
+	// Write file
+	if err := os.WriteFile(promptFile, body, 0644); err != nil {
+		return fmt.Errorf("failed to write %s: %v", promptFile, err)
+	}
+	
+	fmt.Printf("[%s] ✅ Successfully fetched %s\n", ts(), filename)
+	return nil
+}
 
 
