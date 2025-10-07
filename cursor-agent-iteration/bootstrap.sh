@@ -506,7 +506,7 @@ if [[ ! -f "Makefile" ]]; then
     cat > Makefile << 'EOF'
 # Makefile for Cursor Agent Iteration System
 
-.PHONY: help iterate-init iterate iterate-custom tasks-update iterate-complete iterate-loop add-feature archive-completed
+.PHONY: help iterate-init iterate iterate-complete iterate-loop add-feature archive-completed
 
 ## help: Show this help message
 help:
@@ -522,7 +522,6 @@ help:
 	@echo "  make add-feature     # Add new feature/requirements"
 	@echo "  make archive-completed # Archive completed tasks"
 	@echo "  make iterate-complete # Check if all tasks are completed"
-	@echo "  make iterate-custom  # Run with custom prompt"
 
 ## iterate-init: Initialize universal iteration system
 iterate-init:
@@ -536,17 +535,6 @@ iterate:
 	@cursor-agent --print --force "Please execute the engineering iteration loop as defined in prompts/iterate.md. Read the control files (architecture.md, tasks.md, progress.md, decisions.md, test_plan.md, qa_checklist.md, CHANGELOG.md) and select the first unchecked task from tasks.md. Then implement, test, validate, document, and commit the changes following the quality gates specified in the iteration prompt."
 	@echo "Iteration complete! Check progress.md for details."
 
-## iterate-custom: Run iteration with custom prompt
-iterate-custom:
-	@echo "Starting custom iteration..."
-	@cursor-agent --print --force "$(PROMPT)"
-	@echo "Custom iteration complete!"
-
-## tasks-update: Update task list with natural language
-tasks-update:
-	@echo "Updating task list..."
-	@cursor-agent --print --force "Update tasks.md based on: $(PROMPT)"
-	@echo "Task list updated!"
 
 ## iterate-complete: Check if all tasks are completed
 iterate-complete:
@@ -573,7 +561,7 @@ else
     echo -e "${CYAN}📝 Updating existing Makefile with cursor-agent-iteration targets...${NC}"
     
     # Define all cursor-agent-iteration targets
-    CURSOR_TARGETS=("iterate-init" "iterate" "iterate-custom" "tasks-update" "iterate-complete" "iterate-loop" "add-feature" "archive-completed")
+    CURSOR_TARGETS=("iterate-init" "iterate" "iterate-complete" "iterate-loop" "add-feature" "archive-completed")
     
     # Check if any cursor-agent-iteration targets exist
     CURSOR_TARGETS_EXIST=false
@@ -631,17 +619,6 @@ iterate:
 	@cursor-agent --print --force "Please execute the engineering iteration loop as defined in prompts/iterate.md. Read the control files (architecture.md, tasks.md, progress.md, decisions.md, test_plan.md, qa_checklist.md, CHANGELOG.md) and select the first unchecked task from tasks.md. Then implement, test, validate, document, and commit the changes following the quality gates specified in the iteration prompt."
 	@echo "Iteration complete! Check progress.md for details."
 
-## iterate-custom: Run iteration with custom prompt
-iterate-custom:
-	@echo "Starting custom iteration..."
-	@cursor-agent --print --force "$(PROMPT)"
-	@echo "Custom iteration complete!"
-
-## tasks-update: Update task list with natural language
-tasks-update:
-	@echo "Updating task list..."
-	@cursor-agent --print --force "Update tasks.md based on: $(PROMPT)"
-	@echo "Task list updated!"
 
 ## iterate-complete: Check if all tasks are completed
 iterate-complete:
@@ -970,11 +947,9 @@ echo -e "   ${YELLOW}make help${NC}              # Show all available commands"
 echo -e "   ${YELLOW}make iterate-init${NC}      # Initialize and analyze your repository"
 echo -e "   ${YELLOW}make iterate${NC}           # Run the next task in the backlog"
 echo -e "   ${YELLOW}make iterate-loop${NC}      # Run iterations until all tasks complete"
-echo -e "   ${YELLOW}make add-feature${NC}       # Add new feature/requirements"
+echo -e "   ${YELLOW}make add-feature${NC}       # Add new feature/requirements (analyzes codebase first)"
 echo -e "   ${YELLOW}make iterate-complete${NC}  # Check if all tasks are completed"
 echo -e "   ${YELLOW}make archive-completed${NC} # Archive completed tasks"
-echo -e "   ${YELLOW}make iterate-custom${NC}    # Run with custom prompt (PROMPT=\"your prompt\")"
-echo -e "   ${YELLOW}make tasks-update${NC}      # Update task list (PROMPT=\"your update\")"
 echo ""
 echo -e "${CYAN}📚 Documentation:${NC}"
 echo -e "   - Read ${YELLOW}CURSOR_ITERATION_README.md${NC} for detailed usage"
