@@ -592,44 +592,23 @@ else
         cp Makefile Makefile.backup
         echo -e "${CYAN}📁 Created backup: Makefile.backup${NC}"
         
-        # Remove existing cursor-agent-iteration targets using simple bash approach
-        # Find and remove each target block individually
+        # Remove existing cursor-agent-iteration targets using simple approach
+        # Find the first cursor target line and remove everything from there to the end
         
-        # Define cursor-agent-iteration targets to remove
-        CURSOR_TARGETS=("iterate-init" "iterate" "iterate-custom" "tasks-update" "iterate-complete" "iterate-loop" "add-feature" "archive-completed")
+        # Find the first cursor target line
+        FIRST_CURSOR_LINE=$(grep -n "^## iterate-init:" Makefile | head -1 | cut -d: -f1)
         
-        # Create a clean Makefile without cursor targets
-        TEMP_MAKEFILE=$(mktemp)
-        
-        # Process the Makefile line by line
-        skip_target=""
-        while IFS= read -r line; do
-            # Check if this line starts a cursor target
-            for target in "${CURSOR_TARGETS[@]}"; do
-                if [[ "$line" =~ ^##[[:space:]]+$target: ]]; then
-                    skip_target="$target"
-                    break
-                fi
-            done
+        if [[ -n "$FIRST_CURSOR_LINE" ]]; then
+            echo -e "${CYAN}🗑️  Found cursor targets starting at line $FIRST_CURSOR_LINE${NC}"
             
-            # If we're not skipping this target, add the line
-            if [[ -z "$skip_target" ]]; then
-                echo "$line" >> "$TEMP_MAKEFILE"
-            fi
+            # Remove everything from the first cursor target to the end
+            head -n $((FIRST_CURSOR_LINE - 1)) Makefile > Makefile.temp
+            mv Makefile.temp Makefile
             
-            # Check if we've reached the end of the current target block
-            if [[ -n "$skip_target" ]]; then
-                # End of target block: next target definition or regular target
-                if [[ "$line" =~ ^##[[:space:]]+[^:]+: ]] || [[ "$line" =~ ^[a-zA-Z0-9_-]+: ]]; then
-                    skip_target=""
-                    # Add this line (it's the start of the next target)
-                    echo "$line" >> "$TEMP_MAKEFILE"
-                fi
-            fi
-        done < Makefile
-        
-        # Move the cleaned Makefile back
-        mv "$TEMP_MAKEFILE" Makefile
+            echo -e "${GREEN}✅ Removed cursor targets from line $FIRST_CURSOR_LINE onwards${NC}"
+        else
+            echo -e "${CYAN}ℹ️  No existing cursor targets found${NC}"
+        fi
         
         echo -e "${GREEN}✅ Removed old cursor-agent-iteration targets${NC}"
     else
