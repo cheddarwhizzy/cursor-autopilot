@@ -54,36 +54,4 @@ archive-completed:
 
 ## task-status: Show current task status and progress
 task-status:
-	@echo "📊 Task Status Overview"
-	@echo "======================"
-	@if [ -f "tasks.md" ]; then \
-		echo ""; \
-		echo "📋 Current Tasks:"; \
-		echo "----------------"; \
-		echo "✅ Completed tasks:"; \
-		grep -c "^- \[x\]" tasks.md 2>/dev/null || echo "   0"; \
-		echo "🔄 In-progress tasks:"; \
-		(grep -c "^- \[ \].*🔄\|^- \[ \].*in progress\|^- \[ \].*working" tasks.md 2>/dev/null || echo "0") | sed 's/^/   /'; \
-		echo "⏳ Pending tasks:"; \
-		grep -c "^- \[ \]" tasks.md 2>/dev/null || echo "   0"; \
-		echo ""; \
-		echo "📝 Task Details:"; \
-		echo "---------------"; \
-		grep "^# " tasks.md | head -5 || echo "   No tasks found"; \
-		echo ""; \
-		if grep -q "^- \[ \].*🔄\|^- \[ \].*in progress\|^- \[ \].*working" tasks.md; then \
-			echo "🎯 Currently Working On:"; \
-			grep -A 2 "^- \[ \].*🔄\|^- \[ \].*in progress\|^- \[ \].*working" tasks.md | head -3; \
-			echo ""; \
-		fi; \
-		if grep -q "^- \[ \]" tasks.md; then \
-			echo "📋 Next Pending Task:"; \
-			grep -A 2 "^- \[ \]" tasks.md | head -3; \
-		else \
-			echo "🎉 All tasks completed!"; \
-		fi; \
-		echo ""; \
-		echo "💡 Tip: Run 'make iterate' for next task or 'make iterate-loop' for continuous processing"; \
-	else \
-		echo "❌ No tasks.md found. Run 'make iterate-init' first."; \
-	fi
+	@./scripts/task-status.sh
