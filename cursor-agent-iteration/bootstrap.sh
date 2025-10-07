@@ -143,13 +143,14 @@ if [[ ! -f "$PROMPT_FILE" ]]; then
   exit 1
 fi
 
-echo "⚙️  Generating prompts/iterate.md + tasks.md (universal detection)"
+echo "⚙️  Analyzing codebase and generating prompts/iterate.md (universal detection)"
 cursor-agent --print --force --model "$MODEL" "$(cat "$PROMPT_FILE")"
 
-echo "✅ Created/updated: prompts/iterate.md, tasks.md"
+echo "✅ Created/updated: prompts/iterate.md"
+echo "📋 Control files populated with codebase analysis"
 echo "➡️  Next steps:"
-echo "   make iterate      # Start working on existing tasks"
-echo "   make add-feature  # Add new feature/requirements to architect"
+echo "   make add-feature  # Add new feature/requirements to architect and create tasks"
+echo "   make task-status  # Show current task status (will be empty until features added)"
 EOF
 
 # Make the script executable
@@ -507,7 +508,7 @@ if [[ ! -f "Makefile" ]]; then
     cat > Makefile << 'EOF'
 # Makefile for Cursor Agent Iteration System
 
-.PHONY: help iterate-init iterate iterate-complete iterate-loop add-feature archive-completed
+.PHONY: help iterate-init iterate iterate-complete iterate-loop add-feature archive-completed task-status
 
 ## help: Show this help message
 help:
@@ -523,6 +524,7 @@ help:
 	@echo "  make add-feature     # Add new feature/requirements"
 	@echo "  make archive-completed # Archive completed tasks"
 	@echo "  make iterate-complete # Check if all tasks are completed"
+	@echo "  make task-status      # Show current task status and progress"
 
 ## iterate-init: Initialize universal iteration system
 iterate-init:
@@ -562,7 +564,7 @@ else
     echo -e "${CYAN}📝 Updating existing Makefile with cursor-agent-iteration targets...${NC}"
     
     # Define all cursor-agent-iteration targets
-    CURSOR_TARGETS=("iterate-init" "iterate" "iterate-complete" "iterate-loop" "add-feature" "archive-completed")
+    CURSOR_TARGETS=("iterate-init" "iterate" "iterate-complete" "iterate-loop" "add-feature" "archive-completed" "task-status")
     
     # Check if any cursor-agent-iteration targets exist
     CURSOR_TARGETS_EXIST=false
@@ -641,6 +643,35 @@ add-feature:
 archive-completed:
 	@echo "Archiving completed tasks..."
 	@./scripts/archive-completed.sh
+
+## task-status: Show current task status and progress
+task-status:
+	@echo "📊 Task Status Overview"
+	@echo "======================"
+	@if [ -f "tasks.md" ]; then \
+		echo ""; \
+		echo "📋 Current Tasks:"; \
+		echo "----------------"; \
+		echo "✅ Completed tasks:"; \
+		grep -c "^- \[x\]" tasks.md 2>/dev/null || echo "   0"; \
+		echo "🔄 In-progress tasks:"; \
+		grep -c "^- \[ \] 🔄" tasks.md 2>/dev/null || echo "   0"; \
+		echo "⏳ Pending tasks:"; \
+		grep -c "^- \[ \]" tasks.md 2>/dev/null || echo "   0"; \
+		echo ""; \
+		echo "📝 Task Details:"; \
+		echo "---------------"; \
+		grep "^# " tasks.md | head -5 || echo "   No tasks found"; \
+		echo ""; \
+		if grep -q "^- \[ \]" tasks.md; then \
+			echo "🎯 Next Task:"; \
+			grep -A 3 "^- \[ \]" tasks.md | head -4; \
+		else \
+			echo "🎉 All tasks completed!"; \
+		fi; \
+	else \
+		echo "❌ No tasks.md found. Run 'make iterate-init' first."; \
+	fi
 EOF
     echo -e "${GREEN}✅ Added fresh cursor-agent-iteration targets to Makefile${NC}"
 fi
@@ -946,9 +977,10 @@ echo ""
 echo -e "${CYAN}📋 Next Steps:${NC}"
 echo -e "   ${YELLOW}make help${NC}              # Show all available commands"
 echo -e "   ${YELLOW}make iterate-init${NC}      # Initialize and analyze your repository"
+echo -e "   ${YELLOW}make add-feature${NC}       # Add new feature/requirements (analyzes codebase first)"
+echo -e "   ${YELLOW}make task-status${NC}       # Show current task status and progress"
 echo -e "   ${YELLOW}make iterate${NC}           # Run the next task in the backlog"
 echo -e "   ${YELLOW}make iterate-loop${NC}      # Run iterations until all tasks complete"
-echo -e "   ${YELLOW}make add-feature${NC}       # Add new feature/requirements (analyzes codebase first)"
 echo -e "   ${YELLOW}make iterate-complete${NC}  # Check if all tasks are completed"
 echo -e "   ${YELLOW}make archive-completed${NC} # Archive completed tasks"
 echo ""
