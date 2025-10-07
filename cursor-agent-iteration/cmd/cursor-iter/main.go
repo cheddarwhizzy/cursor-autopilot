@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"cursor-agent-iteration/internal/runner"
-	"cursor-agent-iteration/internal/tasks"
+	"github.com/cheddarwhizzy/cursor-autopilot/cursor-agent-iteration/internal/runner"
+	"github.com/cheddarwhizzy/cursor-autopilot/cursor-agent-iteration/internal/tasks"
 )
 
 func usage() {
