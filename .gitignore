@@ -8,3 +8,5 @@ cursor_window.png
 coverage.xml
 .coverage
 logs/
+completed_tasks/
+tasks.md

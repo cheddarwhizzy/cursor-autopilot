@@ -53,27 +53,27 @@ in_completed_task=false
 task_content=()
 
 while IFS= read -r line; do
-    if [[ $line =~ ^- \[x\] ]]; then
+    if [[ $line =~ ^-.*\[x\] ]]; then
         # Start of completed task
         in_completed_task=true
         task_content=("$line")
-    elif [[ $line =~ ^- \[ \] ]] && [[ $in_completed_task = true ]]; then
+    elif [[ $line =~ ^-.*\[[[:space:]]\] ]] && [[ $in_completed_task == true ]]; then
         # Start of new incomplete task - end of completed task
         in_completed_task=false
         # Don't include this line in task_content, it belongs to the next task
-    elif [[ $in_completed_task = true ]]; then
+    elif [[ $in_completed_task == true ]]; then
         # Part of completed task
         task_content+=("$line")
     else
         # Not part of a completed task
-        if [[ $in_completed_task = false ]]; then
+        if [[ $in_completed_task == false ]]; then
             echo "$line" >> "$TEMP_FILE"
         fi
     fi
 done < tasks.md
 
 # Handle case where the last task was completed
-if [[ $in_completed_task = true ]]; then
+if [[ $in_completed_task == true ]]; then
     # Don't add anything to TEMP_FILE - the completed task is already archived
     true
 fi

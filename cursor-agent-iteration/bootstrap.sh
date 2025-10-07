@@ -103,7 +103,9 @@ TEMPLATE_FILES=(
 )
 
 for template in "${TEMPLATE_FILES[@]}"; do
-    if ! fetch_template_file "$template"; then
+    if [[ -f "templates/${template}.template" ]]; then
+        echo -e "${CYAN}📝 Using local template for ${template}${NC}"
+    elif ! fetch_template_file "$template"; then
         echo -e "${YELLOW}⚠️  Using local template for ${template}${NC}"
     fi
 done
