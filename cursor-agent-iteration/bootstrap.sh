@@ -178,8 +178,17 @@ if [[ ! -f "tasks.md" ]]; then
 fi
 
 # Count total tasks and completed tasks
-TOTAL_TASKS=$(grep -c "^- \[" tasks.md || echo "0")
-COMPLETED_TASKS=$(grep -c "^- \[x\]" tasks.md || echo "0")
+TOTAL_TASKS=$(grep -c "^- \[" tasks.md 2>/dev/null || echo "0")
+COMPLETED_TASKS=$(grep -c "^- \[x\]" tasks.md 2>/dev/null || echo "0")
+
+# Ensure we have valid numbers for arithmetic
+if [[ ! "$TOTAL_TASKS" =~ ^[0-9]+$ ]]; then
+    TOTAL_TASKS=0
+fi
+if [[ ! "$COMPLETED_TASKS" =~ ^[0-9]+$ ]]; then
+    COMPLETED_TASKS=0
+fi
+
 REMAINING_TASKS=$((TOTAL_TASKS - COMPLETED_TASKS))
 
 echo -e "${CYAN}📊 Task Status:${NC}"
