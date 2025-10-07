@@ -290,6 +290,8 @@ while true; do
     echo -e "${CYAN}📊 Current status:${NC}"
     ./scripts/check-complete.sh || true
     echo ""
+    echo -e "${YELLOW}💡 Use 'make task-status' in another terminal for detailed task information${NC}"
+    echo ""
     
     # Small delay between iterations
     sleep 2
@@ -666,7 +668,7 @@ task-status:
 		echo "✅ Completed tasks:"; \
 		grep -c "^- \[x\]" tasks.md 2>/dev/null || echo "   0"; \
 		echo "🔄 In-progress tasks:"; \
-		grep -c "^- \[ \] 🔄" tasks.md 2>/dev/null || echo "   0"; \
+		(grep -c "^- \[ \].*🔄" tasks.md 2>/dev/null || echo "0") | sed 's/^/   /'; \
 		echo "⏳ Pending tasks:"; \
 		grep -c "^- \[ \]" tasks.md 2>/dev/null || echo "   0"; \
 		echo ""; \
@@ -674,12 +676,19 @@ task-status:
 		echo "---------------"; \
 		grep "^# " tasks.md | head -5 || echo "   No tasks found"; \
 		echo ""; \
+		if grep -q "^- \[ \].*🔄" tasks.md; then \
+			echo "🎯 Currently Working On:"; \
+			grep -A 2 "^- \[ \].*🔄" tasks.md | head -3; \
+			echo ""; \
+		fi; \
 		if grep -q "^- \[ \]" tasks.md; then \
-			echo "🎯 Next Task:"; \
-			grep -A 3 "^- \[ \]" tasks.md | head -4; \
+			echo "📋 Next Pending Task:"; \
+			grep -A 2 "^- \[ \]" tasks.md | head -3; \
 		else \
 			echo "🎉 All tasks completed!"; \
 		fi; \
+		echo ""; \
+		echo "💡 Tip: Run 'make iterate' for next task or 'make iterate-loop' for continuous processing"; \
 	else \
 		echo "❌ No tasks.md found. Run 'make iterate-init' first."; \
 	fi
