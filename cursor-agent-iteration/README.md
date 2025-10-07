@@ -6,29 +6,30 @@ A self-managing engineering loop for any repository type using Cursor Agent CLI.
 
 ### One-liner (Recommended)
 ```bash
-curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/main/cursor-agent-iteration/install-curl.sh | bash
+curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/main/cursor-agent-iteration/bootstrap.sh | bash
 ```
 
-### Option 2: Manual Installation
+### Go Install (Latest)
+```bash
+go install github.com/cheddarwhizzy/cursor-autopilot/cursor-agent-iteration/cmd/cursor-iter@latest
+```
+
+### Manual Installation
 ```bash
 # Clone or download this repository
 git clone https://github.com/cheddarwhizzy/cursor-autopilot.git
 cd cursor-autopilot/cursor-agent-iteration
 
-# Copy files to your project
-cp -r * /path/to/your/project/
-cd /path/to/your/project
-
-# Run installation
-chmod +x install.sh
-./install.sh
+# Build and install
+go build -o cursor-iter ./cmd/cursor-iter
+sudo mv cursor-iter /usr/local/bin/
 ```
 
 ## 🎯 Quick Start
 
 ### 1. Initialize the System
 ```bash
-make iterate-init
+cursor-iter iterate-init --model auto
 ```
 
 This will:
@@ -39,7 +40,7 @@ This will:
 
 ### 2. Start Iterating
 ```bash
-make iterate
+cursor-iter iterate
 ```
 
 This will:
@@ -52,16 +53,14 @@ This will:
 
 | Command | Description | Example |
 |---------|-------------|---------|
-| `make help` | Show all available commands and help | `make help` |
-| `make iterate-init` | Initialize the iteration system | `make iterate-init` |
-| `make iterate` | Run the next task in backlog | `make iterate` |
-| `make iterate-loop` | Run iterations until all tasks complete | `make iterate-loop` |
-| `make add-feature` | Add new feature/requirements | `make add-feature` |
-| `make archive-completed` | Archive completed tasks | `make archive-completed` |
-| `make iterate-complete` | Check if all tasks are completed | `make iterate-complete` |
-| `make task-status` | Show current task status and progress | `make task-status` |
-| `make iterate-custom` | Run with custom prompt | `make iterate-custom PROMPT="Work on security tasks"` |
-| `make tasks-update` | Update task list | `make tasks-update PROMPT="Add GraphQL API tasks"` |
+| `cursor-iter` | Show all available commands and help | `cursor-iter` |
+| `cursor-iter iterate-init` | Initialize the iteration system | `cursor-iter iterate-init --model auto` |
+| `cursor-iter iterate` | Run the next task in backlog | `cursor-iter iterate` |
+| `cursor-iter iterate-loop` | Run iterations until all tasks complete | `cursor-iter iterate-loop` |
+| `cursor-iter add-feature` | Add new feature/requirements | `cursor-iter add-feature` |
+| `cursor-iter archive-completed` | Archive completed tasks | `cursor-iter archive-completed` |
+| `cursor-iter task-status` | Show current task status and progress | `cursor-iter task-status` |
+| `cursor-iter reset` | Remove all control files | `cursor-iter reset` |
 
 ## 📁 Generated Files
 
@@ -332,50 +331,50 @@ The system tracks:
 ### Fully Automated (Recommended)
 ```bash
 # 1. Install the system
-curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/main/cursor-agent-iteration/install-curl.sh | bash
+curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/main/cursor-agent-iteration/bootstrap.sh | bash
 
 # 2. Initialize for your repository
-make iterate-init
+cursor-iter iterate-init --model auto
 
 # 3. Run until all tasks are completed
-make iterate-loop
+cursor-iter iterate-loop
 ```
 
 ### Adding New Features
 ```bash
 # 1. Add a new feature
-make add-feature
+cursor-iter add-feature
 # Enter your feature description (multiline)
 
 # 2. Run iterations until all tasks complete
-make iterate-loop
+cursor-iter iterate-loop
 
 # 3. Archive completed tasks (optional)
-make archive-completed
+cursor-iter archive-completed
 ```
 
 ### Manual Control
 ```bash
 # 1. Install the system
-curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/main/cursor-agent-iteration/install-curl.sh | bash
+curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/main/cursor-agent-iteration/bootstrap.sh | bash
 
 # 2. Initialize for your repository
-make iterate-init
+cursor-iter iterate-init --model auto
 
 # 3. Check task status and progress
-make task-status
+cursor-iter task-status
 
 # 4. Run individual iterations
-make iterate
+cursor-iter iterate
 
-# 5. Add new tasks as needed
-make tasks-update PROMPT="Add tasks for implementing real-time notifications with WebSockets"
+# 5. Add new features as needed
+cursor-iter add-feature
 
 # 6. Continue iterating
-make iterate
+cursor-iter iterate
 
-# 7. Check completion status
-make iterate-complete
+# 7. Reset when needed
+cursor-iter reset
 ```
 
 ## 📊 Current Status
@@ -417,5 +416,5 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 **Ready to start?** Run the one-liner installer and begin the engineering iteration loop!
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/main/cursor-agent-iteration/install-curl.sh | bash
+curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/main/cursor-agent-iteration/bootstrap.sh | bash
 ```

@@ -1,0 +1,55 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-go@v4
+      with:
+        go-version: '1.22'
+    - run: go test ./...
+    - run: go build -o cursor-iter ./cmd/cursor-iter
+
+  release:
+    if: github.event_name == 'push' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main')
+    needs: test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+        - os: linux
+          arch: amd64
+        - os: linux
+          arch: arm64
+        - os: darwin
+          arch: amd64
+        - os: darwin
+          arch: arm64
+        - os: windows
+          arch: amd64
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-go@v4
+      with:
+        go-version: '1.22'
+    - name: Build
+      run: |
+        GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} go build -o cursor-iter_${{ matrix.os }}_${{ matrix.arch }}${{ matrix.os == 'windows' && '.exe' || '' }} ./cmd/cursor-iter
+    - name: Upload Release Asset
+      if: startsWith(github.ref, 'refs/tags/v')
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./cursor-iter_${{ matrix.os }}_${{ matrix.arch }}${{ matrix.os == 'windows' && '.exe' || '' }}
+        asset_name: cursor-iter_${{ matrix.os }}_${{ matrix.arch }}${{ matrix.os == 'windows' && '.exe' || '' }}
+        asset_content_type: application/octet-stream
