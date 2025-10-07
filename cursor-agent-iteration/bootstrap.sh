@@ -222,7 +222,9 @@ if [[ $REMAINING_TASKS -eq 0 && $TOTAL_TASKS -gt 0 ]]; then
     
     exit 0
 else
-    echo -e "${YELLOW}⏳ Tasks remaining. Continue with 'make iterate'.${NC}"
+    echo -e "${YELLOW}⏳ Tasks remaining. Continue with:${NC}"
+    echo -e "   ${CYAN}make iterate${NC}       # Run next single task"
+    echo -e "   ${CYAN}make iterate-loop${NC}  # Run continuously until all tasks complete"
     exit 1
 fi
 EOF
