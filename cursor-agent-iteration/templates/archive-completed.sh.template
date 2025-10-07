@@ -28,7 +28,8 @@ ARCHIVE_DATE=$(date +"%Y-%m-%d_%H-%M-%S")
 ARCHIVE_FILE="completed_tasks/completed_${ARCHIVE_DATE}.md"
 
 # Count completed tasks
-COMPLETED_TASKS=$(grep -c "^- \[x\]" tasks.md || echo "0")
+COMPLETED_TASKS=$(grep -c "^-.*\[x\]" tasks.md 2>/dev/null || echo "0")
+COMPLETED_TASKS=$(echo "$COMPLETED_TASKS" | tr -d '\n')
 
 if [[ $COMPLETED_TASKS -eq 0 ]]; then
     echo -e "${YELLOW}⚠️  No completed tasks found to archive.${NC}"
