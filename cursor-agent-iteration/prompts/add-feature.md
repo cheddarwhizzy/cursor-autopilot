@@ -66,7 +66,13 @@ You must produce:
 
 # 5. Task Structure
 
-Each implementation task must follow:
+**CRITICAL: tasks.md Structure Requirements**
+
+When updating `tasks.md`, you MUST ensure:
+
+1. **Section Header**: All tasks must be placed under a `## Current Tasks` section header
+2. **Preserve Existing Structure**: If `tasks.md` already exists, maintain the existing `## Current Tasks` section
+3. **Task Format**: Each implementation task must follow this exact structure:
 
 ### Task: <title>
 
@@ -82,6 +88,11 @@ Each implementation task must follow:
 
 **CRITICAL:** All tasks must be added under the `## Current Tasks` section in tasks.md. Do not create new section headers. If no `## Current Tasks` section exists, create it as the main section for all tasks.
 
+**Status Tracking**: Use emojis in task titles to track progress:
+- 🔄 In Progress
+- ✅ Complete
+- ⚠️ Blocked
+
 ---
 
 # 6. Testing and Validation
@@ -93,9 +104,30 @@ For each component:
 * Add coverage targets.
 * Include monitoring hooks if applicable.
 
+# 7. Structure Validation
+
+**BEFORE finalizing your response, verify:**
+
+1. **tasks.md Structure Check**: Ensure your tasks.md patch includes:
+   - `## Current Tasks` section header (exactly as written)
+   - All new tasks follow the exact format specified above
+   - Existing tasks are preserved if tasks.md already exists
+   - No tasks are placed outside the `## Current Tasks` section
+
+2. **Task Format Validation**: Each task must have:
+   - `### Task: <title>` header
+   - `**Context:**` section
+   - `**Acceptance Criteria:**` section with checkbox items
+   - Required metadata sections (`**Files to Modify:**`, `**Tests:**`, `**Labels:**`, `**Dependencies:**`)
+
+3. **Compatibility Check**: Your changes must be compatible with:
+   - `cursor-iter task-status` command parsing
+   - `cursor-iter archive-completed` command
+   - Existing task status tracking
+
 ---
 
-# 7. Output Format
+# 8. Output Format
 
 Your response must contain the following markdown sections:
 

@@ -60,6 +60,7 @@ This will:
 | `cursor-iter add-feature` | Add new feature/requirements | `cursor-iter add-feature` |
 | `cursor-iter archive-completed` | Archive completed tasks | `cursor-iter archive-completed` |
 | `cursor-iter task-status` | Show current task status and progress | `cursor-iter task-status` |
+| `cursor-iter validate-tasks` | Validate/fix tasks.md structure | `cursor-iter validate-tasks --fix` |
 | `cursor-iter reset` | Remove all control files | `cursor-iter reset` |
 
 ## 📁 Generated Files
@@ -230,6 +231,24 @@ This will:
 - Keep `tasks.md` minimal and current
 - Update progress tracking
 - Maintain task history for reference
+
+### Task Structure Validation
+
+Ensure your `tasks.md` has the correct structure:
+
+```bash
+# Validate tasks.md structure
+cursor-iter validate-tasks
+
+# Fix common structure issues automatically
+cursor-iter validate-tasks --fix
+```
+
+This will:
+- Check for required `## Current Tasks` section header
+- Validate task format and structure
+- Fix missing section headers automatically
+- Ensure compatibility with `task-status` command
 
 ## 📚 Advanced Usage
 
