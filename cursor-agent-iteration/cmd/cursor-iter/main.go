@@ -98,18 +98,37 @@ func main() {
         // Minimal loop invoking iterate until tasks are complete
         file := resolveTasksFile()
         for i := 1; i <= 50; i++ { // safety cap
-            b, _ := os.ReadFile(file)
-            if tasks.Complete(string(b)) {
-                fmt.Println("All tasks completed.")
-                return
-            }
-            if debug { fmt.Printf("[%s] iterate-loop iteration #%d\n", ts(), i) } else { fmt.Printf("Iteration #%d\n", i) }
-            if err := runner.CursorAgentWithDebug(debug, "--print", "--force", "Please execute the engineering iteration loop as defined in prompts/iterate.md."); err != nil {
-                fmt.Fprintf(os.Stderr, "iteration failed: %v\n", err)
+            b, err := os.ReadFile(file)
+            if err != nil {
+                fmt.Fprintf(os.Stderr, "error reading tasks file: %v\n", err)
                 os.Exit(1)
             }
+            content := string(b)
+            
+            if tasks.Complete(content) {
+                fmt.Printf("[%s] ✅ All tasks completed successfully!\n", ts())
+                return
+            }
+            
+            // Show current progress
+            progress := tasks.GetTaskProgress(content)
+            fmt.Printf("[%s] Iteration #%d - %s\n", ts(), i, progress)
+            
+            fmt.Printf("[%s] 🔄 Starting iteration...\n", ts())
+            if err := runner.CursorAgentWithDebug(debug, "--print", "--force", "Please execute the engineering iteration loop as defined in prompts/iterate.md."); err != nil {
+                fmt.Fprintf(os.Stderr, "[%s] ❌ iteration failed: %v\n", ts(), err)
+                os.Exit(1)
+            }
+            
+            // Check progress after iteration
+            b2, err := os.ReadFile(file)
+            if err == nil {
+                newContent := string(b2)
+                newProgress := tasks.GetTaskProgress(newContent)
+                fmt.Printf("[%s] 📊 Updated progress: %s\n", ts(), newProgress)
+            }
         }
-        fmt.Println("Reached max iterations without completion.")
+        fmt.Printf("[%s] ⚠️ Reached max iterations (%d) without completion\n", ts(), 50)
     case "add-feature":
         promptFile := "./prompts/add-feature.md"
         data, err := os.ReadFile(promptFile)
