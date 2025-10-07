@@ -557,6 +557,16 @@ iterate-loop:
 	@echo "Starting continuous iteration loop..."
 	@echo "Press Ctrl+C to stop at any time"
 	@./scripts/iterate-loop.sh
+
+## add-feature: Add new feature/requirements to the project
+add-feature:
+	@echo "Adding new feature/requirements..."
+	@./scripts/add-feature.sh
+
+## archive-completed: Move completed tasks to archive
+archive-completed:
+	@echo "Archiving completed tasks..."
+	@./scripts/archive-completed.sh
 EOF
 else
     echo -e "${CYAN}📝 Checking existing Makefile targets...${NC}"
