@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"os"
@@ -116,8 +117,34 @@ func main() {
             fmt.Fprintf(os.Stderr, "missing prompt %s: %v\n", promptFile, err)
             os.Exit(1)
         }
-        if debug { fmt.Printf("[%s] add-feature using prompt=%s\n", ts(), promptFile) }
-        if err := runner.CursorAgentWithDebug(debug, "--print", "--force", string(data)); err != nil {
+        
+        // Prompt user for feature description
+        fmt.Print("Enter feature description (press Enter twice when done):\n")
+        var featureDesc string
+        scanner := bufio.NewScanner(os.Stdin)
+        var lines []string
+        emptyLineCount := 0
+        
+        for scanner.Scan() {
+            line := scanner.Text()
+            if line == "" {
+                emptyLineCount++
+                if emptyLineCount >= 2 {
+                    break
+                }
+                lines = append(lines, line)
+            } else {
+                emptyLineCount = 0
+                lines = append(lines, line)
+            }
+        }
+        featureDesc = strings.Join(lines, "\n")
+        
+        // Replace placeholder with user input
+        promptContent := strings.ReplaceAll(string(data), "{{FEATURE_DESCRIPTION}}", featureDesc)
+        
+        if debug { fmt.Printf("[%s] add-feature using prompt=%s with feature: %s\n", ts(), promptFile, featureDesc) }
+        if err := runner.CursorAgentWithDebug(debug, "--print", "--force", promptContent); err != nil {
             os.Exit(1)
         }
     case "reset":
