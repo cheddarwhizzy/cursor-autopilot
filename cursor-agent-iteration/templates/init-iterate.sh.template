@@ -18,6 +18,7 @@ if [[ ! -f "$PROMPT_FILE" ]]; then
 fi
 
 echo "⚙️  Analyzing codebase and generating prompts/iterate.md (universal detection)"
+echo "📋 This will create control files: architecture.md, progress.md, decisions.md, test_plan.md, qa_checklist.md, CHANGELOG.md, context.md"
 cursor-agent --print --force --model "$MODEL" "$(cat "$PROMPT_FILE")"
 
 echo "✅ Created/updated: prompts/iterate.md"
