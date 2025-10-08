@@ -204,6 +204,24 @@ func main() {
 	case "iterate":
 		// Run the main iteration based on prompts/iterate.md
 		// We reuse the existing shell command content to direct cursor-agent
+		file := resolveTasksFile()
+		
+		// Acquire file lock before running iteration
+		lock, err := LockFile(file)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "[%s] ⚠️ Could not acquire file lock: %v\n", ts(), err)
+			fmt.Fprintf(os.Stderr, "[%s] 💡 Another process may be modifying tasks.md. Please try again later.\n", ts())
+			os.Exit(1)
+		}
+		
+		fmt.Printf("[%s] ✅ Acquired file lock successfully - safe to proceed\n", ts())
+		
+		// Set up cleanup to release lock on exit
+		defer func() {
+			lock.Unlock()
+			fmt.Printf("[%s] 🔓 Released file lock\n", ts())
+		}()
+		
 		msg := "Please execute the engineering iteration loop as defined in prompts/iterate.md. Read the control files (architecture.md, tasks.md, progress.md, decisions.md, test_plan.md, qa_checklist.md, CHANGELOG.md) and select the first unchecked task from tasks.md. Then implement, test, validate, document, and commit the changes following the quality gates specified in the iteration prompt."
 		if debug {
 			fmt.Printf("[%s] iterate executing one cycle\n", ts())
@@ -223,6 +241,8 @@ func main() {
 				time.Sleep(2 * time.Second)
 				continue
 			}
+			
+			fmt.Printf("[%s] ✅ Acquired file lock successfully - safe to proceed\n", ts())
 
 			b, err := os.ReadFile(file)
 			if err != nil {
@@ -257,14 +277,16 @@ func main() {
 				}
 			}
 
-			// Release lock before running cursor-agent
-			lock.Unlock()
-
 			fmt.Printf("[%s] 🔄 Starting iteration...\n", ts())
 			if err := runner.CursorAgentWithDebug(debug, "--print", "--force", "Please execute the engineering iteration loop as defined in prompts/iterate.md."); err != nil {
+				lock.Unlock()
 				fmt.Fprintf(os.Stderr, "[%s] ❌ iteration failed: %v\n", ts(), err)
 				os.Exit(1)
 			}
+
+			// Release lock after cursor-agent completes successfully
+			lock.Unlock()
+			fmt.Printf("[%s] 🔓 Released file lock\n", ts())
 
 			// Check progress after iteration (without lock for quick read)
 			b2, err := os.ReadFile(file)
