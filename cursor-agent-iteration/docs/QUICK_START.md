@@ -13,45 +13,51 @@ curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/main
 
 ```bash
 # 1. Initialize the system
-make iterate-init
+cursor-iter iterate-init
 
 # 2. Start working on tasks
-make iterate
+cursor-iter iterate
 ```
 
 ## 📋 Essential Commands
 
 | Command | What it does | Example |
 |---------|--------------|---------|
-| `make iterate-init` | Sets up the iteration system | `make iterate-init` |
-| `make iterate` | Runs the next task | `make iterate` |
-| `make iterate-custom` | Runs with custom focus | `make iterate-custom PROMPT="Work on security tasks"` |
-| `make tasks-update` | Adds new tasks | `make tasks-update PROMPT="Add authentication tasks"` |
+| `cursor-iter iterate-init` | Sets up the iteration system | `cursor-iter iterate-init` |
+| `cursor-iter iterate` | Runs the next task | `cursor-iter iterate --max-in-progress 10` |
+| `cursor-iter iterate-loop` | Runs until all tasks complete | `cursor-iter iterate-loop --max-in-progress 10` |
+| `cursor-iter add-feature` | Adds new features/tasks | `cursor-iter add-feature --prompt "Add authentication tasks"` |
+| `cursor-iter task-status` | Shows current task status | `cursor-iter task-status` |
+
+**Key Features:**
+- **Task Continuation**: In-progress tasks automatically continue until completed
+- **Automatic Retry**: Failed or incomplete tasks are retried automatically
+- **Concurrency Control**: Use `--max-in-progress` to limit concurrent tasks (default: 10)
 
 ## 🎯 Common Use Cases
 
 ### Daily Development
 ```bash
 # Start your day with
-make iterate
+cursor-iter iterate
 
 # Add tasks as they come up
-make tasks-update PROMPT="Add task for fixing the login bug"
+cursor-iter add-feature --prompt "Add task for fixing the login bug"
 ```
 
 ### Feature Development
 ```bash
 # Add comprehensive feature tasks
-make tasks-update PROMPT="Add tasks for implementing user dashboard: API endpoints, frontend components, authentication, and testing"
+cursor-iter add-feature --prompt "Add tasks for implementing user dashboard: API endpoints, frontend components, authentication, and testing"
 
 # Work on the feature
-make iterate
+cursor-iter iterate
 ```
 
 ### Code Quality
 ```bash
 # Focus on quality improvements
-make iterate-custom PROMPT="Work on the next code quality task - could be typing, testing, or refactoring"
+cursor-iter iterate
 ```
 
 ## 🔧 Troubleshooting
@@ -64,19 +70,19 @@ export PATH="$HOME/.local/bin:$PATH"
 
 ### Need to start over?
 ```bash
-make iterate-init
+cursor-iter iterate-init
 ```
 
 ### Quality gates failing?
 ```bash
-make iterate-custom PROMPT="Diagnose why quality gates are failing and fix the issues"
+cursor-iter iterate
 ```
 
 ## 📚 Next Steps
 
 1. **Read the full documentation**: `CURSOR_ITERATION_README.md`
 2. **See examples**: `EXAMPLES.md`
-3. **Customize for your needs**: Use `make tasks-update` to add your specific tasks
+3. **Customize for your needs**: Use `cursor-iter add-feature` to add your specific tasks
 
 ---
 

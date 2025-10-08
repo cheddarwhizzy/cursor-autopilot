@@ -55,9 +55,13 @@ This will:
 |---------|-------------|---------|
 | `cursor-iter` | Show all available commands and help | `cursor-iter` |
 | `cursor-iter iterate-init` | Initialize the iteration system | `cursor-iter iterate-init --model auto` |
-| `cursor-iter iterate` | Run the next task in backlog | `cursor-iter iterate` |
-| `cursor-iter iterate-loop` | Run iterations until all tasks complete | `cursor-iter iterate-loop` |
+| `cursor-iter iterate-init --codex` | Initialize using Codex CLI | `cursor-iter iterate-init --codex --model gpt-5-codex` |
+| `cursor-iter iterate` | Run the next task in backlog | `cursor-iter iterate --max-in-progress 10` |
+| `cursor-iter iterate --codex` | Run iteration using Codex CLI | `cursor-iter iterate --codex` |
+| `cursor-iter iterate-loop` | Run iterations until all tasks complete | `cursor-iter iterate-loop --max-in-progress 10` |
+| `cursor-iter iterate-loop --codex` | Run iterations using Codex CLI | `cursor-iter iterate-loop --codex --max-in-progress 5` |
 | `cursor-iter add-feature` | Add new feature/requirements | `cursor-iter add-feature` |
+| `cursor-iter add-feature --codex` | Add feature using Codex CLI | `cursor-iter add-feature --codex` |
 | `cursor-iter archive-completed` | Archive completed tasks | `cursor-iter archive-completed` |
 | `cursor-iter task-status` | Show current task status and progress | `cursor-iter task-status` |
 | `cursor-iter validate-tasks` | Validate/fix tasks.md structure | `cursor-iter validate-tasks --fix` |
@@ -76,7 +80,7 @@ This will:
 - `CHANGELOG.md` - Conventional commits log (initial)
 - `context.md` - Project context (if not existing)
 
-### After `make iterate-init`:
+### After `cursor-iter iterate-init`:
 - `prompts/iterate.md` - Tailored iteration prompt (auto-generated)
 - `tasks.md` - Task backlog with acceptance criteria
 
@@ -153,7 +157,7 @@ The system enforces quality gates based on detected technologies:
 For fully automated development, use the continuous loop mode:
 
 ```bash
-make iterate-loop
+cursor-iter iterate-loop
 ```
 
 This will:
@@ -163,18 +167,79 @@ This will:
 - Update control files with completion status
 - Provide safety limits to prevent infinite loops
 
-### Manual Completion Check
+### Advanced Loop Options
 
-Check if all tasks are completed:
+Control concurrent task processing:
+
 ```bash
-make iterate-complete
+# Limit the maximum number of in-progress tasks (default: 10)
+cursor-iter iterate-loop --max-in-progress 5
+
+# Use with codex
+cursor-iter iterate-loop --codex --max-in-progress 3
 ```
+
+**Task Continuation Features:**
+- **Automatic Retry**: If a task doesn't complete in one iteration, the system automatically retries it
+- **In-Progress Tracking**: Tasks marked as in-progress are continued until all acceptance criteria are checked
+- **Concurrency Control**: Limit concurrent tasks to prevent resource exhaustion
+- **Progress Monitoring**: Real-time tracking of which tasks are being worked on
+
+**Example Output:**
+```
+[10:30:15] 🚀 Starting iterate-loop (max in-progress: 10)
+[10:30:15] Iteration #1 - 🔄 Working on: Add user authentication (2/5 criteria)
+[10:30:15] 🔄 Continuing in-progress task: 'Add user authentication' (2/5 criteria)
+[10:30:15] 🔄 Starting iteration for task: Add user authentication
+[10:35:42] ✅ Task completed: Add user authentication
+[10:35:42] 📊 Updated progress: ⏳ Next task: Add password reset functionality
+```
+
+### Debug Mode & Comprehensive Logging
+
+Enable detailed logging to track every step of task execution:
+
+```bash
+# Enable debug mode with --debug flag
+cursor-iter iterate --debug
+cursor-iter iterate-loop --debug
+cursor-iter add-feature --debug
+
+# Or use environment variable
+DEBUG=1 cursor-iter iterate
+```
+
+**Debug logging includes:**
+- 📖 File reads from `tasks.md` and `progress.md` (with byte counts)
+- 🔍 Task selection and matching logic
+- 📋 Task detail extraction from tasks.md
+- 📝 Progress marking in progress.md
+- 🤖 Cursor-agent process start/duration/completion
+- 🔍 Status rechecking after cursor-agent completion
+- 💡 Retry logic when tasks aren't complete
+
+**Example debug output:**
+```
+[14:32:15] 📖 Reading tasks from: tasks.md
+[14:32:15] ✅ Successfully read tasks.md (2543 bytes)
+[14:32:15] 📖 Reading progress from: progress.md
+[14:32:15] ✅ Successfully read progress.md (1234 bytes)
+[14:32:15] 🔍 Checking for in-progress tasks...
+[14:32:15] 🎯 Selected in-progress task to continue: 'Implement user authentication'
+[14:32:15] 🚀 Sending task to cursor-agent: 'Implement user authentication'
+[14:32:15] 🤖 Starting cursor-agent process...
+[14:38:42] ✅ cursor-agent process completed successfully (duration: 6m27s)
+[14:38:42] 🔍 Rechecking task status after cursor-agent completion...
+[14:38:42] ⚠️ Task not yet complete - will retry on next iteration
+```
+
+For more details, see [docs/LOGGING.md](docs/LOGGING.md).
 
 ### Task Status Overview
 
 Get detailed task status and progress:
 ```bash
-make task-status
+cursor-iter task-status
 ```
 
 This will show:
@@ -191,7 +256,7 @@ This will show:
 Add new features and requirements to your project:
 
 ```bash
-make add-feature
+cursor-iter add-feature
 ```
 
 This will:
@@ -205,7 +270,7 @@ This will:
 ### Example Feature Addition
 
 ```bash
-make add-feature
+cursor-iter add-feature
 # Enter your feature description (multiline, press Ctrl+D when done):
 # 
 # Implement a real-time notification system with WebSockets
@@ -223,7 +288,7 @@ make add-feature
 Keep your `tasks.md` focused on current work:
 
 ```bash
-make archive-completed
+cursor-iter archive-completed
 ```
 
 This will:
@@ -253,30 +318,51 @@ This will:
 ## 📚 Advanced Usage
 
 ### Model Selection
+
+#### Cursor Agent (Default)
 ```bash
 # Use specific model for initialization
-MODEL="gpt-4o" make iterate-init
+cursor-iter iterate-init --model gpt-4o
 
-# Use specific model for iteration
-MODEL="gpt-4o" make iterate
+# Use specific model for iteration (set via environment variable)
+MODEL="gpt-4o" cursor-iter iterate
 ```
 
-### Custom Prompts
+#### Codex CLI Support
 ```bash
-# Work on specific task types
-make iterate-custom PROMPT="Find and implement the next database-related task"
+# Install Codex CLI first
+npm i -g @openai/codex
 
-# Focus on specific components
-make iterate-custom PROMPT="Work on the next API endpoint task"
+# Initialize using Codex with gpt-5-codex model
+cursor-iter iterate-init --codex --model gpt-5-codex
+
+# Run iterations using Codex
+cursor-iter iterate --codex
+
+# Run continuous loop using Codex
+cursor-iter iterate-loop --codex
+
+# Add features using Codex
+cursor-iter add-feature --codex --prompt "Implement user authentication"
 ```
+
+### Codex vs Cursor Agent
+
+| Feature | Cursor Agent | Codex CLI |
+|---------|-------------|-----------|
+| **Default Model** | auto/gpt-4o | gpt-5-codex |
+| **Installation** | `curl https://cursor.com/install -fsS \| bash` | `npm i -g @openai/codex` |
+| **Command** | `cursor-agent --model <model> <prompt>` | `codex --model gpt-5-codex exec "<prompt>"` |
+| **Use Case** | General development tasks | Agentic coding tasks |
+| **Integration** | Built-in with Cursor IDE | Standalone CLI tool |
 
 ### Task Management
 ```bash
 # Add new tasks
-make tasks-update PROMPT="Add tasks for implementing user authentication with OAuth2"
+cursor-iter add-feature --prompt "Add tasks for implementing user authentication with OAuth2"
 
 # Refine existing tasks
-make tasks-update PROMPT="Update the logging task to include structured logging with correlation IDs"
+cursor-iter add-feature --prompt "Update the logging task to include structured logging with correlation IDs"
 ```
 
 ## 🚨 Troubleshooting
@@ -290,30 +376,53 @@ curl https://cursor.com/install -fsS | bash
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
-**2. Tasks.md not found**
+**2. codex CLI not found**
 ```bash
-make iterate-init
+# Install codex CLI
+npm i -g @openai/codex
+# Or use cursor-agent instead
+cursor-iter iterate --model auto
 ```
 
-**3. Quality gates failing**
+**3. Tasks.md not found**
 ```bash
-make iterate-custom PROMPT="Diagnose why the Python quality gates are failing. Check mypy, ruff, black, and pytest outputs."
+cursor-iter iterate-init
+# Or with Codex
+cursor-iter iterate-init --codex
 ```
 
-**4. Control files out of sync**
+**4. Quality gates failing**
+```bash
+cursor-iter iterate
+# Or with Codex
+cursor-iter iterate --codex
+```
+
+**5. Control files out of sync**
 ```bash
 # Reset and regenerate
-rm -f architecture.md progress.md decisions.md test_plan.md qa_checklist.md CHANGELOG.md
-make iterate  # Will recreate them
+cursor-iter reset
+cursor-iter iterate-init
+# Or with Codex
+cursor-iter iterate-init --codex
+```
+
+**6. Model selection issues**
+```bash
+# Use specific model with cursor-agent
+cursor-iter iterate --model gpt-4o
+
+# Use specific model with codex (defaults to gpt-5-codex)
+cursor-iter iterate --codex --model gpt-5-codex
 ```
 
 ### Getting Help
 ```bash
 # Check what the system detected
-make iterate-custom PROMPT="Analyze the current repository structure and explain what was detected"
+cursor-iter task-status
 
 # Get task recommendations
-make iterate-custom PROMPT="Review the current tasks.md and suggest improvements or additional tasks"
+cursor-iter add-feature --prompt "Review the current tasks.md and suggest improvements or additional tasks"
 ```
 
 ## 📈 Best Practices
@@ -325,14 +434,14 @@ make iterate-custom PROMPT="Review the current tasks.md and suggest improvements
 4. **Incremental**: Break large tasks into smaller, manageable pieces
 
 ### Iteration Strategy
-1. **Regular Runs**: Use `make iterate` daily for steady progress
+1. **Regular Runs**: Use `cursor-iter iterate` daily for steady progress
 2. **Quality First**: Never skip quality gates
 3. **Document Everything**: Let the system update control files automatically
 4. **Review Progress**: Check `progress.md` regularly for insights
 
 ### Repository Maintenance
 1. **Update Tasks**: Use natural language to add/modify tasks as requirements change
-2. **Regenerate When Needed**: Re-run `make iterate-init` if repository structure changes significantly
+2. **Regenerate When Needed**: Re-run `cursor-iter iterate-init` if repository structure changes significantly
 3. **Keep Control Files**: Don't manually edit control files; let the system manage them
 4. **Monitor Quality**: Use the quality gates to maintain code standards
 
@@ -347,7 +456,7 @@ The system tracks:
 
 ## 🔄 Example Workflow
 
-### Fully Automated (Recommended)
+### Fully Automated with Cursor Agent (Recommended)
 ```bash
 # 1. Install the system
 curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/main/cursor-agent-iteration/bootstrap.sh | bash
@@ -357,6 +466,21 @@ cursor-iter iterate-init --model auto
 
 # 3. Run until all tasks are completed
 cursor-iter iterate-loop
+```
+
+### Fully Automated with Codex CLI
+```bash
+# 1. Install the system
+curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/main/cursor-agent-iteration/bootstrap.sh | bash
+
+# 2. Install Codex CLI
+npm i -g @openai/codex
+
+# 3. Initialize for your repository using Codex
+cursor-iter iterate-init --codex --model gpt-5-codex
+
+# 4. Run until all tasks are completed using Codex
+cursor-iter iterate-loop --codex
 ```
 
 ### Adding New Features
@@ -406,6 +530,7 @@ cursor-iter reset
 | **Continuous Loop**     | ✅ Production Ready | 100%     | Automated iteration until completion                      |
 | **Feature Addition**    | ✅ Production Ready | 100%     | Natural language feature requests                         |
 | **Progress Tracking**   | ✅ Production Ready | 100%     | Real-time status and completion tracking                  |
+| **Agent Support**       | ✅ Production Ready | 100%     | Cursor Agent and Codex CLI integration                    |
 
 ## 🎯 Key Features
 
@@ -416,6 +541,7 @@ cursor-iter reset
 - **🚀 Feature Addition**: Natural language feature request processing with architecture analysis
 - **📊 Progress Tracking**: Real-time status reporting and completion tracking
 - **🛡️ Safety Features**: Prevents infinite loops and maintains system integrity
+- **🤖 Dual Agent Support**: Supports both Cursor Agent and Codex CLI for maximum flexibility
 
 ## 🤝 Contributing
 

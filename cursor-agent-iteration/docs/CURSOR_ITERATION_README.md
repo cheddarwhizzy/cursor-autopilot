@@ -12,10 +12,10 @@ curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/main
 
 ```bash
 # 1. Initialize the system (analyzes your repo)
-make iterate-init
+cursor-iter iterate-init
 
 # 2. Start working on tasks
-make iterate
+cursor-iter iterate
 ```
 
 ## 🔧 Supported Technologies
@@ -36,10 +36,19 @@ The system automatically detects and supports:
 
 | Command | Description | Example |
 |---------|-------------|---------|
-| `make iterate-init` | Initialize and analyze repository | `make iterate-init` |
-| `make iterate` | Run the next task | `make iterate` |
-| `make iterate-custom` | Run with custom focus | `make iterate-custom PROMPT="Work on security"` |
-| `make tasks-update` | Add new tasks | `make tasks-update PROMPT="Add API tasks"` |
+| `cursor-iter iterate-init` | Initialize and analyze repository | `cursor-iter iterate-init` |
+| `cursor-iter iterate` | Run the next task | `cursor-iter iterate --max-in-progress 10` |
+| `cursor-iter iterate-loop` | Run until all tasks complete | `cursor-iter iterate-loop --max-in-progress 10` |
+| `cursor-iter add-feature` | Add new features/tasks | `cursor-iter add-feature --prompt "Add API tasks"` |
+| `cursor-iter task-status` | Show current task status | `cursor-iter task-status` |
+
+### Task Continuation
+
+Both `iterate` and `iterate-loop` commands now:
+- **Continue in-progress tasks** until completion
+- **Automatically retry** tasks that don't complete
+- **Limit concurrent tasks** with `--max-in-progress` flag (default: 10)
+- **Track progress** and show which tasks are being worked on
 
 ## 🎯 How It Works
 
@@ -51,7 +60,7 @@ The system automatically detects and supports:
 
 ## 📁 Generated Files
 
-After `make iterate-init`:
+After `cursor-iter iterate-init`:
 - `prompts/iterate.md` - Tailored iteration prompt
 - `tasks.md` - Technology-specific task backlog
 - `architecture.md` - System architecture documentation
@@ -71,12 +80,12 @@ export PATH="$HOME/.local/bin:$PATH"
 
 ### Need to reanalyze repository?
 ```bash
-make iterate-init
+cursor-iter iterate-init
 ```
 
 ### Quality gates failing?
 ```bash
-make iterate-custom PROMPT="Diagnose and fix quality gate failures"
+cursor-iter iterate
 ```
 
 ## 📚 Examples
@@ -84,22 +93,22 @@ make iterate-custom PROMPT="Diagnose and fix quality gate failures"
 ### Go Project
 ```bash
 curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/main/cursor-agent-iteration/bootstrap.sh | bash
-make iterate-init  # Detects Go, creates Go-specific tasks
-make iterate       # Runs Go quality gates (go vet, golangci-lint, go test)
+cursor-iter iterate-init  # Detects Go, creates Go-specific tasks
+cursor-iter iterate       # Runs Go quality gates (go vet, golangci-lint, go test)
 ```
 
 ### Rust Project
 ```bash
 curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/main/cursor-agent-iteration/bootstrap.sh | bash
-make iterate-init  # Detects Rust, creates Rust-specific tasks
-make iterate       # Runs Rust quality gates (cargo clippy, cargo test, cargo fmt)
+cursor-iter iterate-init  # Detects Rust, creates Rust-specific tasks
+cursor-iter iterate       # Runs Rust quality gates (cargo clippy, cargo test, cargo fmt)
 ```
 
 ### Infrastructure Project
 ```bash
 curl -fsSL https://raw.githubusercontent.com/cheddarwhizzy/cursor-autopilot/main/cursor-agent-iteration/bootstrap.sh | bash
-make iterate-init  # Detects Terraform/Ansible, creates infrastructure tasks
-make iterate       # Runs infrastructure quality gates (terraform validate, ansible-lint)
+cursor-iter iterate-init  # Detects Terraform/Ansible, creates infrastructure tasks
+cursor-iter iterate       # Runs infrastructure quality gates (terraform validate, ansible-lint)
 ```
 
 ---

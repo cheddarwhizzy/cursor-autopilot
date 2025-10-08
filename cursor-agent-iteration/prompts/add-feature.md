@@ -127,9 +127,30 @@ For each component:
 
 ---
 
-# 8. Output Format
+# 8. Implementation Instructions
 
-Your response must contain the following markdown sections:
+**CRITICAL: You must DIRECTLY edit the control files using your file editing capabilities.**
+
+Your workflow:
+
+1. **Read existing files** to understand current state:
+   - Read `architecture.md` to understand current architecture
+   - Read `tasks.md` to see existing tasks and structure
+   - Read `test_plan.md` to understand testing approach
+   - Read `decisions.md` to see existing ADRs
+
+2. **Analyze and plan** your changes:
+   - Identify where new content should be added
+   - Ensure compatibility with existing structure
+   - Plan task ordering and dependencies
+
+3. **Update files directly** using your file editing tools:
+   - **Update `architecture.md`**: Add new feature section with architecture details
+   - **Update `tasks.md`**: Add new tasks under `## Current Tasks` section (create section if it doesn't exist)
+   - **Update `test_plan.md`**: Add testing coverage for the new feature
+   - **Update `decisions.md`**: Add relevant ADR entries for architectural decisions
+
+4. **Provide a summary** of changes made:
 
 ### Summary
 
@@ -137,7 +158,7 @@ Describe detected stack and which components are impacted.
 
 ### Architecture Changes
 
-Explain design decisions and file modifications.
+Explain design decisions and file modifications made.
 
 ### Integration Plan
 
@@ -145,49 +166,22 @@ Show data flow and component relationships.
 
 ### Implementation Tasks
 
-List all tasks formatted as described above.
+List all tasks you added to tasks.md.
 
-### Patches
+### Files Updated
 
-```diff
---- a/architecture.md
-+++ b/architecture.md
-<content>
-```
-
-```diff
---- a/tasks.md
-+++ b/tasks.md
-+## Current Tasks
-+
-+### Task: <First Task Title>
-+<task content>
-+
-+### Task: <Second Task Title>
-+<task content>
-+
-+... (all tasks must be under ## Current Tasks section)
-```
-
-```diff
---- a/test_plan.md
-+++ b/test_plan.md
-<content>
-```
-
-```diff
---- a/decisions.md
-+++ b/decisions.md
-<content>
-```
+List which files you modified:
+- ✅ architecture.md - Added <what>
+- ✅ tasks.md - Added <N> tasks
+- ✅ test_plan.md - Added <what>
+- ✅ decisions.md - Added <what>
 
 ### Next Steps
 
 1. Review ADRs and confirm dependencies.
 2. Run validation using the iteration loop:
-
    ```bash
-   cursor agent run prompts/iterate.md
+   cursor-iter iterate-loop
    ```
 3. Execute quality gates per detected stack (lint, typecheck, tests).
 
