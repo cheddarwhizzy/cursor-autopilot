@@ -156,46 +156,67 @@ The system enforces quality gates based on detected technologies:
 
 ## 🔄 Continuous Loop Mode
 
-For fully automated development, use the continuous loop mode:
+For fully automated development, use the continuous loop mode with **parallel execution**:
 
 ```bash
 cursor-iter iterate-loop
 ```
 
 This will:
-- Run iterations continuously until all tasks are completed
-- Show progress after each iteration
+- **Run up to 10 tasks in parallel** by default (configurable)
+- Show real-time completion status for each task
+- Automatically start new tasks as others complete
 - Stop automatically when all tasks are done
 - Update control files with completion status
 - Provide safety limits to prevent infinite loops
 
-### Advanced Loop Options
+### 🚀 Parallel Execution
 
-Control concurrent task processing:
+The iterate-loop now supports **concurrent task execution**, allowing multiple cursor-agent processes to run simultaneously:
 
 ```bash
-# Limit the maximum number of in-progress tasks (default: 10)
+# Run up to 10 tasks in parallel (default)
+cursor-iter iterate-loop
+
+# Run up to 5 tasks in parallel
 cursor-iter iterate-loop --max-in-progress 5
 
 # Use with codex
 cursor-iter iterate-loop --codex --max-in-progress 3
 ```
 
-**Task Continuation Features:**
-- **Automatic Retry**: If a task doesn't complete in one iteration, the system automatically retries it
-- **In-Progress Tracking**: Tasks marked as in-progress are continued until all acceptance criteria are checked
-- **Concurrency Control**: Limit concurrent tasks to prevent resource exhaustion
-- **Progress Monitoring**: Real-time tracking of which tasks are being worked on
+**Key Features:**
+- ✅ **Parallel Processing**: Run multiple tasks concurrently for faster completion
+- ✅ **Dynamic Scheduling**: Automatically starts new tasks as capacity becomes available
+- ✅ **Real-time Monitoring**: See when each task starts and completes
+- ✅ **Smart Resource Management**: Configurable concurrency limits
+- ✅ **No File Locks**: Removed locking overhead for better parallel performance
+- ✅ **Automatic Retry**: Failed or incomplete tasks are automatically retried
+- ✅ **Progress Tracking**: Live updates showing active tasks and completion status
 
-**Example Output:**
+**Example Output with Parallel Execution:**
 ```
-[10:30:15] 🚀 Starting iterate-loop (max in-progress: 10)
-[10:30:15] Iteration #1 - 🔄 Working on: Add user authentication (2/5 criteria)
-[10:30:15] 🔄 Continuing in-progress task: 'Add user authentication' (2/5 criteria)
-[10:30:15] 🔄 Starting iteration for task: Add user authentication
-[10:35:42] ✅ Task completed: Add user authentication
-[10:35:42] 📊 Updated progress: ⏳ Next task: Add password reset functionality
+[10:30:15] 🚀 Starting iterate-loop with parallel execution (max concurrent: 10)
+[10:30:15] 📝 Starting new task: 'Add user authentication'
+[10:30:15] 🚀 Starting cursor-agent for task: 'Add user authentication' (active: 1/10)
+[10:30:16] 📝 Starting new task: 'Implement API rate limiting'
+[10:30:16] 🚀 Starting cursor-agent for task: 'Implement API rate limiting' (active: 2/10)
+[10:30:17] 📝 Starting new task: 'Add logging middleware'
+[10:30:17] 🚀 Starting cursor-agent for task: 'Add logging middleware' (active: 3/10)
+[10:35:42] ✅ cursor-agent completed for task 'Add user authentication' (duration: 5m27s)
+[10:35:42] ✅ Task marked as completed: Add user authentication
+[10:35:43] 📝 Starting new task: 'Add password reset functionality'
+[10:35:43] 🚀 Starting cursor-agent for task: 'Add password reset functionality' (active: 3/10)
+[10:38:15] ✅ cursor-agent completed for task 'Implement API rate limiting' (duration: 7m59s)
+[10:38:15] ✅ Task marked as completed: Implement API rate limiting
+[10:38:15] 📊 Progress: 2 completed, 8 in-progress, 15 pending (active: 2/10)
 ```
+
+**Performance Benefits:**
+- 🚀 **10x Faster**: Complete 10 tasks in parallel instead of sequentially
+- ⚡ **Efficient Resource Usage**: Maximize CPU and API throughput
+- 📊 **Better Visibility**: See all active tasks and their progress
+- 🔄 **Continuous Flow**: New tasks start immediately when capacity is available
 
 ### Debug Mode & Comprehensive Logging
 

@@ -288,29 +288,6 @@ func TestTimestamp(t *testing.T) {
 	}
 }
 
-// TestFileLock tests the file locking functionality
-func TestFileLock(t *testing.T) {
-	tmpDir := t.TempDir()
-	lockFile := filepath.Join(tmpDir, "test.lock")
-
-	// Test successful lock
-	lock, err := LockFile(lockFile)
-	if err != nil {
-		t.Fatalf("Failed to acquire lock: %v", err)
-	}
-
-	// Test that we can unlock
-	err = lock.Unlock()
-	if err != nil {
-		t.Errorf("Failed to unlock: %v", err)
-	}
-
-	// Test that file was created
-	if _, err := os.Stat(lockFile); os.IsNotExist(err) {
-		t.Errorf("Lock file was not created")
-	}
-}
-
 // TestFetchPromptFromGitHub tests the fetchPromptFromGitHub function
 func TestFetchPromptFromGitHub(t *testing.T) {
 	tmpDir := t.TempDir()

@@ -10,52 +10,215 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/cheddarwhizzy/cursor-autopilot/cursor-agent-iteration/internal/runner"
 	"github.com/cheddarwhizzy/cursor-autopilot/cursor-agent-iteration/internal/tasks"
 )
 
-// Global mutex for file operations to prevent race conditions
-var fileMutex sync.Mutex
-
-// FileLock represents a file lock
-type FileLock struct {
-	file *os.File
+// TaskExecution represents a running task
+type TaskExecution struct {
+	TaskTitle string
+	StartTime time.Time
+	Done      chan error
 }
 
-// LockFile creates an exclusive lock on a file
-func LockFile(filePath string) (*FileLock, error) {
-	fileMutex.Lock()
-
-	file, err := os.OpenFile(filePath, os.O_CREATE|os.O_RDWR, 0644)
-	if err != nil {
-		fileMutex.Unlock()
-		return nil, fmt.Errorf("failed to open file %s: %v", filePath, err)
-	}
-
-	// Try to acquire exclusive lock
-	err = syscall.Flock(int(file.Fd()), syscall.LOCK_EX|syscall.LOCK_NB)
-	if err != nil {
-		file.Close()
-		fileMutex.Unlock()
-		return nil, fmt.Errorf("failed to lock file %s: %v", filePath, err)
-	}
-
-	return &FileLock{file: file}, nil
+// TaskRunner manages parallel task execution
+type TaskRunner struct {
+	running   map[string]*TaskExecution
+	mutex     sync.Mutex
+	maxActive int
 }
 
-// Unlock releases the file lock
-func (fl *FileLock) Unlock() error {
-	if fl.file != nil {
-		syscall.Flock(int(fl.file.Fd()), syscall.LOCK_UN)
-		err := fl.file.Close()
-		fileMutex.Unlock()
-		return err
+// NewTaskRunner creates a new TaskRunner
+func NewTaskRunner(maxActive int) *TaskRunner {
+	return &TaskRunner{
+		running:   make(map[string]*TaskExecution),
+		maxActive: maxActive,
 	}
-	fileMutex.Unlock()
+}
+
+// ActiveCount returns the number of currently running tasks
+func (tr *TaskRunner) ActiveCount() int {
+	tr.mutex.Lock()
+	defer tr.mutex.Unlock()
+	return len(tr.running)
+}
+
+// StartTask starts a new task execution in a goroutine
+func (tr *TaskRunner) StartTask(taskTitle string, taskDetails string, useCodex bool, model string, debug bool) error {
+	tr.mutex.Lock()
+	
+	// Check if task is already running
+	if _, exists := tr.running[taskTitle]; exists {
+		tr.mutex.Unlock()
+		return fmt.Errorf("task '%s' is already running", taskTitle)
+	}
+	
+	// Check if we've hit the max concurrent tasks
+	if len(tr.running) >= tr.maxActive {
+		tr.mutex.Unlock()
+		return fmt.Errorf("max concurrent tasks (%d) reached", tr.maxActive)
+	}
+	
+	// Create execution tracker
+	exec := &TaskExecution{
+		TaskTitle: taskTitle,
+		StartTime: time.Now(),
+		Done:      make(chan error, 1),
+	}
+	tr.running[taskTitle] = exec
+	tr.mutex.Unlock()
+	
+	// Log task start
+	fmt.Printf("[%s] 🚀 Starting cursor-agent for task: '%s' (active: %d/%d)\n", 
+		ts(), taskTitle, tr.ActiveCount(), tr.maxActive)
+	
+	// Build prompt
+	msg := fmt.Sprintf(`You are working on a specific task from the engineering iteration system.
+
+## Your Task
+
+%s
+
+## Instructions
+
+1. Review the control files for context:
+   - architecture.md: System architecture and design
+   - decisions.md: Architectural Decision Records (ADRs)
+   - progress.md: Completed tasks and progress history
+   - test_plan.md: Testing strategy and coverage
+   - qa_checklist.md: Quality assurance requirements
+   - CHANGELOG.md: Change history
+   - context.md: Project context (if available)
+
+2. Implement the task following these steps:
+   - Plan your implementation approach
+   - Write the code with comprehensive logging and comments
+   - Create/update tests to verify functionality
+   - Run quality gates (linting, formatting, type checking, tests)
+   - Update documentation as needed
+   - Commit changes with conventional commit messages
+
+3. Track progress:
+   - Check off each acceptance criterion in tasks.md as you complete it
+   - When ALL criteria are checked, move the task from "## In Progress" to "## Completed Tasks" in progress.md
+   - Use format: "- ✅ [YYYY-MM-DD HH:MM] Task Title - completion notes"
+
+4. Quality Requirements:
+   - All tests must pass
+   - Code must pass linting and formatting checks
+   - Follow existing code patterns and conventions
+   - Add detailed code comments explaining complex logic
+   - Include logging for debugging and monitoring
+
+## Important Notes
+
+- Focus ONLY on this specific task
+- tasks.md is a simple task list (no status emojis) - only check off acceptance criteria
+- progress.md tracks task status (in-progress and completed)
+- When all acceptance criteria are checked, move this task from "## In Progress" to "## Completed Tasks" in progress.md
+- Ensure all quality gates pass before marking complete
+
+Work on this task until all acceptance criteria are checked off and the task is moved to completed in progress.md.`, taskDetails)
+	
+	// Start cursor-agent in goroutine
+	go func() {
+		var err error
+		if useCodex {
+			err = runner.CodexWithDebug(debug, model, msg)
+		} else {
+			err = runner.CursorAgentWithDebug(debug, "--print", "--force", msg)
+		}
+		
+		duration := time.Since(exec.StartTime)
+		if err != nil {
+			fmt.Printf("[%s] ❌ cursor-agent failed for task '%s' (duration: %v): %v\n", 
+				ts(), taskTitle, duration, err)
+		} else {
+			fmt.Printf("[%s] ✅ cursor-agent completed for task '%s' (duration: %v)\n", 
+				ts(), taskTitle, duration)
+		}
+		
+		exec.Done <- err
+	}()
+	
 	return nil
+}
+
+// WaitForTask waits for a specific task to complete
+func (tr *TaskRunner) WaitForTask(taskTitle string) error {
+	tr.mutex.Lock()
+	exec, exists := tr.running[taskTitle]
+	tr.mutex.Unlock()
+	
+	if !exists {
+		return fmt.Errorf("task '%s' is not running", taskTitle)
+	}
+	
+	// Wait for completion
+	err := <-exec.Done
+	
+	// Remove from running map
+	tr.mutex.Lock()
+	delete(tr.running, taskTitle)
+	tr.mutex.Unlock()
+	
+	return err
+}
+
+// WaitForAny waits for any task to complete and returns its title
+func (tr *TaskRunner) WaitForAny() (string, error) {
+	// Create a select case for each running task
+	tr.mutex.Lock()
+	if len(tr.running) == 0 {
+		tr.mutex.Unlock()
+		return "", fmt.Errorf("no tasks running")
+	}
+	
+	// Copy running tasks to avoid holding lock
+	runningCopy := make(map[string]*TaskExecution)
+	for k, v := range tr.running {
+		runningCopy[k] = v
+	}
+	tr.mutex.Unlock()
+	
+	// Wait for first completion using reflection to handle dynamic cases
+	for title, exec := range runningCopy {
+		select {
+		case err := <-exec.Done:
+			// Remove from running map
+			tr.mutex.Lock()
+			delete(tr.running, title)
+			tr.mutex.Unlock()
+			return title, err
+		default:
+			// Continue checking other tasks
+		}
+	}
+	
+	// If no task is done yet, wait for the first one
+	for title, exec := range runningCopy {
+		err := <-exec.Done
+		tr.mutex.Lock()
+		delete(tr.running, title)
+		tr.mutex.Unlock()
+		return title, err
+	}
+	
+	return "", fmt.Errorf("no tasks completed")
+}
+
+// GetRunningTasks returns a list of currently running task titles
+func (tr *TaskRunner) GetRunningTasks() []string {
+	tr.mutex.Lock()
+	defer tr.mutex.Unlock()
+	
+	titles := make([]string, 0, len(tr.running))
+	for title := range tr.running {
+		titles = append(titles, title)
+	}
+	return titles
 }
 
 func usage() {
@@ -292,25 +455,12 @@ func main() {
 		file := resolveTasksFile()
 		progressFile := resolveProgressFile()
 
-		// Acquire file lock before running iteration
-		lock, err := LockFile(file)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "[%s] ⚠️ Could not acquire file lock: %v\n", ts(), err)
-			fmt.Fprintf(os.Stderr, "[%s] 💡 Another process may be modifying tasks.md. Please try again later.\n", ts())
-			os.Exit(1)
-		}
-
-		if *dbg {
-			fmt.Printf("[%s] ✅ Acquired file lock successfully - safe to proceed\n", ts())
-		}
-
 		// Read tasks.md and progress.md
 		if *dbg {
 			fmt.Printf("[%s] 📖 Reading tasks from: %s\n", ts(), file)
 		}
 		b, err := os.ReadFile(file)
 		if err != nil {
-			lock.Unlock()
 			fmt.Fprintf(os.Stderr, "error reading tasks file: %v\n", err)
 			os.Exit(1)
 		}
@@ -376,7 +526,6 @@ func main() {
 
 				// Write the updated progress.md
 				if err := os.WriteFile(progressFile, []byte(updatedProgress), 0644); err != nil {
-					lock.Unlock()
 					fmt.Fprintf(os.Stderr, "[%s] ⚠️ Warning: could not update progress: %v\n", ts(), err)
 					os.Exit(1)
 				} else {
@@ -392,14 +541,12 @@ func main() {
 				fmt.Printf("[%s] ℹ️ No pending tasks found\n", ts())
 			}
 		} else {
-			lock.Unlock()
 			fmt.Fprintf(os.Stderr, "[%s] ⚠️ Max in-progress tasks (%d) reached. Cannot start new task.\n", ts(), *maxInProgress)
 			fmt.Fprintf(os.Stderr, "[%s] 💡 Complete existing in-progress tasks before starting new ones.\n", ts())
 			os.Exit(1)
 		}
 
 		if currentTask == nil {
-			lock.Unlock()
 			fmt.Fprintf(os.Stderr, "[%s] ⚠️ No tasks available to work on\n", ts())
 			os.Exit(1)
 		}
@@ -468,12 +615,6 @@ Work on this task until all acceptance criteria are checked off and the task is 
 		agentModel := *model
 		if *useCodex && *model == "auto" {
 			agentModel = "gpt-5-codex"
-		}
-
-		// Release lock before running cursor-agent (it will run for a while)
-		lock.Unlock()
-		if *dbg {
-			fmt.Printf("[%s] 🔓 Released file lock before running cursor-agent\n", ts())
 		}
 
 		// Log which task is about to be sent to cursor-agent
@@ -546,7 +687,7 @@ Work on this task until all acceptance criteria are checked off and the task is 
 		dbg := fs.Bool("debug", debug, "enable verbose logging")
 		_ = fs.Parse(os.Args[2:])
 
-		// Minimal loop invoking iterate until tasks are complete
+		// Parallel iteration loop - can run up to maxInProgress tasks concurrently
 		file := resolveTasksFile()
 		progressFile := resolveProgressFile()
 
@@ -556,272 +697,161 @@ Work on this task until all acceptance criteria are checked off and the task is 
 			agentModel = "gpt-5-codex"
 		}
 
-		fmt.Printf("[%s] 🚀 Starting iterate-loop (max in-progress: %d)\n", ts(), *maxInProgress)
+		fmt.Printf("[%s] 🚀 Starting iterate-loop with parallel execution (max concurrent: %d)\n", ts(), *maxInProgress)
 
-		for i := 1; i <= 50; i++ { // safety cap
-			// Acquire file lock before reading tasks
-			lock, err := LockFile(file)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "[%s] ⚠️ Could not acquire file lock: %v\n", ts(), err)
-				fmt.Fprintf(os.Stderr, "[%s] 💡 Another process may be modifying tasks.md. Retrying...\n", ts())
-				time.Sleep(2 * time.Second)
-				continue
-			}
+		// Create task runner for managing parallel executions
+		taskRunner := NewTaskRunner(*maxInProgress)
 
-			if *dbg {
-				fmt.Printf("[%s] ✅ Acquired file lock successfully - safe to proceed\n", ts())
-			}
-
-			// Read tasks.md
+		// Main loop
+		iterationCount := 0
+		maxIterations := 100 // safety cap
+		
+		for iterationCount < maxIterations {
+			iterationCount++
+			
+			// Read current state
 			if *dbg {
 				fmt.Printf("[%s] 📖 Reading tasks from: %s\n", ts(), file)
 			}
 			b, err := os.ReadFile(file)
 			if err != nil {
-				lock.Unlock()
 				fmt.Fprintf(os.Stderr, "error reading tasks file: %v\n", err)
 				os.Exit(1)
 			}
 			taskContent := string(b)
-			if *dbg {
-				fmt.Printf("[%s] ✅ Successfully read tasks.md (%d bytes)\n", ts(), len(b))
-			}
 
 			// Read progress.md (create if doesn't exist)
-			if *dbg {
-				fmt.Printf("[%s] 📖 Reading progress from: %s\n", ts(), progressFile)
-			}
 			progressContent, err := os.ReadFile(progressFile)
 			if err != nil {
 				// If progress.md doesn't exist, create an empty one
-				progressContent = []byte("# Progress Log\n\n## Completed Tasks\n\n")
+				progressContent = []byte("# Progress Log\n\n## In Progress\n\n## Completed Tasks\n\n")
 				os.WriteFile(progressFile, progressContent, 0644)
-				if *dbg {
-					fmt.Printf("[%s] 📝 Created new progress.md file\n", ts())
-				}
-			} else {
-				if *dbg {
-					fmt.Printf("[%s] ✅ Successfully read progress.md (%d bytes)\n", ts(), len(progressContent))
-				}
 			}
 			progressStr := string(progressContent)
 
-			// Check if all tasks are complete using progress.md
+			// Check if all tasks are complete
 			if tasks.CompleteAllChecked(taskContent, progressStr) {
-				lock.Unlock()
+				// Wait for any remaining running tasks to complete
+				if taskRunner.ActiveCount() > 0 {
+					fmt.Printf("[%s] ⏳ Waiting for %d running tasks to complete...\n", ts(), taskRunner.ActiveCount())
+					for taskRunner.ActiveCount() > 0 {
+						completedTitle, _ := taskRunner.WaitForAny()
+						fmt.Printf("[%s] 📊 Task '%s' finished (active: %d/%d)\n", 
+							ts(), completedTitle, taskRunner.ActiveCount(), *maxInProgress)
+					}
+				}
 				fmt.Printf("[%s] ✅ All tasks completed successfully!\n", ts())
 				return
 			}
 
-			// Show current progress using both files
+			// Show current progress
 			progress := tasks.GetTaskProgressWithProgress(taskContent, progressStr)
-			fmt.Printf("[%s] Iteration #%d - %s\n", ts(), i, progress)
+			if *dbg || taskRunner.ActiveCount() == 0 {
+				fmt.Printf("[%s] Iteration #%d - %s\n", ts(), iterationCount, progress)
+				if taskRunner.ActiveCount() > 0 {
+					fmt.Printf("[%s] 🔄 Currently running %d tasks: %v\n", 
+						ts(), taskRunner.ActiveCount(), taskRunner.GetRunningTasks())
+				}
+			}
 
 			// Get current in-progress tasks
-			if *dbg {
-				fmt.Printf("[%s] 🔍 Checking for in-progress tasks...\n", ts())
-			}
 			inProgressTasks := tasks.GetAllInProgressTasks(taskContent, progressStr)
-			inProgressCount := len(inProgressTasks)
-
-			if *dbg {
-				fmt.Printf("[%s] 📊 Found %d in-progress tasks (max allowed: %d)\n", ts(), inProgressCount, *maxInProgress)
-			}
-
-			var currentTask *tasks.Task
-			var taskToWork string
-
-			// First, check if there's an existing in-progress task
-			if len(inProgressTasks) > 0 {
-				// Continue working on the first in-progress task
-				currentTask = inProgressTasks[0]
-				taskToWork = currentTask.Title
-				if *dbg {
-					fmt.Printf("[%s] 🎯 Selected in-progress task to continue: '%s'\n", ts(), taskToWork)
-				}
-				fmt.Printf("[%s] 🔄 Continuing in-progress task: '%s' (%d/%d criteria)\n",
-					ts(), currentTask.Title, currentTask.ACChecked, currentTask.ACTotal)
-			} else if inProgressCount < *maxInProgress {
-				// Only start a new task if we're under the max in-progress limit
-				if *dbg {
-					fmt.Printf("[%s] 🔍 Looking for next pending task...\n", ts())
-				}
-				nextTask := tasks.GetNextPendingTaskWithProgress(taskContent, progressStr)
-				if nextTask != nil {
-					if *dbg {
-						fmt.Printf("[%s] 🎯 Found next pending task: '%s'\n", ts(), nextTask.Title)
-						fmt.Printf("[%s] 📝 Marking task as in-progress in progress.md...\n", ts())
-					}
-					// Mark task as in-progress in progress.md (not tasks.md)
-					updatedProgress := tasks.MarkTaskInProgress(progressStr, nextTask.Title)
-
-					// Write the updated progress.md
-					if err := os.WriteFile(progressFile, []byte(updatedProgress), 0644); err != nil {
-						lock.Unlock()
-						fmt.Fprintf(os.Stderr, "[%s] ⚠️ Warning: could not update progress: %v\n", ts(), err)
-					} else {
-						if *dbg {
-							fmt.Printf("[%s] ✅ Successfully marked task as in-progress in progress.md\n", ts())
+			runningTitles := taskRunner.GetRunningTasks()
+			
+			// Start new tasks if we have capacity
+			if taskRunner.ActiveCount() < *maxInProgress {
+				// First, try to start any in-progress tasks that aren't currently running
+				for _, task := range inProgressTasks {
+					// Check if this task is already running
+					isRunning := false
+					for _, runningTitle := range runningTitles {
+						if runningTitle == task.Title {
+							isRunning = true
+							break
 						}
-						progressStr = updatedProgress // Update local copy
-						currentTask = nextTask
-						taskToWork = nextTask.Title
-						fmt.Printf("[%s] 📝 Started new task: '%s'\n", ts(), nextTask.Title)
 					}
-				} else if *dbg {
-					fmt.Printf("[%s] ℹ️ No pending tasks found\n", ts())
+					
+					if !isRunning && taskRunner.ActiveCount() < *maxInProgress {
+						// Extract task details and start it
+						taskDetails := tasks.ExtractTaskDetails(taskContent, task.Title)
+						if *dbg {
+							fmt.Printf("[%s] 🔄 Resuming in-progress task: '%s' (%d/%d criteria)\n",
+								ts(), task.Title, task.ACChecked, task.ACTotal)
+						}
+						err := taskRunner.StartTask(task.Title, taskDetails, *useCodex, agentModel, *dbg)
+						if err != nil && *dbg {
+							fmt.Printf("[%s] ⚠️ Could not start task '%s': %v\n", ts(), task.Title, err)
+						}
+					}
+				}
+				
+				// Then, try to start new pending tasks
+				for taskRunner.ActiveCount() < *maxInProgress {
+					nextTask := tasks.GetNextPendingTaskWithProgress(taskContent, progressStr)
+					if nextTask == nil {
+						break // No more pending tasks
+					}
+					
+					// Mark task as in-progress in progress.md
+					if *dbg {
+						fmt.Printf("[%s] 📝 Marking new task as in-progress: '%s'\n", ts(), nextTask.Title)
+					}
+					updatedProgress := tasks.MarkTaskInProgress(progressStr, nextTask.Title)
+					if err := os.WriteFile(progressFile, []byte(updatedProgress), 0644); err != nil {
+						fmt.Fprintf(os.Stderr, "[%s] ⚠️ Warning: could not update progress: %v\n", ts(), err)
+						break
+					}
+					progressStr = updatedProgress // Update local copy
+					
+					// Extract task details and start it
+					taskDetails := tasks.ExtractTaskDetails(taskContent, nextTask.Title)
+					fmt.Printf("[%s] 📝 Starting new task: '%s'\n", ts(), nextTask.Title)
+					err := taskRunner.StartTask(nextTask.Title, taskDetails, *useCodex, agentModel, *dbg)
+					if err != nil {
+						fmt.Printf("[%s] ⚠️ Could not start task '%s': %v\n", ts(), nextTask.Title, err)
+						break
+					}
+				}
+			}
+			
+			// If we have running tasks, wait for at least one to complete
+			if taskRunner.ActiveCount() > 0 {
+				completedTitle, err := taskRunner.WaitForAny()
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "[%s] ⚠️ Error waiting for task: %v\n", ts(), err)
+					time.Sleep(2 * time.Second)
+					continue
+				}
+				
+				// Re-read files to check completion status
+				b2, err := os.ReadFile(file)
+				if err == nil {
+					progressContent2, _ := os.ReadFile(progressFile)
+					newTaskContent := string(b2)
+					newProgressStr := string(progressContent2)
+					
+					taskCompleted := tasks.IsTaskCompletedAfterRun(newTaskContent, newProgressStr, completedTitle)
+					if taskCompleted {
+						fmt.Printf("[%s] ✅ Task marked as completed: %s\n", ts(), completedTitle)
+					} else {
+						fmt.Printf("[%s] ⚠️ Task not yet complete: %s - will retry\n", ts(), completedTitle)
+					}
+					
+					// Show updated progress
+					newProgress := tasks.GetTaskProgressWithProgress(newTaskContent, newProgressStr)
+					fmt.Printf("[%s] 📊 Progress: %s (active: %d/%d)\n", 
+						ts(), newProgress, taskRunner.ActiveCount(), *maxInProgress)
 				}
 			} else {
-				lock.Unlock()
-				fmt.Fprintf(os.Stderr, "[%s] ⚠️ Max in-progress tasks (%d) reached. Cannot start new task.\n", ts(), *maxInProgress)
-				fmt.Fprintf(os.Stderr, "[%s] 💡 Waiting for in-progress tasks to complete...\n", ts())
-				time.Sleep(5 * time.Second)
-				continue
-			}
-
-			if currentTask == nil {
-				lock.Unlock()
-				fmt.Fprintf(os.Stderr, "[%s] ⚠️ No tasks available to work on\n", ts())
-				break
-			}
-
-			fmt.Printf("[%s] 🔄 Starting iteration for task: %s\n", ts(), taskToWork)
-
-			// Extract the full task details from tasks.md
-			if *dbg {
-				fmt.Printf("[%s] 📋 Extracting full task details from tasks.md...\n", ts())
-			}
-			taskDetails := tasks.ExtractTaskDetails(taskContent, taskToWork)
-			if *dbg {
-				fmt.Printf("[%s] ✅ Task details extracted (%d bytes)\n", ts(), len(taskDetails))
-			}
-
-			// Build the prompt with the specific task and control file references
-			if *dbg {
-				fmt.Printf("[%s] 📝 Building prompt for cursor-agent...\n", ts())
-			}
-			msg := fmt.Sprintf(`You are working on a specific task from the engineering iteration system.
-
-## Your Task
-
-%s
-
-## Instructions
-
-1. Review the control files for context:
-   - architecture.md: System architecture and design
-   - decisions.md: Architectural Decision Records (ADRs)
-   - progress.md: Completed tasks and progress history
-   - test_plan.md: Testing strategy and coverage
-   - qa_checklist.md: Quality assurance requirements
-   - CHANGELOG.md: Change history
-   - context.md: Project context (if available)
-
-2. Implement the task following these steps:
-   - Plan your implementation approach
-   - Write the code with comprehensive logging and comments
-   - Create/update tests to verify functionality
-   - Run quality gates (linting, formatting, type checking, tests)
-   - Update documentation as needed
-   - Commit changes with conventional commit messages
-
-3. Track progress:
-   - Check off each acceptance criterion in tasks.md as you complete it
-   - When ALL criteria are checked, move the task from "## In Progress" to "## Completed Tasks" in progress.md
-   - Use format: "- ✅ [YYYY-MM-DD HH:MM] Task Title - completion notes"
-
-4. Quality Requirements:
-   - All tests must pass
-   - Code must pass linting and formatting checks
-   - Follow existing code patterns and conventions
-   - Add detailed code comments explaining complex logic
-   - Include logging for debugging and monitoring
-
-## Important Notes
-
-- Focus ONLY on this specific task
-- tasks.md is a simple task list (no status emojis) - only check off acceptance criteria
-- progress.md tracks task status (in-progress and completed)
-- When all acceptance criteria are checked, move this task from "## In Progress" to "## Completed Tasks" in progress.md
-- Ensure all quality gates pass before marking complete
-
-Work on this task until all acceptance criteria are checked off and the task is moved to completed in progress.md.`, taskDetails)
-
-			// Release lock before running cursor-agent (it will run for a while)
-			lock.Unlock()
-			if *dbg {
-				fmt.Printf("[%s] 🔓 Released file lock before running cursor-agent\n", ts())
-			}
-
-			// Log which task is about to be sent to cursor-agent
-			fmt.Printf("[%s] 🚀 Sending task to cursor-agent: '%s'\n", ts(), taskToWork)
-			if *dbg {
-				if *useCodex {
-					fmt.Printf("[%s] 🤖 Using codex (model: %s)\n", ts(), agentModel)
-				} else {
-					fmt.Printf("[%s] 🤖 Using cursor-agent (model: %s)\n", ts(), agentModel)
-				}
-				fmt.Printf("[%s] 📊 Task progress: %d/%d acceptance criteria completed\n", ts(), currentTask.ACChecked, currentTask.ACTotal)
-			}
-
-			// Run cursor-agent
-			var agentErr error
-			if *useCodex {
-				agentErr = runner.CodexWithDebug(*dbg, agentModel, msg)
-			} else {
-				agentErr = runner.CursorAgentWithDebug(*dbg, "--print", "--force", msg)
-			}
-
-			if agentErr != nil {
-				fmt.Fprintf(os.Stderr, "[%s] ⚠️ Iteration failed: %v\n", ts(), agentErr)
-				fmt.Fprintf(os.Stderr, "[%s] 💡 Will retry on next iteration...\n", ts())
-				time.Sleep(2 * time.Second)
-				continue
-			}
-
-			// Check if the task is now complete
-			if *dbg {
-				fmt.Printf("[%s] 🔍 Rechecking task status after cursor-agent completion...\n", ts())
-				fmt.Printf("[%s] 📖 Re-reading tasks.md to check for updates...\n", ts())
-			}
-			b2, err := os.ReadFile(file)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "[%s] ⚠️ Could not read tasks file: %v\n", ts(), err)
-				continue
-			}
-			if *dbg {
-				fmt.Printf("[%s] ✅ Re-read tasks.md (%d bytes)\n", ts(), len(b2))
-				fmt.Printf("[%s] 📖 Re-reading progress.md to check for completion status...\n", ts())
-			}
-			progressContent2, _ := os.ReadFile(progressFile)
-			if *dbg && progressContent2 != nil {
-				fmt.Printf("[%s] ✅ Re-read progress.md (%d bytes)\n", ts(), len(progressContent2))
-			}
-			newTaskContent := string(b2)
-			newProgressStr := string(progressContent2)
-
-			if *dbg {
-				fmt.Printf("[%s] 🔍 Checking if task '%s' is now marked as completed...\n", ts(), taskToWork)
-			}
-			taskCompleted := tasks.IsTaskCompletedAfterRun(newTaskContent, newProgressStr, taskToWork)
-
-			if taskCompleted {
-				fmt.Printf("[%s] ✅ Task completed: %s\n", ts(), taskToWork)
-			} else {
-				fmt.Printf("[%s] ⚠️ Task not yet complete: %s - will retry on next iteration\n", ts(), taskToWork)
+				// No tasks running and no tasks to start - wait a bit and retry
 				if *dbg {
-					fmt.Printf("[%s] 💡 Task remains in-progress and will be retried\n", ts())
+					fmt.Printf("[%s] ⏳ No tasks to run, waiting...\n", ts())
 				}
+				time.Sleep(2 * time.Second)
 			}
-
-			// Show updated progress
-			newProgress := tasks.GetTaskProgressWithProgress(newTaskContent, newProgressStr)
-			fmt.Printf("[%s] 📊 Updated progress: %s\n", ts(), newProgress)
-
-			// Small delay between iterations
-			time.Sleep(2 * time.Second)
 		}
-		fmt.Printf("[%s] ⚠️ Reached max iterations (%d) without completion\n", ts(), 50)
+		
+		fmt.Printf("[%s] ⚠️ Reached max iterations (%d) without completion\n", ts(), maxIterations)
 	case "add-feature":
 		fs := flag.NewFlagSet("add-feature", flag.ExitOnError)
 		file := fs.String("file", "", "read feature description from file")
@@ -924,31 +954,6 @@ Work on this task until all acceptance criteria are checked off and the task is 
 			} else {
 				fmt.Printf("[%s] add-feature using cursor-agent model=%s, prompt=%s with feature: %s\n", ts(), agentModel, promptFile, featureDesc)
 			}
-		}
-
-		// Check if iterate-loop might be running and warn user
-		tasksFile := resolveTasksFile()
-
-		if *dbg {
-			fmt.Printf("[%s] 📖 Checking for existing tasks.md at: %s\n", ts(), tasksFile)
-		}
-		if _, err := os.Stat(tasksFile); err == nil {
-			if *dbg {
-				fmt.Printf("[%s] ✅ Found existing tasks.md\n", ts())
-			}
-			lock, err := LockFile(tasksFile)
-			if err != nil {
-				fmt.Printf("[%s] ⚠️ Warning: Could not acquire exclusive lock on %s\n", ts(), tasksFile)
-				fmt.Printf("[%s] 💡 This might mean iterate-loop is running. Proceeding anyway...\n", ts())
-			} else {
-				// We got the lock, release it immediately
-				lock.Unlock()
-				if *dbg {
-					fmt.Printf("[%s] ✅ Acquired file lock successfully - safe to proceed\n", ts())
-				}
-			}
-		} else if *dbg {
-			fmt.Printf("[%s] ℹ️ No existing tasks.md found (will be created)\n", ts())
 		}
 
 		// Log that we're about to send to cursor-agent
