@@ -9,7 +9,8 @@ import (
 )
 
 var (
-	reTaskHeader = regexp.MustCompile(`^### Task: (.+)\s*$`)
+	// Updated regex to allow optional emojis and other characters before "Task:"
+	reTaskHeader = regexp.MustCompile(`^###\s+(?:[^\s]+\s+)?Task:\s+(.+)\s*$`)
 	reACHeader   = regexp.MustCompile(`^\*\*Acceptance Criteria:\*\*\s*$`)
 	reACItem     = regexp.MustCompile(`^[*-] \[( |x|X)\]`)
 	reACChecked  = regexp.MustCompile(`\[(x|X)\]`)

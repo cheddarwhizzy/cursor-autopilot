@@ -58,6 +58,33 @@ const sampleWithoutCurrentTasks = `### Task: A
 * [ ] two
 `
 
+const sampleWithEmojis = `## Current Tasks
+
+### 🔄 Task: Task With Emoji
+
+**Context:** Test context with emoji
+**Acceptance Criteria:**
+* [x] one
+* [ ] two
+
+**Files to Modify:** file1.go
+**Tests:** unit
+**Labels:** [type:feature]
+**Dependencies:** None
+
+### ✨ Task: Another Task With Different Emoji
+
+**Context:** Test context with different emoji
+**Acceptance Criteria:**
+* [ ] one
+* [ ] two
+
+**Files to Modify:** file2.go
+**Tests:** unit
+**Labels:** [type:feature]
+**Dependencies:** None
+`
+
 func TestStatusReport(t *testing.T) {
 	rep := StatusReport(sample)
 	if want := "Total Tasks: 3"; !contains(rep, want) {
@@ -140,6 +167,38 @@ func TestParseTasksNoCurrentTasks(t *testing.T) {
 	tasks := parseTasks(sampleWithoutCurrentTasks)
 	if len(tasks) != 0 {
 		t.Errorf("Expected 0 tasks when no '## Current Tasks' section, got %d", len(tasks))
+	}
+}
+
+func TestParseTasksWithEmojis(t *testing.T) {
+	tasks := parseTasks(sampleWithEmojis)
+
+	if len(tasks) != 2 {
+		t.Fatalf("Expected 2 tasks, got %d", len(tasks))
+	}
+
+	// Test first task with 🔄 emoji
+	task1 := tasks[0]
+	if task1.Title != "Task With Emoji" {
+		t.Errorf("Expected task title 'Task With Emoji', got '%s'", task1.Title)
+	}
+	if task1.ACTotal != 2 {
+		t.Errorf("Expected task to have 2 AC total, got %d", task1.ACTotal)
+	}
+	if task1.ACChecked != 1 {
+		t.Errorf("Expected task to have 1 AC checked, got %d", task1.ACChecked)
+	}
+
+	// Test second task with ✨ emoji
+	task2 := tasks[1]
+	if task2.Title != "Another Task With Different Emoji" {
+		t.Errorf("Expected task title 'Another Task With Different Emoji', got '%s'", task2.Title)
+	}
+	if task2.ACTotal != 2 {
+		t.Errorf("Expected task to have 2 AC total, got %d", task2.ACTotal)
+	}
+	if task2.ACChecked != 0 {
+		t.Errorf("Expected task to have 0 AC checked, got %d", task2.ACChecked)
 	}
 }
 
