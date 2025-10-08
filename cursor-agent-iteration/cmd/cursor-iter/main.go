@@ -70,6 +70,8 @@ func usage() {
 	fmt.Println("  cursor-iter add-feature --file <path>    # read feature description from file")
 	fmt.Println("  cursor-iter add-feature --prompt \"desc\"  # provide feature description as argument")
 	fmt.Println("  cursor-iter add-feature [--codex]        # use codex instead of cursor-agent")
+	fmt.Println("  cursor-iter run-agent --prompt \"request\" # send ad-hoc request to cursor-agent/codex")
+	fmt.Println("  cursor-iter run-agent [--codex]          # use codex instead of cursor-agent")
 	fmt.Println("  cursor-iter validate-tasks [--fix]       # validate/fix tasks.md structure")
 	fmt.Println("  cursor-iter reset                       # remove all control files")
 	fmt.Println("")
@@ -1005,6 +1007,127 @@ Work on this task until all acceptance criteria are checked off and the task is 
 		} else {
 			fmt.Printf("[%s] ⚠️ Warning: No control files found. The agent may not have created them yet.\n", ts())
 			fmt.Printf("[%s] 💡 Check if cursor-agent made the expected changes.\n", ts())
+		}
+	case "run-agent":
+		// Send ad-hoc request to cursor-agent/codex with control file references
+		fs := flag.NewFlagSet("run-agent", flag.ExitOnError)
+		prompt := fs.String("prompt", "", "ad-hoc request to send to cursor-agent/codex")
+		useCodex := fs.Bool("codex", false, "use codex CLI with gpt-5-codex model")
+		model := fs.String("model", envOr("MODEL", "auto"), "cursor-agent model or codex model (gpt-5-codex)")
+		dbg := fs.Bool("debug", debug, "enable verbose logging")
+		_ = fs.Parse(os.Args[2:])
+
+		// Validate prompt is provided
+		if *prompt == "" {
+			fmt.Fprintf(os.Stderr, "Error: --prompt is required\n")
+			fmt.Fprintf(os.Stderr, "Usage: cursor-iter run-agent --prompt \"your request here\"\n")
+			fmt.Fprintf(os.Stderr, "Example: cursor-iter run-agent --prompt \"add to our control files that pnpm build should succeed\"\n")
+			os.Exit(1)
+		}
+
+		// Set default model for codex if not specified
+		agentModel := *model
+		if *useCodex && *model == "auto" {
+			agentModel = "gpt-5-codex"
+		}
+
+		// Build a comprehensive prompt with control file references
+		controlFilesList := []string{
+			"architecture.md - System architecture and design",
+			"decisions.md - Architectural Decision Records (ADRs)",
+			"tasks.md - Task backlog and current work",
+			"progress.md - Completed tasks and progress history",
+			"test_plan.md - Testing strategy and coverage",
+			"qa_checklist.md - Quality assurance requirements",
+			"CHANGELOG.md - Change history",
+			"context.md - Project context (if available)",
+		}
+
+		// Check which control files exist
+		existingControlFiles := []string{}
+		for _, fileDesc := range controlFilesList {
+			fileName := strings.Split(fileDesc, " - ")[0]
+			if _, err := os.Stat(fileName); err == nil {
+				existingControlFiles = append(existingControlFiles, fileDesc)
+			}
+		}
+
+		// Build the enhanced prompt
+		enhancedPrompt := fmt.Sprintf(`You are working on a repository managed by the cursor-iter engineering iteration system.
+
+## User Request
+
+%s
+
+## Available Control Files
+
+The following control files are available for reference and may need to be updated:
+
+%s
+
+## Instructions
+
+1. **Review the control files** listed above to understand the current state of the repository
+2. **Implement the user's request** following these guidelines:
+   - Update any relevant control files (architecture.md, decisions.md, tasks.md, etc.)
+   - Follow existing code patterns and conventions
+   - Include comprehensive logging and code comments
+   - Add or update tests as needed
+   - Ensure all quality gates pass (linting, formatting, type checking, tests)
+   - Document your changes appropriately
+   - Use conventional commit messages when committing
+
+3. **Quality Requirements**:
+   - All tests must pass
+   - Code must pass linting and formatting checks
+   - Follow the architecture and decisions documented in control files
+   - Add detailed code comments explaining complex logic
+   - Include logging for debugging and monitoring
+
+4. **Control File Updates**:
+   - If you update control files, ensure consistency across all related files
+   - Document architectural decisions in decisions.md
+   - Update architecture.md if system design changes
+   - Add tasks to tasks.md if follow-up work is needed
+   - Update test_plan.md if test coverage needs change
+
+5. **Commit your changes** with a clear, conventional commit message
+
+Complete the user's request and ensure all control files are updated appropriately.`, *prompt, strings.Join(existingControlFiles, "\n"))
+
+		if *dbg {
+			fmt.Printf("[%s] 🚀 Running ad-hoc request with cursor-agent...\n", ts())
+			if *useCodex {
+				fmt.Printf("[%s] 🤖 Using codex (model: %s)\n", ts(), agentModel)
+			} else {
+				fmt.Printf("[%s] 🤖 Using cursor-agent (model: %s)\n", ts(), agentModel)
+			}
+			fmt.Printf("[%s] 📝 User request: %s\n", ts(), *prompt)
+			fmt.Printf("[%s] 📋 Control files available: %d\n", ts(), len(existingControlFiles))
+		}
+
+		// Log that we're about to send to cursor-agent
+		fmt.Printf("[%s] 🚀 Sending ad-hoc request to agent...\n", ts())
+		if *dbg {
+			fmt.Printf("[%s] 📊 Enhanced prompt size: %d bytes\n", ts(), len(enhancedPrompt))
+		}
+
+		// Run cursor-agent or codex
+		var runErr error
+		if *useCodex {
+			runErr = runner.CodexWithDebug(*dbg, agentModel, enhancedPrompt)
+		} else {
+			runErr = runner.CursorAgentWithDebug(*dbg, "--print", "--force", enhancedPrompt)
+		}
+
+		if runErr != nil {
+			fmt.Fprintf(os.Stderr, "[%s] ❌ Ad-hoc request failed: %v\n", ts(), runErr)
+			os.Exit(1)
+		}
+
+		fmt.Printf("[%s] ✅ Ad-hoc request completed successfully!\n", ts())
+		if *dbg {
+			fmt.Printf("[%s] 💡 Review changes and run 'cursor-iter task-status' to check task progress\n", ts())
 		}
 	case "reset":
 		// Remove all control files

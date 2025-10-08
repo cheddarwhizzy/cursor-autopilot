@@ -62,6 +62,8 @@ This will:
 | `cursor-iter iterate-loop --codex` | Run iterations using Codex CLI | `cursor-iter iterate-loop --codex --max-in-progress 5` |
 | `cursor-iter add-feature` | Add new feature/requirements | `cursor-iter add-feature` |
 | `cursor-iter add-feature --codex` | Add feature using Codex CLI | `cursor-iter add-feature --codex` |
+| `cursor-iter run-agent` | Send ad-hoc request to cursor-agent/codex | `cursor-iter run-agent --prompt "your request"` |
+| `cursor-iter run-agent --codex` | Send ad-hoc request using Codex CLI | `cursor-iter run-agent --codex --prompt "your request"` |
 | `cursor-iter archive-completed` | Archive completed tasks | `cursor-iter archive-completed` |
 | `cursor-iter task-status` | Show current task status and progress | `cursor-iter task-status` |
 | `cursor-iter validate-tasks` | Validate/fix tasks.md structure | `cursor-iter validate-tasks --fix` |
@@ -250,6 +252,57 @@ This will show:
 - Currently working on
 - Next pending task
 - Completion status
+
+## 🎯 Ad-hoc Agent Requests
+
+Send ad-hoc requests directly to cursor-agent/codex without going through the task iteration system. This is perfect for quick updates, policy changes, or one-off requests:
+
+```bash
+cursor-iter run-agent --prompt "your request here"
+```
+
+This will:
+- Send your request directly to cursor-agent or codex
+- Automatically include references to all control files
+- Ensure the agent understands the repository context
+- Apply quality gates and best practices
+- Update control files as needed
+
+### Example Ad-hoc Requests
+
+```bash
+# Update build requirements
+cursor-iter run-agent --prompt "add to our control files that pnpm build should succeed before marking any tasks as completed. Fix any issues during build and retry until it builds successfully before marking as complete"
+
+# Add a new policy
+cursor-iter run-agent --prompt "add a policy to qa_checklist.md that all API endpoints must have rate limiting"
+
+# Quick refactoring
+cursor-iter run-agent --prompt "refactor all logging to use structured logging with JSON format"
+
+# Update documentation
+cursor-iter run-agent --prompt "update architecture.md to document our new caching strategy using Redis"
+
+# Use with Codex CLI
+cursor-iter run-agent --codex --prompt "add error handling middleware to all API routes"
+```
+
+### When to Use `run-agent` vs `add-feature`
+
+- **Use `run-agent`** for:
+  - Quick policy or requirement changes
+  - Updating control files
+  - Small refactoring tasks
+  - Documentation updates
+  - One-off fixes or improvements
+
+- **Use `add-feature`** for:
+  - New features requiring architecture design
+  - Multi-task implementations
+  - Complex features needing planning
+  - Features requiring multiple iterations
+
+For more examples and detailed documentation, see [docs/RUN_AGENT_EXAMPLES.md](docs/RUN_AGENT_EXAMPLES.md).
 
 ## 🚀 Feature Addition Workflow
 

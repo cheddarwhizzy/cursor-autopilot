@@ -27,11 +27,11 @@ Operate inside a headless agent pipeline (e.g., Cursor CLI, Windsurf, SWE-Agent)
 On each invocation:
 
 1. Parse the repository to infer stacks, frameworks, and structure.
-2. Update or create the required control files.
+2. **Directly update or create** the required control files using your file editing tools.
 3. Output structured markdown with sections:
 
    * **Summary** (detected stacks and findings)
-   * **Patches** (code to create/modify files)
+   * **Files Modified** (list of files created/updated)
    * **Next Steps** (how to run the loop)
 
 ---
@@ -56,13 +56,46 @@ Output a short stack summary including discovered commands and coverage targets.
 
 Auto-detect languages and enforce the following **quality gates** per stack:
 
-* **Python:** `ruff`, `black`, `mypy`, `pytest -q --cov`
-* **TypeScript/JavaScript:** `tsc --noEmit`, `eslint`/`biome`, `jest`/`vitest`, `zod` runtime checks
-* **Go:** `go vet`, `golangci-lint`, `go test -race -cover`, `gofmt`, `go mod tidy`
-* **Rust:** `cargo clippy`, `cargo test`, `cargo fmt`, `cargo audit`
-* **Java:** `mvn test`, `mvn spotbugs:check`, `mvn checkstyle:check`, `mvn pmd:check`
-* **Infrastructure:** `terraform validate`, `terraform plan`, `ansible-lint`, `dockerfile-lint`, `helm lint`
-* **Shell:** `shellcheck`, `bashate`
+### Build & Compilation (REQUIRED before marking tasks complete)
+
+* **Python:** `python -m py_compile <files>` or `python setup.py build` (if applicable)
+* **TypeScript/JavaScript:** `tsc --noEmit` (TypeScript), `npm run build` or `pnpm build` or `yarn build` (if build script exists)
+* **Go:** `go build ./...` or `go build ./cmd/...` (for applications)
+* **Rust:** `cargo build --all-targets`
+* **Java:** `mvn compile` or `gradle build` (skip tests with `-DskipTests` / `--no-tests`)
+* **C/C++:** `make` or `cmake --build build/`
+
+### Linting & Formatting
+
+* **Python:** `ruff check .`, `black --check .`, `mypy .`
+* **TypeScript/JavaScript:** `eslint .` or `biome check .`, `prettier --check .`
+* **Go:** `go vet ./...`, `golangci-lint run`, `gofmt -l .`
+* **Rust:** `cargo clippy`, `cargo fmt --check`
+* **Java:** `mvn checkstyle:check`, `mvn pmd:check`
+* **Shell:** `shellcheck *.sh`
+
+### Testing (REQUIRED before marking tasks complete)
+
+* **Python:** `pytest -q --cov` or `python -m pytest`
+* **TypeScript/JavaScript:** `npm test` or `pnpm test` or `jest` or `vitest run`
+* **Go:** `go test -race -cover ./...`
+* **Rust:** `cargo test --all-targets`
+* **Java:** `mvn test` or `gradle test`
+* **Infrastructure:** `terraform validate`, `terraform plan`, `ansible-lint`, `helm lint`
+
+### Stack-Specific Checks
+
+* **TypeScript:** `zod` runtime validation checks
+* **Go:** `go mod tidy` and verify no changes
+* **Rust:** `cargo audit` for security vulnerabilities
+* **Java:** `mvn spotbugs:check` for bug detection
+* **Docker:** `docker build .` or `dockerfile-lint`
+
+**CRITICAL:** Before marking any task as complete (`[x]`), you MUST:
+1. Run the appropriate **build command** for the stack and verify it succeeds
+2. Run the **test suite** and verify all tests pass
+3. Run **linting/formatting** checks and fix any issues
+4. Document the validation results in `progress.md`
 
 Respect the **client/server boundary**: no secret or env leakage into client code.
 
@@ -79,14 +112,14 @@ Rules:
 
 * Merge instead of overwriting.
 * Update in-place; preserve ordering and history.
-* Append diffs to `decisions.md` and `progress.md`.
+* Append new entries to `decisions.md` and `progress.md`.
 * If missing or malformed, regenerate minimal scaffolding.
 
 ---
 
 # 5. Deliverables (this run)
 
-1. Patches that create or update:
+1. **Directly create or update** these files using your file editing tools:
 
    * `prompts/iterate.md`
    * `tasks.md` (as empty template - tasks will be added via `cursor-iter add-feature`)
@@ -103,15 +136,27 @@ Each iteration must:
 2. Select the next **unchecked** task in `tasks.md`.
 3. Mark it as in-progress (`- [ ] 🔄 <Task>`).
 4. Execute Plan → Implement → Test → Validate → Document → Commit.
-5. When complete:
-
+5. **BEFORE marking complete**, run validation gates:
+   * **Build verification**: Run appropriate build command for the stack
+   * **Test execution**: Run full test suite and verify all tests pass
+   * **Linting**: Run linters and formatters, fix any issues
+   * **Type checking**: For typed languages (TypeScript, Go, etc.)
+   * Document all validation results in the iteration output
+6. When complete (only after ALL validation gates pass):
    * Mark `[x]` ✅
    * Log tests and evidence in `progress.md`
    * Update `test_plan.md`, append ADRs, update `CHANGELOG.md`
-6. Use minimal, focused diffs; favor refactors.
+7. Make minimal, focused changes; favor refactors.
 
 **Validation gates:**
-Reuse the per-stack commands above. Fail the task if any gate fails and retry after correction.
+Reuse the per-stack commands from section 3 above. 
+
+**CRITICAL BUILD & TEST REQUIREMENTS:**
+- **Build MUST succeed** before marking task complete
+- **All tests MUST pass** before marking task complete
+- If any gate fails, FIX the issue and retry validation
+- Never mark a task complete with failing builds or tests
+- Document validation command outputs in the iteration summary
 
 **Output structure for each loop:**
 
@@ -123,21 +168,50 @@ Reuse the per-stack commands above. Fail the task if any gate fails and retry af
 
 <description>
 
-### Patches
+### Implementation
 
-```diff
---- a/<file>
-+++ b/<file>
-<changes>
+**Files Modified:**
+- `path/to/file1.go` - Description of changes
+- `path/to/file2.go` - Description of changes
+- `tests/file_test.go` - Added tests for X, Y, Z
+
+### Build Verification
+
+<build command output and results>
+Example:
+```
+✅ Build: go build ./...
+✅ Build: npm run build
+```
+
+### Test Execution
+
+<test command output and results>
+Example:
+```
+✅ Tests: go test -race -cover ./...
+   PASS: 45 tests, 89.3% coverage
+✅ Tests: npm test
+   PASS: 123 tests, 94.1% coverage
 ```
 
 ### Validation
 
-<typecheck/lint/test results>
+<typecheck/lint/format results>
+Example:
+```
+✅ Lint: golangci-lint run
+✅ Format: gofmt -l . (no changes)
+✅ Type Check: tsc --noEmit
+```
 
-### Updates
+### Documentation Updates
 
-<snippets for progress.md, decisions.md, etc.>
+**Files Updated:**
+- `progress.md` - Logged task completion and test results
+- `decisions.md` - Added ADR-YYYYMMDD-<topic> (if applicable)
+- `test_plan.md` - Updated test coverage
+- `CHANGELOG.md` - Added entry for this change
 
 ---
 
@@ -194,22 +268,20 @@ Use to inform both files:
 
 Detected stacks and inferred setup.
 
-### Patches
+### Files Created/Updated
 
-```diff
---- a/prompts/iterate.md
-+++ b/prompts/iterate.md
-<content>
-```
+**Directly create or update these files:**
 
-```diff
---- a/tasks.md
-+++ b/tasks.md
-+## Current Tasks
-+
-+*Tasks will be added here using `cursor-iter add-feature`*
-+
-```
+1. **`prompts/iterate.md`** - Complete iteration instructions with stack-specific build/test commands
+2. **`tasks.md`** - Empty template with `## Current Tasks` section header
+3. **Control files** (create if missing):
+   - `architecture.md`
+   - `progress.md`
+   - `decisions.md`
+   - `test_plan.md`
+   - `qa_checklist.md`
+   - `CHANGELOG.md`
+   - `context.md`
 
 ### Next Steps
 
@@ -243,11 +315,11 @@ into control files on each run.
 Constraints:
 
 * Do not reorganize the repo; use existing conventions.
-* Prefer minimal, incremental diffs.
+* Make minimal, incremental changes using direct file editing.
 * Mark assumptions with `TODO:` and how to verify.
 
 Deliverables:
 
-* Patches for both files.
+* **Directly create/update** `prompts/iterate.md` and `tasks.md` using your file editing tools.
 * Short summary + Next Steps.
   END SYSTEM

@@ -80,7 +80,11 @@ When updating `tasks.md`, you MUST ensure:
 **Acceptance Criteria:**
 
 * [ ] measurable criteria
-* [ ] test verification
+* [ ] Build succeeds without errors
+* [ ] All tests pass
+* [ ] Test coverage meets or exceeds existing threshold
+* [ ] Linting/formatting checks pass
+* [ ] Type checking passes (for typed languages)
   **Files to Modify:** `src/...`, `tests/...`
   **Tests:** unit / integration / e2e
   **Labels:** `[type:feature] [area:<module>]`
@@ -104,11 +108,42 @@ For each component:
 * Add coverage targets.
 * Include monitoring hooks if applicable.
 
+## Build & Test Requirements
+
+**CRITICAL:** Every task MUST include build verification and testing as acceptance criteria:
+
+### Build Verification (Per Stack)
+
+* **Python:** `python -m py_compile <files>` or build command if applicable
+* **TypeScript/JavaScript:** `tsc --noEmit`, `npm run build` or equivalent
+* **Go:** `go build ./...` or `go build ./cmd/...`
+* **Rust:** `cargo build --all-targets`
+* **Java:** `mvn compile` or `gradle build`
+
+### Test Execution (Per Stack)
+
+* **Python:** `pytest -q --cov` with minimum coverage threshold
+* **TypeScript/JavaScript:** `npm test` or `jest`/`vitest` with coverage
+* **Go:** `go test -race -cover ./...` with minimum coverage
+* **Rust:** `cargo test --all-targets`
+* **Java:** `mvn test` or `gradle test`
+
+### Acceptance Criteria Must Include
+
+Each task's acceptance criteria MUST explicitly include:
+* [ ] Build succeeds without errors
+* [ ] All tests pass
+* [ ] Test coverage meets or exceeds existing threshold
+* [ ] Linting/formatting checks pass
+* [ ] Type checking passes (for typed languages)
+
+**Tasks cannot be marked complete without successful build and test verification.**
+
 # 7. Structure Validation
 
 **BEFORE finalizing your response, verify:**
 
-1. **tasks.md Structure Check**: Ensure your tasks.md patch includes:
+1. **tasks.md Structure Check**: Ensure your tasks.md updates include:
    - `## Current Tasks` section header (exactly as written)
    - All new tasks follow the exact format specified above
    - Existing tasks are preserved if tasks.md already exists
@@ -158,7 +193,7 @@ Describe detected stack and which components are impacted.
 
 ### Architecture Changes
 
-Explain design decisions and file modifications made.
+Explain design decisions and how they fit into existing architecture.
 
 ### Integration Plan
 
@@ -166,24 +201,29 @@ Show data flow and component relationships.
 
 ### Implementation Tasks
 
-List all tasks you added to tasks.md.
+List all tasks you added to tasks.md with their acceptance criteria.
 
 ### Files Updated
 
-List which files you modified:
-- ✅ architecture.md - Added <what>
-- ✅ tasks.md - Added <N> tasks
-- ✅ test_plan.md - Added <what>
-- ✅ decisions.md - Added <what>
+List which files you directly modified:
+- ✅ `architecture.md` - Added section on <feature> architecture
+- ✅ `tasks.md` - Added <N> implementation tasks
+- ✅ `test_plan.md` - Added test coverage for <feature>
+- ✅ `decisions.md` - Added ADR-YYYYMMDD-<decision-topic>
 
 ### Next Steps
 
 1. Review ADRs and confirm dependencies.
-2. Run validation using the iteration loop:
+2. Verify build and test infrastructure is in place for the detected stack.
+3. Run validation using the iteration loop:
    ```bash
    cursor-iter iterate-loop
    ```
-3. Execute quality gates per detected stack (lint, typecheck, tests).
+4. Each iteration will execute quality gates per detected stack:
+   - Build verification (compile/build commands)
+   - Test execution (full test suite)
+   - Linting and formatting checks
+   - Type checking (for typed languages)
 
 ---
 
