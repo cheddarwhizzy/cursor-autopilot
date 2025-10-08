@@ -13,18 +13,49 @@ func timestamp() string {
 }
 
 // CursorAgent runs cursor-agent; when debug is enabled, sets DEBUG=1 and streams stdout/stderr.
+// Uses a file locking wrapper to prevent concurrent access issues to the Cursor CLI config.
 func CursorAgentWithDebug(debug bool, args ...string) error {
-	if _, err := exec.LookPath("cursor-agent"); err != nil {
-		return fmt.Errorf("cursor-agent not found: %w", err)
+	// Try to find the wrapper script first
+	wrapperPath := "./internal/runner/cursor_agent_lock.sh"
+	useWrapper := false
+	
+	if _, err := os.Stat(wrapperPath); err == nil {
+		useWrapper = true
+	} else {
+		// Try alternative path (from project root)
+		wrapperPath = "./cursor-agent-iteration/internal/runner/cursor_agent_lock.sh"
+		if _, err := os.Stat(wrapperPath); err == nil {
+			useWrapper = true
+		}
 	}
+	
+	// Fall back to checking for cursor-agent directly
+	if !useWrapper {
+		if _, err := exec.LookPath("cursor-agent"); err != nil {
+			return fmt.Errorf("cursor-agent not found: %w", err)
+		}
+	}
+	
 	if debug {
 		// Set DEBUG env to propagate verbosity
 		_ = os.Setenv("DEBUG", "1")
 		fmt.Printf("[%s] 🤖 Starting cursor-agent process...\n", timestamp())
+		if useWrapper {
+			fmt.Printf("[%s] 🔒 Using file locking wrapper to prevent race conditions\n", timestamp())
+		}
 	}
 
 	startTime := time.Now()
-	cmd := exec.Command("cursor-agent", args...)
+	
+	var cmd *exec.Cmd
+	if useWrapper {
+		// Use wrapper script with file locking
+		cmd = exec.Command(wrapperPath, args...)
+	} else {
+		// Direct cursor-agent call (no lock protection)
+		cmd = exec.Command("cursor-agent", args...)
+	}
+	
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()

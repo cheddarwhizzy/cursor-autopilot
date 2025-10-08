@@ -27,6 +27,8 @@ sudo mv cursor-iter /usr/local/bin/
 
 ## 🎯 Quick Start
 
+**⚠️ Having issues?** See [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) for common problems and solutions.
+
 ### 1. Initialize the System
 ```bash
 cursor-iter iterate-init --model auto
@@ -39,9 +41,21 @@ This will:
 - Create an initial `tasks.md` with technology-specific tasks
 
 ### 2. Start Iterating
+
+For single task iteration:
 ```bash
 cursor-iter iterate
 ```
+
+For continuous iteration with safe concurrency:
+```bash
+cursor-iter iterate-loop --max-in-progress 3
+```
+
+**Recommended concurrency:**
+- Low-resource machines: `--max-in-progress 2`
+- Standard machines: `--max-in-progress 3-5`
+- High-performance machines: `--max-in-progress 10`
 
 This will:
 - Read all control files

@@ -11,6 +11,10 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
+# Load file locking utilities
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/file_lock.sh"
+
 echo -e "${BLUE}📦 Archiving Completed Tasks${NC}"
 echo ""
 
@@ -36,6 +40,36 @@ if [[ $COMPLETED_TASKS -eq 0 ]]; then
 fi
 
 echo -e "${CYAN}📊 Found $COMPLETED_TASKS completed tasks to archive${NC}"
+
+# Acquire file locks for files that will be modified
+CONTROL_FILES=("tasks.md" "progress.md")
+LOCKED_FILES=()
+
+echo -e "${CYAN}🔒 Acquiring file locks for control files...${NC}"
+for file in "${CONTROL_FILES[@]}"; do
+    if [[ -f "$file" ]]; then
+        if acquire_file_lock "$file"; then
+            LOCKED_FILES+=("$file")
+            echo -e "${GREEN}✅ Locked: $file${NC}"
+        else
+            echo -e "${RED}❌ Could not acquire lock for $file${NC}"
+            # Release any locks we already acquired
+            for locked_file in "${LOCKED_FILES[@]}"; do
+                release_file_lock "$locked_file"
+            done
+            exit 1
+        fi
+    fi
+done
+
+# Set up cleanup trap to release all locks on exit
+cleanup() {
+    echo -e "${CYAN}🧹 Cleaning up and releasing file locks...${NC}"
+    for locked_file in "${LOCKED_FILES[@]}"; do
+        release_file_lock "$locked_file"
+    done
+}
+trap cleanup EXIT INT TERM
 
 # Extract completed tasks
 echo "# Completed Tasks - $ARCHIVE_DATE" > "$ARCHIVE_FILE"
@@ -84,13 +118,14 @@ mv "$TEMP_FILE" tasks.md
 echo -e "${GREEN}✅ Archived $COMPLETED_TASKS completed tasks to $ARCHIVE_FILE${NC}"
 echo -e "${CYAN}📁 Archive location: completed_tasks/${NC}"
 
-# Update progress.md
+# Update progress.md (already locked above)
 if [[ -f "progress.md" ]]; then
     echo "" >> progress.md
     echo "## 📦 Task Archive - $ARCHIVE_DATE" >> progress.md
     echo "- **Tasks Archived**: $COMPLETED_TASKS" >> progress.md
     echo "- **Archive File**: $ARCHIVE_FILE" >> progress.md
     echo "- **Reason**: Keep tasks.md focused on current work" >> progress.md
+    echo -e "${CYAN}📝 Updated progress.md with archive information${NC}"
 fi
 
 # Show remaining tasks

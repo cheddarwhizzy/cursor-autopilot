@@ -11,6 +11,10 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
+# Load file locking utilities
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/file_lock.sh"
+
 echo -e "${BLUE}🚀 Add New Feature/Requirements${NC}"
 echo ""
 
@@ -82,6 +86,36 @@ Design the architecture, create implementation tasks, and update all relevant co
 "
 
 echo -e "${CYAN}⚡ Generating feature architecture and tasks...${NC}"
+
+# Acquire locks on all control files that will be modified
+CONTROL_FILES=("tasks.md" "architecture.md" "test_plan.md" "decisions.md")
+LOCKED_FILES=()
+
+echo -e "${CYAN}🔒 Acquiring file locks for control files...${NC}"
+for file in "${CONTROL_FILES[@]}"; do
+    if [[ -f "$file" ]] || [[ "$file" == "tasks.md" ]]; then  # tasks.md should always exist
+        if acquire_file_lock "$file"; then
+            LOCKED_FILES+=("$file")
+            echo -e "${GREEN}✅ Locked: $file${NC}"
+        else
+            echo -e "${RED}❌ Could not acquire lock for $file${NC}"
+            # Release any locks we already acquired
+            for locked_file in "${LOCKED_FILES[@]}"; do
+                release_file_lock "$locked_file"
+            done
+            exit 1
+        fi
+    fi
+done
+
+# Set up cleanup trap to release all locks on exit
+cleanup() {
+    echo -e "${CYAN}🧹 Cleaning up and releasing file locks...${NC}"
+    for locked_file in "${LOCKED_FILES[@]}"; do
+        release_file_lock "$locked_file"
+    done
+}
+trap cleanup EXIT INT TERM
 
 # Run cursor-agent with the feature prompt
 cursor-agent --print --force "$FEATURE_PROMPT"

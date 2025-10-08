@@ -11,6 +11,10 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
+# Load file locking utilities
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/file_lock.sh"
+
 ITERATION_COUNT=0
 MAX_ITERATIONS=50  # Safety limit to prevent infinite loops
 
@@ -34,16 +38,25 @@ while true; do
         break
     fi
     
-    # Check completion status first
-    if ./scripts/check-complete.sh; then
-        echo -e "${GREEN}🎉 All tasks completed! Loop finished successfully.${NC}"
-        break
+    # Check completion status first (with file lock)
+    TASKS_FILE="tasks.md"
+    if acquire_file_lock "$TASKS_FILE"; then
+        if ./scripts/check-complete.sh; then
+            release_file_lock "$TASKS_FILE"
+            echo -e "${GREEN}🎉 All tasks completed! Loop finished successfully.${NC}"
+            break
+        fi
+        release_file_lock "$TASKS_FILE"
+    else
+        echo -e "${RED}❌ Could not acquire lock for tasks.md, skipping iteration${NC}"
+        sleep 5
+        continue
     fi
     
     echo ""
     echo -e "${CYAN}⚡ Running iteration...${NC}"
     
-    # Run the iteration
+    # Run the iteration (this will also use file locking internally)
     if make iterate; then
         echo -e "${GREEN}✅ Iteration #$ITERATION_COUNT completed successfully${NC}"
     else
