@@ -1244,7 +1244,7 @@ REMEMBER: NEVER run dev servers or long-running processes - they will hang the a
 			"CHANGELOG.md",
 			"context.md",
 			"tasks.md",
-			"prompts/iterate.md",
+			"prompts",
 			"completed_tasks",
 		}
 
