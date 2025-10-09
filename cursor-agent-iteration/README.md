@@ -204,7 +204,7 @@ cursor-iter iterate-loop --codex --max-in-progress 3
 - ✅ **Dynamic Scheduling**: Automatically starts new tasks as capacity becomes available
 - ✅ **Real-time Monitoring**: See when each task starts and completes
 - ✅ **Smart Resource Management**: Configurable concurrency limits
-- ✅ **No File Locks**: Removed locking overhead for better parallel performance
+- ✅ **Race Condition Prevention**: Automatic 3-second staggering between task starts prevents config file conflicts
 - ✅ **Automatic Retry**: Failed or incomplete tasks are automatically retried
 - ✅ **Progress Tracking**: Live updates showing active tasks and completion status
 
@@ -213,10 +213,10 @@ cursor-iter iterate-loop --codex --max-in-progress 3
 [10:30:15] 🚀 Starting iterate-loop with parallel execution (max concurrent: 10)
 [10:30:15] 📝 Starting new task: 'Add user authentication'
 [10:30:15] 🚀 Starting cursor-agent for task: 'Add user authentication' (active: 1/10)
-[10:30:16] 📝 Starting new task: 'Implement API rate limiting'
-[10:30:16] 🚀 Starting cursor-agent for task: 'Implement API rate limiting' (active: 2/10)
-[10:30:17] 📝 Starting new task: 'Add logging middleware'
-[10:30:17] 🚀 Starting cursor-agent for task: 'Add logging middleware' (active: 3/10)
+[10:30:18] 📝 Starting new task: 'Implement API rate limiting'
+[10:30:18] 🚀 Starting cursor-agent for task: 'Implement API rate limiting' (active: 2/10)
+[10:30:21] 📝 Starting new task: 'Add logging middleware'
+[10:30:21] 🚀 Starting cursor-agent for task: 'Add logging middleware' (active: 3/10)
 [10:35:42] ✅ cursor-agent completed for task 'Add user authentication' (duration: 5m27s)
 [10:35:42] ✅ Task marked as completed: Add user authentication
 [10:35:43] 📝 Starting new task: 'Add password reset functionality'

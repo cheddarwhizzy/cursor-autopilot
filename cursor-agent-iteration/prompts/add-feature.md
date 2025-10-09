@@ -80,11 +80,12 @@ When updating `tasks.md`, you MUST ensure:
 **Acceptance Criteria:**
 
 * [ ] measurable criteria
-* [ ] Build succeeds without errors
-* [ ] All tests pass
+* [ ] Build succeeds without errors (using build commands, NOT dev servers)
+* [ ] All tests pass (tests that complete and exit)
 * [ ] Test coverage meets or exceeds existing threshold
 * [ ] Linting/formatting checks pass
 * [ ] Type checking passes (for typed languages)
+* [ ] No long-running processes were executed (dev servers are forbidden)
   **Files to Modify:** `src/...`, `tests/...`
   **Tests:** unit / integration / e2e
   **Labels:** `[type:feature] [area:<module>]`
@@ -131,13 +132,37 @@ For each component:
 ### Acceptance Criteria Must Include
 
 Each task's acceptance criteria MUST explicitly include:
-* [ ] Build succeeds without errors
-* [ ] All tests pass
+* [ ] Build succeeds without errors (using build commands, NOT dev servers)
+* [ ] All tests pass (tests that complete and exit)
 * [ ] Test coverage meets or exceeds existing threshold
 * [ ] Linting/formatting checks pass
 * [ ] Type checking passes (for typed languages)
+* [ ] No long-running processes were executed (dev servers are forbidden)
 
 **Tasks cannot be marked complete without successful build and test verification.**
+
+**🚨 CRITICAL: NEVER RUN LONG-RUNNING PROCESSES 🚨**
+
+**STRICTLY FORBIDDEN COMMANDS - These will hang the agent:**
+* ❌ `npm run dev` / `pnpm run dev` / `yarn dev` - Dev servers
+* ❌ `npm start` / `pnpm start` / `yarn start` - Application servers
+* ❌ `python manage.py runserver` - Django dev server
+* ❌ `flask run` / `uvicorn` / `gunicorn` - Python web servers
+* ❌ `go run` (unless it completes immediately) - Go applications that don't exit
+* ❌ `cargo run` (unless it completes immediately) - Rust applications that don't exit
+* ❌ `rails server` / `rails s` - Rails dev server
+* ❌ Any command that starts a server, daemon, or continuous process
+
+**ALLOWED: Build commands that complete and exit**
+* ✅ `npm run build` / `pnpm build` / `yarn build` - Build commands that exit
+* ✅ `go build` - Compilation that exits
+* ✅ `cargo build` - Compilation that exits
+* ✅ Any test command that runs and completes
+
+**If a dev server is needed for testing:**
+1. Document it in the README with manual start instructions
+2. Never run it in the agent - the human developer will run it manually
+3. Use build commands and unit tests instead
 
 # 7. Structure Validation
 

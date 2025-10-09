@@ -48,19 +48,19 @@ func (tr *TaskRunner) ActiveCount() int {
 // StartTask starts a new task execution in a goroutine
 func (tr *TaskRunner) StartTask(taskTitle string, taskDetails string, useCodex bool, model string, debug bool) error {
 	tr.mutex.Lock()
-	
+
 	// Check if task is already running
 	if _, exists := tr.running[taskTitle]; exists {
 		tr.mutex.Unlock()
 		return fmt.Errorf("task '%s' is already running", taskTitle)
 	}
-	
+
 	// Check if we've hit the max concurrent tasks
 	if len(tr.running) >= tr.maxActive {
 		tr.mutex.Unlock()
 		return fmt.Errorf("max concurrent tasks (%d) reached", tr.maxActive)
 	}
-	
+
 	// Create execution tracker
 	exec := &TaskExecution{
 		TaskTitle: taskTitle,
@@ -69,11 +69,11 @@ func (tr *TaskRunner) StartTask(taskTitle string, taskDetails string, useCodex b
 	}
 	tr.running[taskTitle] = exec
 	tr.mutex.Unlock()
-	
+
 	// Log task start
-	fmt.Printf("[%s] 🚀 Starting cursor-agent for task: '%s' (active: %d/%d)\n", 
+	fmt.Printf("[%s] 🚀 Starting cursor-agent for task: '%s' (active: %d/%d)\n",
 		ts(), taskTitle, tr.ActiveCount(), tr.maxActive)
-	
+
 	// Build prompt
 	msg := fmt.Sprintf(`You are working on a specific task from the engineering iteration system.
 
@@ -112,6 +112,28 @@ func (tr *TaskRunner) StartTask(taskTitle string, taskDetails string, useCodex b
    - Add detailed code comments explaining complex logic
    - Include logging for debugging and monitoring
 
+5. 🚨 CRITICAL: NEVER RUN LONG-RUNNING PROCESSES 🚨
+   STRICTLY FORBIDDEN COMMANDS - These will hang the agent:
+   - ❌ npm run dev / pnpm run dev / yarn dev - Dev servers
+   - ❌ npm start / pnpm start / yarn start - Application servers
+   - ❌ python manage.py runserver - Django dev server
+   - ❌ flask run / uvicorn / gunicorn - Python web servers
+   - ❌ go run (unless it completes immediately) - Go applications that don't exit
+   - ❌ cargo run (unless it completes immediately) - Rust applications that don't exit
+   - ❌ rails server / rails s - Rails dev server
+   - ❌ Any command that starts a server, daemon, or continuous process
+
+   ALLOWED: Build commands that complete and exit
+   - ✅ npm run build / pnpm build / yarn build - Build commands that exit
+   - ✅ go build - Compilation that exits
+   - ✅ cargo build - Compilation that exits
+   - ✅ Any test command that runs and completes
+
+   If a dev server is needed for testing:
+   - Document it in the README with manual start instructions
+   - Never run it in the agent - the human developer will run it manually
+   - Use build commands and unit tests instead
+
 ## Important Notes
 
 - Focus ONLY on this specific task
@@ -119,9 +141,10 @@ func (tr *TaskRunner) StartTask(taskTitle string, taskDetails string, useCodex b
 - progress.md tracks task status (in-progress and completed)
 - When all acceptance criteria are checked, move this task from "## In Progress" to "## Completed Tasks" in progress.md
 - Ensure all quality gates pass before marking complete
+- NEVER run dev servers or long-running processes - they will hang the agent
 
 Work on this task until all acceptance criteria are checked off and the task is moved to completed in progress.md.`, taskDetails)
-	
+
 	// Start cursor-agent in goroutine
 	go func() {
 		var err error
@@ -130,19 +153,19 @@ Work on this task until all acceptance criteria are checked off and the task is 
 		} else {
 			err = runner.CursorAgentWithDebug(debug, "--print", "--force", msg)
 		}
-		
+
 		duration := time.Since(exec.StartTime)
 		if err != nil {
-			fmt.Printf("[%s] ❌ cursor-agent failed for task '%s' (duration: %v): %v\n", 
+			fmt.Printf("[%s] ❌ cursor-agent failed for task '%s' (duration: %v): %v\n",
 				ts(), taskTitle, duration, err)
 		} else {
-			fmt.Printf("[%s] ✅ cursor-agent completed for task '%s' (duration: %v)\n", 
+			fmt.Printf("[%s] ✅ cursor-agent completed for task '%s' (duration: %v)\n",
 				ts(), taskTitle, duration)
 		}
-		
+
 		exec.Done <- err
 	}()
-	
+
 	return nil
 }
 
@@ -151,19 +174,19 @@ func (tr *TaskRunner) WaitForTask(taskTitle string) error {
 	tr.mutex.Lock()
 	exec, exists := tr.running[taskTitle]
 	tr.mutex.Unlock()
-	
+
 	if !exists {
 		return fmt.Errorf("task '%s' is not running", taskTitle)
 	}
-	
+
 	// Wait for completion
 	err := <-exec.Done
-	
+
 	// Remove from running map
 	tr.mutex.Lock()
 	delete(tr.running, taskTitle)
 	tr.mutex.Unlock()
-	
+
 	return err
 }
 
@@ -175,14 +198,14 @@ func (tr *TaskRunner) WaitForAny() (string, error) {
 		tr.mutex.Unlock()
 		return "", fmt.Errorf("no tasks running")
 	}
-	
+
 	// Copy running tasks to avoid holding lock
 	runningCopy := make(map[string]*TaskExecution)
 	for k, v := range tr.running {
 		runningCopy[k] = v
 	}
 	tr.mutex.Unlock()
-	
+
 	// Wait for first completion using reflection to handle dynamic cases
 	for title, exec := range runningCopy {
 		select {
@@ -196,7 +219,7 @@ func (tr *TaskRunner) WaitForAny() (string, error) {
 			// Continue checking other tasks
 		}
 	}
-	
+
 	// If no task is done yet, wait for the first one
 	for title, exec := range runningCopy {
 		err := <-exec.Done
@@ -205,7 +228,7 @@ func (tr *TaskRunner) WaitForAny() (string, error) {
 		tr.mutex.Unlock()
 		return title, err
 	}
-	
+
 	return "", fmt.Errorf("no tasks completed")
 }
 
@@ -213,7 +236,7 @@ func (tr *TaskRunner) WaitForAny() (string, error) {
 func (tr *TaskRunner) GetRunningTasks() []string {
 	tr.mutex.Lock()
 	defer tr.mutex.Unlock()
-	
+
 	titles := make([]string, 0, len(tr.running))
 	for title := range tr.running {
 		titles = append(titles, title)
@@ -252,6 +275,11 @@ func usage() {
 	fmt.Println("  iterate-loop now continues working on in-progress tasks until completion")
 	fmt.Println("  If a task doesn't complete in one iteration, it will retry on the next iteration")
 	fmt.Println("  Use --max-in-progress to limit concurrent task processing")
+	fmt.Println("")
+	fmt.Println("Parallel Execution:")
+	fmt.Println("  Tasks start with 3-second stagger to prevent race conditions")
+	fmt.Println("  Each cursor-agent has additional 50-200ms startup delay")
+	fmt.Println("  This ensures safe parallel execution without file conflicts")
 }
 
 func main() {
@@ -601,6 +629,28 @@ func main() {
    - Add detailed code comments explaining complex logic
    - Include logging for debugging and monitoring
 
+5. 🚨 CRITICAL: NEVER RUN LONG-RUNNING PROCESSES 🚨
+   STRICTLY FORBIDDEN COMMANDS - These will hang the agent:
+   - ❌ npm run dev / pnpm run dev / yarn dev - Dev servers
+   - ❌ npm start / pnpm start / yarn start - Application servers
+   - ❌ python manage.py runserver - Django dev server
+   - ❌ flask run / uvicorn / gunicorn - Python web servers
+   - ❌ go run (unless it completes immediately) - Go applications that don't exit
+   - ❌ cargo run (unless it completes immediately) - Rust applications that don't exit
+   - ❌ rails server / rails s - Rails dev server
+   - ❌ Any command that starts a server, daemon, or continuous process
+
+   ALLOWED: Build commands that complete and exit
+   - ✅ npm run build / pnpm build / yarn build - Build commands that exit
+   - ✅ go build - Compilation that exits
+   - ✅ cargo build - Compilation that exits
+   - ✅ Any test command that runs and completes
+
+   If a dev server is needed for testing:
+   - Document it in the README with manual start instructions
+   - Never run it in the agent - the human developer will run it manually
+   - Use build commands and unit tests instead
+
 ## Important Notes
 
 - Focus ONLY on this specific task
@@ -608,6 +658,7 @@ func main() {
 - progress.md tracks task status (in-progress and completed)
 - When all acceptance criteria are checked, move this task from "## In Progress" to "## Completed Tasks" in progress.md
 - Ensure all quality gates pass before marking complete
+- NEVER run dev servers or long-running processes - they will hang the agent
 
 Work on this task until all acceptance criteria are checked off and the task is moved to completed in progress.md.`, taskDetails)
 
@@ -705,10 +756,10 @@ Work on this task until all acceptance criteria are checked off and the task is 
 		// Main loop
 		iterationCount := 0
 		maxIterations := 100 // safety cap
-		
+
 		for iterationCount < maxIterations {
 			iterationCount++
-			
+
 			// Read current state
 			if *dbg {
 				fmt.Printf("[%s] 📖 Reading tasks from: %s\n", ts(), file)
@@ -736,7 +787,7 @@ Work on this task until all acceptance criteria are checked off and the task is 
 					fmt.Printf("[%s] ⏳ Waiting for %d running tasks to complete...\n", ts(), taskRunner.ActiveCount())
 					for taskRunner.ActiveCount() > 0 {
 						completedTitle, _ := taskRunner.WaitForAny()
-						fmt.Printf("[%s] 📊 Task '%s' finished (active: %d/%d)\n", 
+						fmt.Printf("[%s] 📊 Task '%s' finished (active: %d/%d)\n",
 							ts(), completedTitle, taskRunner.ActiveCount(), *maxInProgress)
 					}
 				}
@@ -749,7 +800,7 @@ Work on this task until all acceptance criteria are checked off and the task is 
 			if *dbg || taskRunner.ActiveCount() == 0 {
 				fmt.Printf("[%s] Iteration #%d - %s\n", ts(), iterationCount, progress)
 				if taskRunner.ActiveCount() > 0 {
-					fmt.Printf("[%s] 🔄 Currently running %d tasks: %v\n", 
+					fmt.Printf("[%s] 🔄 Currently running %d tasks: %v\n",
 						ts(), taskRunner.ActiveCount(), taskRunner.GetRunningTasks())
 				}
 			}
@@ -757,9 +808,11 @@ Work on this task until all acceptance criteria are checked off and the task is 
 			// Get current in-progress tasks
 			inProgressTasks := tasks.GetAllInProgressTasks(taskContent, progressStr)
 			runningTitles := taskRunner.GetRunningTasks()
-			
+
 			// Start new tasks if we have capacity
 			if taskRunner.ActiveCount() < *maxInProgress {
+				tasksStarted := 0
+
 				// First, try to start any in-progress tasks that aren't currently running
 				for _, task := range inProgressTasks {
 					// Check if this task is already running
@@ -770,7 +823,7 @@ Work on this task until all acceptance criteria are checked off and the task is 
 							break
 						}
 					}
-					
+
 					if !isRunning && taskRunner.ActiveCount() < *maxInProgress {
 						// Extract task details and start it
 						taskDetails := tasks.ExtractTaskDetails(taskContent, task.Title)
@@ -781,17 +834,26 @@ Work on this task until all acceptance criteria are checked off and the task is 
 						err := taskRunner.StartTask(task.Title, taskDetails, *useCodex, agentModel, *dbg)
 						if err != nil && *dbg {
 							fmt.Printf("[%s] ⚠️ Could not start task '%s': %v\n", ts(), task.Title, err)
+						} else {
+							tasksStarted++
+							// Stagger task starts by 3 seconds to prevent race conditions
+							if taskRunner.ActiveCount() < *maxInProgress {
+								if *dbg {
+									fmt.Printf("[%s] ⏱️ Staggering next task start by 3 seconds...\n", ts())
+								}
+								time.Sleep(3 * time.Second)
+							}
 						}
 					}
 				}
-				
+
 				// Then, try to start new pending tasks
 				for taskRunner.ActiveCount() < *maxInProgress {
 					nextTask := tasks.GetNextPendingTaskWithProgress(taskContent, progressStr)
 					if nextTask == nil {
 						break // No more pending tasks
 					}
-					
+
 					// Mark task as in-progress in progress.md
 					if *dbg {
 						fmt.Printf("[%s] 📝 Marking new task as in-progress: '%s'\n", ts(), nextTask.Title)
@@ -802,7 +864,7 @@ Work on this task until all acceptance criteria are checked off and the task is 
 						break
 					}
 					progressStr = updatedProgress // Update local copy
-					
+
 					// Extract task details and start it
 					taskDetails := tasks.ExtractTaskDetails(taskContent, nextTask.Title)
 					fmt.Printf("[%s] 📝 Starting new task: '%s'\n", ts(), nextTask.Title)
@@ -811,9 +873,23 @@ Work on this task until all acceptance criteria are checked off and the task is 
 						fmt.Printf("[%s] ⚠️ Could not start task '%s': %v\n", ts(), nextTask.Title, err)
 						break
 					}
+					tasksStarted++
+					// Stagger task starts by 3 seconds to prevent race conditions
+					// Skip delay if we've reached max capacity
+					if taskRunner.ActiveCount() < *maxInProgress {
+						if *dbg {
+							fmt.Printf("[%s] ⏱️ Staggering next task start by 3 seconds...\n", ts())
+						}
+						time.Sleep(3 * time.Second)
+					}
+				}
+
+				// Log total tasks started in this iteration
+				if tasksStarted > 0 && *dbg {
+					fmt.Printf("[%s] 📊 Started %d tasks this iteration\n", ts(), tasksStarted)
 				}
 			}
-			
+
 			// If we have running tasks, wait for at least one to complete
 			if taskRunner.ActiveCount() > 0 {
 				completedTitle, err := taskRunner.WaitForAny()
@@ -822,24 +898,24 @@ Work on this task until all acceptance criteria are checked off and the task is 
 					time.Sleep(2 * time.Second)
 					continue
 				}
-				
+
 				// Re-read files to check completion status
 				b2, err := os.ReadFile(file)
 				if err == nil {
 					progressContent2, _ := os.ReadFile(progressFile)
 					newTaskContent := string(b2)
 					newProgressStr := string(progressContent2)
-					
+
 					taskCompleted := tasks.IsTaskCompletedAfterRun(newTaskContent, newProgressStr, completedTitle)
 					if taskCompleted {
 						fmt.Printf("[%s] ✅ Task marked as completed: %s\n", ts(), completedTitle)
 					} else {
 						fmt.Printf("[%s] ⚠️ Task not yet complete: %s - will retry\n", ts(), completedTitle)
 					}
-					
+
 					// Show updated progress
 					newProgress := tasks.GetTaskProgressWithProgress(newTaskContent, newProgressStr)
-					fmt.Printf("[%s] 📊 Progress: %s (active: %d/%d)\n", 
+					fmt.Printf("[%s] 📊 Progress: %s (active: %d/%d)\n",
 						ts(), newProgress, taskRunner.ActiveCount(), *maxInProgress)
 				}
 			} else {
@@ -850,7 +926,7 @@ Work on this task until all acceptance criteria are checked off and the task is 
 				time.Sleep(2 * time.Second)
 			}
 		}
-		
+
 		fmt.Printf("[%s] ⚠️ Reached max iterations (%d) without completion\n", ts(), maxIterations)
 	case "add-feature":
 		fs := flag.NewFlagSet("add-feature", flag.ExitOnError)
@@ -1096,9 +1172,32 @@ The following control files are available for reference and may need to be updat
    - Add tasks to tasks.md if follow-up work is needed
    - Update test_plan.md if test coverage needs change
 
-5. **Commit your changes** with a clear, conventional commit message
+5. 🚨 CRITICAL: NEVER RUN LONG-RUNNING PROCESSES 🚨
+   STRICTLY FORBIDDEN COMMANDS - These will hang the agent:
+   - ❌ npm run dev / pnpm run dev / yarn dev - Dev servers
+   - ❌ npm start / pnpm start / yarn start - Application servers
+   - ❌ python manage.py runserver - Django dev server
+   - ❌ flask run / uvicorn / gunicorn - Python web servers
+   - ❌ go run (unless it completes immediately) - Go applications that don't exit
+   - ❌ cargo run (unless it completes immediately) - Rust applications that don't exit
+   - ❌ rails server / rails s - Rails dev server
+   - ❌ Any command that starts a server, daemon, or continuous process
 
-Complete the user's request and ensure all control files are updated appropriately.`, *prompt, strings.Join(existingControlFiles, "\n"))
+   ALLOWED: Build commands that complete and exit
+   - ✅ npm run build / pnpm build / yarn build - Build commands that exit
+   - ✅ go build - Compilation that exits
+   - ✅ cargo build - Compilation that exits
+   - ✅ Any test command that runs and completes
+
+   If a dev server is needed for testing:
+   - Document it in the README with manual start instructions
+   - Never run it in the agent - the human developer will run it manually
+   - Use build commands and unit tests instead
+
+6. **Commit your changes** with a clear, conventional commit message
+
+Complete the user's request and ensure all control files are updated appropriately.
+REMEMBER: NEVER run dev servers or long-running processes - they will hang the agent.`, *prompt, strings.Join(existingControlFiles, "\n"))
 
 		if *dbg {
 			fmt.Printf("[%s] 🚀 Running ad-hoc request with cursor-agent...\n", ts())

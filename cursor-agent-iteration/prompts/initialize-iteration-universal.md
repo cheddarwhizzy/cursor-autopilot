@@ -65,6 +65,29 @@ Auto-detect languages and enforce the following **quality gates** per stack:
 * **Java:** `mvn compile` or `gradle build` (skip tests with `-DskipTests` / `--no-tests`)
 * **C/C++:** `make` or `cmake --build build/`
 
+**🚨 CRITICAL: NEVER RUN LONG-RUNNING PROCESSES 🚨**
+
+**STRICTLY FORBIDDEN COMMANDS - These will hang the agent:**
+* ❌ `npm run dev` / `pnpm run dev` / `yarn dev` - Dev servers
+* ❌ `npm start` / `pnpm start` / `yarn start` - Application servers
+* ❌ `python manage.py runserver` - Django dev server
+* ❌ `flask run` / `uvicorn` / `gunicorn` - Python web servers
+* ❌ `go run` (unless it completes immediately) - Go applications that don't exit
+* ❌ `cargo run` (unless it completes immediately) - Rust applications that don't exit
+* ❌ `rails server` / `rails s` - Rails dev server
+* ❌ Any command that starts a server, daemon, or continuous process
+
+**ALLOWED: Build commands that complete and exit**
+* ✅ `npm run build` / `pnpm build` / `yarn build` - Build commands that exit
+* ✅ `go build` - Compilation that exits
+* ✅ `cargo build` - Compilation that exits
+* ✅ Any test command that runs and completes
+
+**If a dev server is needed for testing:**
+1. Document it in the README with manual start instructions
+2. Never run it in the agent - the human developer will run it manually
+3. Use build commands and unit tests instead
+
 ### Linting & Formatting
 
 * **Python:** `ruff check .`, `black --check .`, `mypy .`
@@ -96,6 +119,12 @@ Auto-detect languages and enforce the following **quality gates** per stack:
 2. Run the **test suite** and verify all tests pass
 3. Run **linting/formatting** checks and fix any issues
 4. Document the validation results in `progress.md`
+
+**🚨 AGENT EXECUTION POLICY 🚨**
+* **NEVER run dev servers or long-running processes** - they will hang the agent
+* **ALWAYS use build commands** that complete and exit
+* **ONLY run tests** that complete and exit
+* If manual server startup is needed, document it in README for human developers
 
 Respect the **client/server boundary**: no secret or env leakage into client code.
 
@@ -157,6 +186,12 @@ Reuse the per-stack commands from section 3 above.
 - If any gate fails, FIX the issue and retry validation
 - Never mark a task complete with failing builds or tests
 - Document validation command outputs in the iteration summary
+
+**🚨 FORBIDDEN: NEVER RUN THESE COMMANDS 🚨**
+- ❌ `npm run dev`, `pnpm run dev`, `yarn dev` - Hangs the agent
+- ❌ `npm start`, `pnpm start`, `yarn start` - Hangs the agent  
+- ❌ Any dev server or long-running process - Hangs the agent
+- ✅ ONLY run: builds, tests, lints - commands that complete and exit
 
 **Output structure for each loop:**
 

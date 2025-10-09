@@ -1,9 +1,12 @@
 package runner
 
 import (
+	"bytes"
 	"fmt"
+	"math/rand"
 	"os"
 	"os/exec"
+	"strings"
 	"time"
 )
 
@@ -12,64 +15,117 @@ func timestamp() string {
 	return time.Now().Format("15:04:05")
 }
 
+// isRaceConditionError checks if the error message indicates a race condition
+func isRaceConditionError(stderr string) bool {
+	return strings.Contains(stderr, "cli-config.json.tmp") ||
+		strings.Contains(stderr, "ENOENT") && strings.Contains(stderr, "cli-config.json")
+}
+
 // CursorAgent runs cursor-agent; when debug is enabled, sets DEBUG=1 and streams stdout/stderr.
-// Uses a file locking wrapper to prevent concurrent access issues to the Cursor CLI config.
+// Uses a small random startup delay to prevent race conditions when spawning multiple processes.
+// Automatically retries on race condition errors with exponential backoff.
+// Set CURSOR_AGENT_NO_STAGGER=1 to disable startup delay.
+// Set CURSOR_AGENT_MAX_RETRIES=N to change max retries (default: 3).
 func CursorAgentWithDebug(debug bool, args ...string) error {
-	// Try to find the wrapper script first
-	wrapperPath := "./internal/runner/cursor_agent_lock.sh"
-	useWrapper := false
-	
-	if _, err := os.Stat(wrapperPath); err == nil {
-		useWrapper = true
-	} else {
-		// Try alternative path (from project root)
-		wrapperPath = "./cursor-agent-iteration/internal/runner/cursor_agent_lock.sh"
-		if _, err := os.Stat(wrapperPath); err == nil {
-			useWrapper = true
-		}
+	// Check that cursor-agent exists
+	if _, err := exec.LookPath("cursor-agent"); err != nil {
+		return fmt.Errorf("cursor-agent not found: %w", err)
 	}
-	
-	// Fall back to checking for cursor-agent directly
-	if !useWrapper {
-		if _, err := exec.LookPath("cursor-agent"); err != nil {
-			return fmt.Errorf("cursor-agent not found: %w", err)
-		}
-	}
-	
+
 	if debug {
 		// Set DEBUG env to propagate verbosity
 		_ = os.Setenv("DEBUG", "1")
 		fmt.Printf("[%s] 🤖 Starting cursor-agent process...\n", timestamp())
-		if useWrapper {
-			fmt.Printf("[%s] 🔒 Using file locking wrapper to prevent race conditions\n", timestamp())
+	}
+
+	// Get max retries from environment or use default
+	maxRetries := 3
+	if envRetries := os.Getenv("CURSOR_AGENT_MAX_RETRIES"); envRetries != "" {
+		fmt.Sscanf(envRetries, "%d", &maxRetries)
+	}
+
+	var lastErr error
+	var stderrCapture bytes.Buffer
+
+	for attempt := 0; attempt <= maxRetries; attempt++ {
+		if attempt > 0 {
+			// Exponential backoff: 500ms, 1s, 2s
+			backoff := time.Duration(500*(1<<uint(attempt-1))) * time.Millisecond
+			if debug {
+				fmt.Printf("[%s] 🔄 Retry attempt %d/%d after %v (race condition detected)\n", 
+					timestamp(), attempt, maxRetries, backoff)
+			}
+			time.Sleep(backoff)
 		}
-	}
 
-	startTime := time.Now()
-	
-	var cmd *exec.Cmd
-	if useWrapper {
-		// Use wrapper script with file locking
-		cmd = exec.Command(wrapperPath, args...)
-	} else {
-		// Direct cursor-agent call (no lock protection)
-		cmd = exec.Command("cursor-agent", args...)
-	}
-	
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	err := cmd.Run()
+		// Add a small random delay to stagger startups and avoid config file race conditions
+		// This prevents multiple cursor-agent processes from writing cli-config.json simultaneously
+		if os.Getenv("CURSOR_AGENT_NO_STAGGER") != "1" {
+			baseDelay := 50
+			if attempt > 0 {
+				// Increase base delay on retries
+				baseDelay = 200 + (attempt * 100)
+			}
+			staggerDelay := time.Duration(baseDelay+rand.Intn(150)) * time.Millisecond
+			if debug {
+				fmt.Printf("[%s] ⏱️  Startup stagger: %v (prevents config race condition)\n", timestamp(), staggerDelay)
+			}
+			time.Sleep(staggerDelay)
+		}
 
-	if debug {
+		startTime := time.Now()
+		
+		// Capture stderr to detect race condition errors
+		stderrCapture.Reset()
+		cmd := exec.Command("cursor-agent", args...)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = &stderrCapture
+		
+		err := cmd.Run()
+		
+		// Also print stderr to user
+		if stderrCapture.Len() > 0 {
+			fmt.Fprint(os.Stderr, stderrCapture.String())
+		}
+
 		duration := time.Since(startTime)
-		if err != nil {
-			fmt.Printf("[%s] ❌ cursor-agent process failed after %v: %v\n", timestamp(), duration, err)
-		} else {
-			fmt.Printf("[%s] ✅ cursor-agent process completed successfully (duration: %v)\n", timestamp(), duration)
+
+		if err == nil {
+			if debug {
+				if attempt > 0 {
+					fmt.Printf("[%s] ✅ cursor-agent succeeded on retry %d (duration: %v)\n", 
+						timestamp(), attempt, duration)
+				} else {
+					fmt.Printf("[%s] ✅ cursor-agent process completed successfully (duration: %v)\n", 
+						timestamp(), duration)
+				}
+			}
+			return nil
 		}
+
+		// Check if it's a race condition error that we should retry
+		stderrStr := stderrCapture.String()
+		if isRaceConditionError(stderrStr) && attempt < maxRetries {
+			if debug {
+				fmt.Printf("[%s] ⚠️  Race condition detected in attempt %d, will retry...\n", 
+					timestamp(), attempt+1)
+			}
+			lastErr = err
+			continue
+		}
+
+		// Not a race condition or out of retries
+		if debug {
+			fmt.Printf("[%s] ❌ cursor-agent process failed after %v: %v\n", timestamp(), duration, err)
+		}
+		return err
 	}
 
-	return err
+	// Exhausted all retries
+	if debug {
+		fmt.Printf("[%s] ❌ cursor-agent failed after %d retries\n", timestamp(), maxRetries)
+	}
+	return fmt.Errorf("cursor-agent failed after %d retries: %w", maxRetries, lastErr)
 }
 
 // CodexWithDebug runs codex with the specified model; when debug is enabled, streams stdout/stderr.
