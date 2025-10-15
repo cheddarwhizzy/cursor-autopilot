@@ -164,7 +164,7 @@ Each iteration must:
 1. Read all control files.
 2. Select the next **unchecked** task in `tasks.md`.
 3. Mark it as in-progress (`- [ ] 🔄 <Task>`).
-4. Execute Plan → Implement → Test → Validate → Document → Commit.
+4. Execute Plan → Implement → Test → Validate → Document → Commit → Push.
 5. **BEFORE marking complete**, run validation gates:
    * **Build verification**: Run appropriate build command for the stack
    * **Test execution**: Run full test suite and verify all tests pass
@@ -172,6 +172,8 @@ Each iteration must:
    * **Type checking**: For typed languages (TypeScript, Go, etc.)
    * Document all validation results in the iteration output
 6. When complete (only after ALL validation gates pass):
+   * Commit changes to git with descriptive message
+   * Push changes to remote repository
    * Mark `[x]` ✅
    * Log tests and evidence in `progress.md`
    * Update `test_plan.md`, append ADRs, update `CHANGELOG.md`
@@ -247,6 +249,27 @@ Example:
 - `decisions.md` - Added ADR-YYYYMMDD-<topic> (if applicable)
 - `test_plan.md` - Updated test coverage
 - `CHANGELOG.md` - Added entry for this change
+
+### Git Commit and Push
+
+After ALL validation gates pass and documentation is updated:
+
+```bash
+# Source credentials (if required for SSH/git access)
+# Example: source ~/cheddar/dotfiles/customers/<customer>.sh
+
+# Stage changes
+git add <modified-files>
+
+# Commit with conventional format
+git commit -m "<type>: <description>"
+# Types: feat, fix, refactor, test, docs, chore
+
+# Push to remote
+git push origin <branch>
+```
+
+**Critical:** Tasks are ONLY complete after changes are successfully pushed to remote.
 
 ---
 

@@ -85,31 +85,35 @@ This will:
 
 ## 📁 Generated Files
 
+All control files and prompts are stored in the `.cursor-iter/` directory to keep your repository root clean.
+
 ### During Bootstrap (curl command):
-- `prompts/initialize-iteration-universal.md` - Universal initialization prompt
+- `.cursor-iter/prompts/initialize-iteration-universal.md` - Universal initialization prompt
 - `scripts/init-iterate.sh` - Initialization script
-- `architecture.md` - System architecture documentation (initial)
-- `progress.md` - Progress tracking (initial)
-- `decisions.md` - Architectural Decision Records (initial)
-- `test_plan.md` - Test coverage plans (initial)
-- `qa_checklist.md` - Quality assurance checklist (initial)
-- `CHANGELOG.md` - Conventional commits log (initial)
-- `context.md` - Project context (if not existing)
+- `.cursor-iter/architecture.md` - System architecture documentation (initial)
+- `.cursor-iter/progress.md` - Progress tracking (initial)
+- `.cursor-iter/decisions.md` - Architectural Decision Records (initial)
+- `.cursor-iter/test_plan.md` - Test coverage plans (initial)
+- `.cursor-iter/qa_checklist.md` - Quality assurance checklist (initial)
+- `.cursor-iter/CHANGELOG.md` - Conventional commits log (initial)
+- `.cursor-iter/context.md` - Project context (if not existing)
 
 ### After `cursor-iter iterate-init`:
-- `prompts/iterate.md` - Tailored iteration prompt (auto-generated)
-- `tasks.md` - Task backlog with acceptance criteria
+- `.cursor-iter/prompts/iterate.md` - Tailored iteration prompt (auto-generated)
+- `.cursor-iter/tasks.md` - Task backlog with acceptance criteria
 
 | File | Purpose |
 |------|---------|
-| `prompts/iterate.md` | Recurring iteration prompt (auto-generated) |
-| `tasks.md` | Task backlog with acceptance criteria |
-| `architecture.md` | High-level system architecture |
-| `progress.md` | Session summaries and completion evidence |
-| `decisions.md` | Architectural Decision Records (ADRs) |
-| `test_plan.md` | Test coverage plans and targets |
-| `qa_checklist.md` | Quality assurance checklist |
-| `CHANGELOG.md` | Conventional commits log |
+| `.cursor-iter/prompts/iterate.md` | Recurring iteration prompt (auto-generated) |
+| `.cursor-iter/tasks.md` | Task backlog with acceptance criteria |
+| `.cursor-iter/architecture.md` | High-level system architecture |
+| `.cursor-iter/progress.md` | Session summaries and completion evidence |
+| `.cursor-iter/decisions.md` | Architectural Decision Records (ADRs) |
+| `.cursor-iter/test_plan.md` | Test coverage plans and targets |
+| `.cursor-iter/qa_checklist.md` | Quality assurance checklist |
+| `.cursor-iter/CHANGELOG.md` | Conventional commits log |
+
+**Note:** The `.cursor-iter/` directory is automatically added to `.gitignore` to prevent control files from cluttering your repository history.
 
 ## 🔧 Quality Gates
 
@@ -373,24 +377,24 @@ cursor-iter add-feature
 
 ### Task Management
 
-Keep your `tasks.md` focused on current work:
+Keep your `.cursor-iter/tasks.md` focused on current work:
 
 ```bash
 cursor-iter archive-completed
 ```
 
 This will:
-- Move completed tasks to `completed_tasks/` folder
-- Keep `tasks.md` minimal and current
+- Move completed tasks to `.cursor-iter/completed_tasks/` folder
+- Keep `.cursor-iter/tasks.md` minimal and current
 - Update progress tracking
 - Maintain task history for reference
 
 ### Task Structure Validation
 
-Ensure your `tasks.md` has the correct structure:
+Ensure your `.cursor-iter/tasks.md` has the correct structure:
 
 ```bash
-# Validate tasks.md structure
+# Validate .cursor-iter/tasks.md structure
 cursor-iter validate-tasks
 
 # Fix common structure issues automatically

@@ -16,6 +16,9 @@ import (
 	"github.com/cheddarwhizzy/cursor-autopilot/cursor-agent-iteration/internal/tasks"
 )
 
+// CursorIterDir is the directory where all cursor-iter files are stored
+const CursorIterDir = ".cursor-iter"
+
 // TaskExecution represents a running task
 type TaskExecution struct {
 	TaskTitle string
@@ -83,14 +86,14 @@ func (tr *TaskRunner) StartTask(taskTitle string, taskDetails string, useCodex b
 
 ## Instructions
 
-1. Review the control files for context:
-   - architecture.md: System architecture and design
-   - decisions.md: Architectural Decision Records (ADRs)
-   - progress.md: Completed tasks and progress history
-   - test_plan.md: Testing strategy and coverage
-   - qa_checklist.md: Quality assurance requirements
-   - CHANGELOG.md: Change history
-   - context.md: Project context (if available)
+1. Review the control files for context (located in .cursor-iter/):
+   - .cursor-iter/architecture.md: System architecture and design
+   - .cursor-iter/decisions.md: Architectural Decision Records (ADRs)
+   - .cursor-iter/progress.md: Completed tasks and progress history
+   - .cursor-iter/test_plan.md: Testing strategy and coverage
+   - .cursor-iter/qa_checklist.md: Quality assurance requirements
+   - .cursor-iter/CHANGELOG.md: Change history
+   - .cursor-iter/context.md: Project context (if available)
 
 2. Implement the task following these steps:
    - Plan your implementation approach
@@ -101,8 +104,8 @@ func (tr *TaskRunner) StartTask(taskTitle string, taskDetails string, useCodex b
    - Commit changes with conventional commit messages
 
 3. Track progress:
-   - Check off each acceptance criterion in tasks.md as you complete it
-   - When ALL criteria are checked, move the task from "## In Progress" to "## Completed Tasks" in progress.md
+   - Check off each acceptance criterion in .cursor-iter/tasks.md as you complete it
+   - When ALL criteria are checked, move the task from "## In Progress" to "## Completed Tasks" in .cursor-iter/progress.md
    - Use format: "- ✅ [YYYY-MM-DD HH:MM] Task Title - completion notes"
 
 4. Quality Requirements:
@@ -137,13 +140,13 @@ func (tr *TaskRunner) StartTask(taskTitle string, taskDetails string, useCodex b
 ## Important Notes
 
 - Focus ONLY on this specific task
-- tasks.md is a simple task list (no status emojis) - only check off acceptance criteria
-- progress.md tracks task status (in-progress and completed)
-- When all acceptance criteria are checked, move this task from "## In Progress" to "## Completed Tasks" in progress.md
+- .cursor-iter/tasks.md is a simple task list (no status emojis) - only check off acceptance criteria
+- .cursor-iter/progress.md tracks task status (in-progress and completed)
+- When all acceptance criteria are checked, move this task from "## In Progress" to "## Completed Tasks" in .cursor-iter/progress.md
 - Ensure all quality gates pass before marking complete
 - NEVER run dev servers or long-running processes - they will hang the agent
 
-Work on this task until all acceptance criteria are checked off and the task is moved to completed in progress.md.`, taskDetails)
+Work on this task until all acceptance criteria are checked off and the task is moved to completed in .cursor-iter/progress.md.`, taskDetails)
 
 	// Start cursor-agent in goroutine
 	go func() {
@@ -246,20 +249,23 @@ func (tr *TaskRunner) GetRunningTasks() []string {
 
 func usage() {
 	fmt.Println("cursor-iter - task utilities")
+	fmt.Println("")
+	fmt.Println("All control files are stored in the .cursor-iter/ directory")
+	fmt.Println("")
 	fmt.Println("Usage:")
-	fmt.Println("  cursor-iter task-status   [--file tasks.md] [--progress progress.md]")
-	fmt.Println("  cursor-iter archive-completed [--file tasks.md] [--progress progress.md] [--outdir completed_tasks]")
-	fmt.Println("  cursor-iter iterate-init   [--model auto] [--codex]  # uses prompts/initialize-iteration-universal.md")
-	fmt.Println("  cursor-iter iterate        [--max-in-progress 10]    # runs iteration using prompts/iterate.md")
+	fmt.Println("  cursor-iter task-status   [--file .cursor-iter/tasks.md] [--progress .cursor-iter/progress.md]")
+	fmt.Println("  cursor-iter archive-completed [--file .cursor-iter/tasks.md] [--progress .cursor-iter/progress.md]")
+	fmt.Println("  cursor-iter iterate-init   [--model auto] [--codex]  # uses .cursor-iter/prompts/initialize-iteration-universal.md")
+	fmt.Println("  cursor-iter iterate        [--max-in-progress 10]    # runs iteration using .cursor-iter/prompts/iterate.md")
 	fmt.Println("  cursor-iter iterate-loop   [--codex] [--max-in-progress 10]  # loops until completion")
-	fmt.Println("  cursor-iter add-feature                  # uses prompts/add-feature.md (DESIGN ONLY)")
+	fmt.Println("  cursor-iter add-feature                  # uses .cursor-iter/prompts/add-feature.md (DESIGN ONLY)")
 	fmt.Println("  cursor-iter add-feature --file <path>    # read feature description from file")
 	fmt.Println("  cursor-iter add-feature --prompt \"desc\"  # provide feature description as argument")
 	fmt.Println("  cursor-iter add-feature [--codex]        # use codex instead of cursor-agent")
 	fmt.Println("  cursor-iter run-agent --prompt \"request\" # send ad-hoc request to cursor-agent/codex")
 	fmt.Println("  cursor-iter run-agent [--codex]          # use codex instead of cursor-agent")
 	fmt.Println("  cursor-iter validate-tasks [--fix]       # validate/fix tasks.md structure")
-	fmt.Println("  cursor-iter reset                       # remove all control files")
+	fmt.Println("  cursor-iter reset                       # remove .cursor-iter/ directory and all control files")
 	fmt.Println("")
 	fmt.Println("Options:")
 	fmt.Println("  --codex              Use codex CLI with gpt-5-codex model instead of cursor-agent")
@@ -267,8 +273,8 @@ func usage() {
 	fmt.Println("  --max-in-progress N  Maximum number of in-progress tasks allowed (default: 10)")
 	fmt.Println("")
 	fmt.Println("Task Workflow:")
-	fmt.Println("  tasks.md     - Master task list (add-feature adds tasks here)")
-	fmt.Println("  progress.md  - Completion log (iterate-loop updates when tasks complete)")
+	fmt.Println("  .cursor-iter/tasks.md     - Master task list (add-feature adds tasks here)")
+	fmt.Println("  .cursor-iter/progress.md  - Completion log (iterate-loop updates when tasks complete)")
 	fmt.Println("  NOTE: This separation prevents write conflicts when adding features during iterate-loop")
 	fmt.Println("")
 	fmt.Println("Task Continuation:")
@@ -373,7 +379,7 @@ func main() {
 		fs := flag.NewFlagSet("archive-completed", flag.ExitOnError)
 		file := fs.String("file", resolveTasksFile(), "tasks file")
 		progressFile := fs.String("progress", resolveProgressFile(), "progress file")
-		outdir := fs.String("outdir", "completed_tasks", "archive directory")
+		outdir := fs.String("outdir", getControlFilePath("completed_tasks"), "archive directory")
 		dbg := fs.Bool("debug", debug, "enable verbose logging")
 		_ = fs.Parse(os.Args[2:])
 		if *dbg {
@@ -419,6 +425,13 @@ func main() {
 			os.Exit(1)
 		}
 
+		// Create archive directory if it doesn't exist
+		archiveDir := filepath.Dir(archiveFile)
+		if err := os.MkdirAll(archiveDir, 0755); err != nil {
+			fmt.Fprintf(os.Stderr, "error creating archive directory: %v\n", err)
+			os.Exit(1)
+		}
+
 		// Write archive file
 		if err := os.WriteFile(archiveFile, []byte(archived), 0644); err != nil {
 			fmt.Fprintf(os.Stderr, "error writing archive: %v\n", err)
@@ -434,7 +447,14 @@ func main() {
 		useCodex := fs.Bool("codex", false, "use codex CLI with gpt-5-codex model")
 		dbg := fs.Bool("debug", debug, "enable verbose logging")
 		_ = fs.Parse(os.Args[2:])
-		promptFile := "./prompts/initialize-iteration-universal.md"
+		
+		// Ensure .cursor-iter directory exists
+		if err := ensureCursorIterDir(); err != nil {
+			fmt.Fprintf(os.Stderr, "failed to create %s directory: %v\n", CursorIterDir, err)
+			os.Exit(1)
+		}
+		
+		promptFile := getControlFilePath("prompts/initialize-iteration-universal.md")
 
 		// Try to fetch from GitHub if not present locally
 		if err := fetchPromptFromGitHub(promptFile); err != nil {
@@ -600,14 +620,14 @@ func main() {
 
 ## Instructions
 
-1. Review the control files for context:
-   - architecture.md: System architecture and design
-   - decisions.md: Architectural Decision Records (ADRs)
-   - progress.md: Completed tasks and progress history
-   - test_plan.md: Testing strategy and coverage
-   - qa_checklist.md: Quality assurance requirements
-   - CHANGELOG.md: Change history
-   - context.md: Project context (if available)
+1. Review the control files for context (located in .cursor-iter/):
+   - .cursor-iter/architecture.md: System architecture and design
+   - .cursor-iter/decisions.md: Architectural Decision Records (ADRs)
+   - .cursor-iter/progress.md: Completed tasks and progress history
+   - .cursor-iter/test_plan.md: Testing strategy and coverage
+   - .cursor-iter/qa_checklist.md: Quality assurance requirements
+   - .cursor-iter/CHANGELOG.md: Change history
+   - .cursor-iter/context.md: Project context (if available)
 
 2. Implement the task following these steps:
    - Plan your implementation approach
@@ -618,8 +638,8 @@ func main() {
    - Commit changes with conventional commit messages
 
 3. Track progress:
-   - Check off each acceptance criterion in tasks.md as you complete it
-   - When ALL criteria are checked, move the task from "## In Progress" to "## Completed Tasks" in progress.md
+   - Check off each acceptance criterion in .cursor-iter/tasks.md as you complete it
+   - When ALL criteria are checked, move the task from "## In Progress" to "## Completed Tasks" in .cursor-iter/progress.md
    - Use format: "- ✅ [YYYY-MM-DD HH:MM] Task Title - completion notes"
 
 4. Quality Requirements:
@@ -654,13 +674,13 @@ func main() {
 ## Important Notes
 
 - Focus ONLY on this specific task
-- tasks.md is a simple task list (no status emojis) - only check off acceptance criteria
-- progress.md tracks task status (in-progress and completed)
-- When all acceptance criteria are checked, move this task from "## In Progress" to "## Completed Tasks" in progress.md
+- .cursor-iter/tasks.md is a simple task list (no status emojis) - only check off acceptance criteria
+- .cursor-iter/progress.md tracks task status (in-progress and completed)
+- When all acceptance criteria are checked, move this task from "## In Progress" to "## Completed Tasks" in .cursor-iter/progress.md
 - Ensure all quality gates pass before marking complete
 - NEVER run dev servers or long-running processes - they will hang the agent
 
-Work on this task until all acceptance criteria are checked off and the task is moved to completed in progress.md.`, taskDetails)
+Work on this task until all acceptance criteria are checked off and the task is moved to completed in .cursor-iter/progress.md.`, taskDetails)
 
 		// Set default model for codex if not specified
 		agentModel := *model
@@ -937,7 +957,13 @@ Work on this task until all acceptance criteria are checked off and the task is 
 		dbg := fs.Bool("debug", debug, "enable verbose logging")
 		_ = fs.Parse(os.Args[2:])
 
-		promptFile := "./prompts/add-feature.md"
+		// Ensure .cursor-iter directory exists
+		if err := ensureCursorIterDir(); err != nil {
+			fmt.Fprintf(os.Stderr, "failed to create %s directory: %v\n", CursorIterDir, err)
+			os.Exit(1)
+		}
+
+		promptFile := getControlFilePath("prompts/add-feature.md")
 
 		// Try to fetch from GitHub if not present locally
 		if fetchErr := fetchPromptFromGitHub(promptFile); fetchErr != nil {
@@ -1065,8 +1091,9 @@ Work on this task until all acceptance criteria are checked off and the task is 
 		updatedFiles := []string{}
 
 		for _, file := range controlFiles {
-			if _, err := os.Stat(file); err == nil {
-				updatedFiles = append(updatedFiles, file)
+			filePath := getControlFilePath(file)
+			if _, err := os.Stat(filePath); err == nil {
+				updatedFiles = append(updatedFiles, filePath)
 			}
 		}
 
@@ -1077,10 +1104,11 @@ Work on this task until all acceptance criteria are checked off and the task is 
 			}
 
 			// Check if tasks.md exists and has content
-			if _, err := os.Stat("tasks.md"); err == nil {
-				content, readErr := os.ReadFile("tasks.md")
+			tasksPath := getControlFilePath("tasks.md")
+			if _, err := os.Stat(tasksPath); err == nil {
+				content, readErr := os.ReadFile(tasksPath)
 				if readErr == nil && len(content) > 0 {
-					fmt.Printf("[%s] 📝 Tasks have been added to tasks.md\n", ts())
+					fmt.Printf("[%s] 📝 Tasks have been added to %s\n", ts(), tasksPath)
 					fmt.Printf("[%s] 💡 Run 'cursor-iter task-status' to see all tasks\n", ts())
 					fmt.Printf("[%s] 💡 Run 'cursor-iter iterate-loop' to start processing tasks\n", ts())
 				}
@@ -1124,11 +1152,16 @@ Work on this task until all acceptance criteria are checked off and the task is 
 			"context.md - Project context (if available)",
 		}
 
-		// Check which control files exist
+		// Check which control files exist (check both new and old locations)
 		existingControlFiles := []string{}
 		for _, fileDesc := range controlFilesList {
 			fileName := strings.Split(fileDesc, " - ")[0]
-			if _, err := os.Stat(fileName); err == nil {
+			// Check new location first
+			newPath := getControlFilePath(fileName)
+			if _, err := os.Stat(newPath); err == nil {
+				existingControlFiles = append(existingControlFiles, fileDesc)
+			} else if _, err := os.Stat(fileName); err == nil {
+				// Fall back to old location
 				existingControlFiles = append(existingControlFiles, fileDesc)
 			}
 		}
@@ -1234,8 +1267,16 @@ REMEMBER: NEVER run dev servers or long-running processes - they will hang the a
 			fmt.Printf("[%s] 💡 Review changes and run 'cursor-iter task-status' to check task progress\n", ts())
 		}
 	case "reset":
-		// Remove all control files
-		controlFiles := []string{
+		// Remove the .cursor-iter directory and legacy files
+		fmt.Printf("Removing cursor-iter control files...\n")
+		
+		// Remove new location
+		if err := os.RemoveAll(CursorIterDir); err == nil {
+			fmt.Printf("Removed: %s/\n", CursorIterDir)
+		}
+		
+		// Also clean up any legacy files in the root (for backward compatibility)
+		legacyFiles := []string{
 			"architecture.md",
 			"progress.md",
 			"decisions.md",
@@ -1249,13 +1290,20 @@ REMEMBER: NEVER run dev servers or long-running processes - they will hang the a
 		}
 
 		removed := 0
-		for _, file := range controlFiles {
-			if err := os.RemoveAll(file); err == nil {
-				fmt.Printf("Removed: %s\n", file)
-				removed++
+		for _, file := range legacyFiles {
+			if _, err := os.Stat(file); err == nil {
+				if err := os.RemoveAll(file); err == nil {
+					fmt.Printf("Removed legacy file: %s\n", file)
+					removed++
+				}
 			}
 		}
-		fmt.Printf("Reset complete. Removed %d control files/directories.\n", removed)
+		
+		if removed > 0 {
+			fmt.Printf("Reset complete. Removed %s/ directory and %d legacy files.\n", CursorIterDir, removed)
+		} else {
+			fmt.Printf("Reset complete. Removed %s/ directory.\n", CursorIterDir)
+		}
 	default:
 		if cmd == "-h" || cmd == "--help" || strings.TrimSpace(cmd) == "" {
 			usage()
@@ -1267,30 +1315,52 @@ REMEMBER: NEVER run dev servers or long-running processes - they will hang the a
 	}
 }
 
+// ensureCursorIterDir ensures the .cursor-iter directory exists
+func ensureCursorIterDir() error {
+	return os.MkdirAll(CursorIterDir, 0755)
+}
+
+// getControlFilePath returns the full path to a control file in the .cursor-iter directory
+func getControlFilePath(filename string) string {
+	return filepath.Join(CursorIterDir, filename)
+}
+
 func resolveTasksFile() string {
 	if v := os.Getenv("TASKS_FILE"); v != "" {
 		return v
 	}
+	// Check new location first
+	newPath := getControlFilePath("tasks.md")
+	if _, err := os.Stat(newPath); err == nil {
+		return newPath
+	}
+	// Fall back to old location for backward compatibility
 	if _, err := os.Stat("tasks.md"); err == nil {
 		return "tasks.md"
 	}
 	if _, err := os.Stat("../tasks.md"); err == nil {
 		return "../tasks.md"
 	}
-	return "tasks.md"
+	return newPath // Return new location as default
 }
 
 func resolveProgressFile() string {
 	if v := os.Getenv("PROGRESS_FILE"); v != "" {
 		return v
 	}
+	// Check new location first
+	newPath := getControlFilePath("progress.md")
+	if _, err := os.Stat(newPath); err == nil {
+		return newPath
+	}
+	// Fall back to old location for backward compatibility
 	if _, err := os.Stat("progress.md"); err == nil {
 		return "progress.md"
 	}
 	if _, err := os.Stat("../progress.md"); err == nil {
 		return "../progress.md"
 	}
-	return "progress.md"
+	return newPath // Return new location as default
 }
 
 func envOr(k, def string) string {

@@ -86,6 +86,8 @@ When updating `tasks.md`, you MUST ensure:
 * [ ] Linting/formatting checks pass
 * [ ] Type checking passes (for typed languages)
 * [ ] No long-running processes were executed (dev servers are forbidden)
+* [ ] Changes committed to git with descriptive message
+* [ ] Changes pushed to remote repository
   **Files to Modify:** `src/...`, `tests/...`
   **Tests:** unit / integration / e2e
   **Labels:** `[type:feature] [area:<module>]`
@@ -139,7 +141,17 @@ Each task's acceptance criteria MUST explicitly include:
 * [ ] Type checking passes (for typed languages)
 * [ ] No long-running processes were executed (dev servers are forbidden)
 
-**Tasks cannot be marked complete without successful build and test verification.**
+**Tasks cannot be marked complete without successful build and test verification, and git commit/push.**
+
+**Git Workflow:** After all validation passes, commit and push:
+```bash
+# Source credentials if needed (e.g., for SSH access)
+# source ~/cheddar/dotfiles/customers/<customer>.sh
+
+git add <modified-files>
+git commit -m "<type>: <description>"
+git push origin <branch>
+```
 
 **🚨 CRITICAL: NEVER RUN LONG-RUNNING PROCESSES 🚨**
 
